@@ -15,6 +15,7 @@ function openPdfPrefs(e){
  * https://mrrio.github.io/jsPDF/doc/symbols/jsPDF.html#setLineCap
  **********************************************************************************/
 function getPDF(){
+	pdfCancelButton();	// close the PDF menu when you download
 	// canvas elements need to be converted to DataUrl to be loaded into PDF
 	updateSelection(); // redraw the canvases because otherwise they can show up blank
 	var sumImgData = canvas.toDataURL('image/png');
@@ -97,11 +98,10 @@ function getPDF(){
 			doc.text(label.offsetLeft/detClient2PdfWRatio+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop+fontSize, label.innerHTML, null);
 		} else if (label.getAttribute("axis") == "ColumnClass"){ // change font for class bars
 			var scale =  detImgH / (detailDataViewWidth + calculateTotalClassBarHeight("row")+detailDendroWidth);
-			var colClassInfo = getClassBarsToDraw("column");
-			var names = colClassInfo["bars"];
-			var classBars = heatMap.getClassifications();
+			var colClassBarConfig = heatMap.getColClassificationConfig();
+			var classBar0 = colClassBarConfig[Object.keys(colClassBarConfig)[0]];
 			var tempFontSize = fontSize;
-			fontSize = Math.min((classBars[names[0]].height - paddingHeight) * scale, 11);
+			fontSize = Math.min((classBar0.height - paddingHeight) * scale, 11);
 			doc.setFontSize(fontSize);
 			doc.text(label.offsetLeft/detClient2PdfWRatio+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop+fontSize/2, label.innerHTML, null);
 			fontSize = tempFontSize
@@ -124,11 +124,10 @@ function getPDF(){
 			doc.text(label.offsetLeft/detClient2PdfWRatio-fontSize+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop, label.innerHTML, null, 270);
 		} else if (label.getAttribute("axis") == "RowClass"){
 			var scale =  detImgW / (detailDataViewWidth + calculateTotalClassBarHeight("row")+detailDendroWidth);
-			var colClassInfo = getClassBarsToDraw("row");
-			var names = colClassInfo["bars"];
-			var classBars = heatMap.getClassifications();
+			var rowClassBarConfig = heatMap.getRowClassificationConfig();
+			var classBar0 = colClassBarConfig[Object.keys(rowClassBarConfig)[0]];
 			var tempFontSize = fontSize;
-			fontSize = Math.min((classBars[names[0]].height - paddingHeight) * scale, 11);
+			fontSize = Math.min((classBar0.height - paddingHeight) * scale, 11);
 			doc.setFontSize(fontSize);
 			doc.text(label.offsetLeft/detClient2PdfWRatio-fontSize/2+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop, label.innerHTML, null, 270);
 			fontSize = tempFontSize
@@ -137,12 +136,12 @@ function getPDF(){
 	}
 	 
 	// class bar legends
-	var classBars = heatMap.getClassifications();
 	var classBarHeaderSize = 20; // these are font sizes
 	var classBarTitleSize = 15;
 	var classBarLegendTextSize = 10;
 	var classBarFigureW = 150; // figure dimensions, unless discrete with 15+ categories
 	var classBarFigureH = 150;
+	var topSkip = classBarFigureH + classBarHeaderSize; 
 	var condenseClassBars = isChecked('pdfInputCondensed');
 	paddingLeft = 5, paddingTop = headerHeight+classBarHeaderSize + 5; // reset the top and left coordinates
 	
@@ -152,20 +151,18 @@ function getPDF(){
 		createHeader();
 		doc.setFontSize(classBarHeaderSize);
 		doc.text(10, paddingTop, "Row Covariate Bar Legends:" , null);
-		var rowClassInfo = getClassBarsToDraw("row");
-		var names = rowClassInfo["bars"];
-		var colorSchemes = rowClassInfo["colors"];
 		var leftOff=10, topOff = paddingTop + classBarTitleSize;
-		
-		for (var i = 0; i < names.length; i++){ // for each class bar to draw...
+		var rowClassBarConfig = heatMap.getRowClassificationConfig();
+		var rowClassBarData = heatMap.getRowClassificationData();
+		for (var key in rowClassBarConfig){
+			var currentClassBar = rowClassBarConfig[key];
 			doc.setFontSize(classBarTitleSize);
-			var currentClassBar = classBars[names[i]];
-			var colorMap = heatMap.getColorMapManager().getColorMap(colorSchemes[i]);
-			if (currentClassBar.show === 'Y') { // place the figure if it's shown
+			var colorMap = heatMap.getColorMapManager().getColorMap("row", key);
+			if (currentClassBar.show === 'Y') {
 				if (colorMap.getType() == "discrete"){
-					getBarGraphForDiscreteClassBar(currentClassBar,colorMap,names[i]);
+					getBarGraphForDiscreteClassBar(rowClassBarData[key],colorMap,key);
 				} else {
-					getBarGraphForContinuousClassBar(currentClassBar,colorMap,names[i]);
+					getBarGraphForContinuousClassBar(rowClassBarData[key],colorMap,key);
 				}
 			}
 		}
@@ -177,20 +174,18 @@ function getPDF(){
 		createHeader();
 		doc.setFontSize(classBarHeaderSize);
 		doc.text(10, paddingTop, "Column Covariate Bar Legends:" , null);
-		var colClassInfo = getClassBarsToDraw("column");
-		var names = colClassInfo["bars"];
-		var colorSchemes = colClassInfo["colors"];
 		var leftOff=10, topOff = paddingTop + classBarTitleSize;
-		
-		for (var i = 0; i < names.length; i++){ // for each class bar to draw...
+		var colClassBarConfig = heatMap.getColClassificationConfig();
+		var colClassBarData = heatMap.getColClassificationData();
+		for (var key in colClassBarConfig){
+			var currentClassBar = colClassBarConfig[key];
 			doc.setFontSize(classBarTitleSize);
-			var currentClassBar = classBars[names[i]];
-			var colorMap = heatMap.getColorMapManager().getColorMap(colorSchemes[i]);
+			var colorMap = heatMap.getColorMapManager().getColorMap("col", key);
 			if (currentClassBar.show === 'Y') {
 				if (colorMap.getType() == "discrete"){
-					getBarGraphForDiscreteClassBar(currentClassBar,colorMap,names[i]);
+					getBarGraphForDiscreteClassBar(colClassBarData[key],colorMap,key);
 				} else {
-					getBarGraphForContinuousClassBar(currentClassBar,colorMap,names[i]);
+					getBarGraphForContinuousClassBar(colClassBarData[key],colorMap,key);
 				}
 			}
 		}
@@ -199,7 +194,7 @@ function getPDF(){
 	// TODO: in case there is an empty page after the class bar legends, delete it
 	
 	
-	doc.save( heatMap.getChm().name + '.pdf');
+	doc.save( heatMap.getMapInformation().name + '.pdf');
 	
 	
 	//==================//
@@ -210,7 +205,7 @@ function getPDF(){
 	function createHeader() {
 		doc.addImage(headerData, 'PNG',5,5,header.clientWidth,header.clientHeight);
 		doc.setFontSize(20);
-		doc.text(pageWidth/2 - doc.getStringUnitWidth(heatMap.getChm().name)*20/2, headerHeight, heatMap.getChm().name, null);
+		doc.text(pageWidth/2 - doc.getStringUnitWidth(heatMap.getMapInformation().name)*20/2, headerHeight, heatMap.getMapInformation().name, null);
 		doc.setFillColor(255,0,0);
 		doc.setDrawColor(255,0,0);
 		doc.rect(5, header.clientHeight+10, pageWidth-10, 2, "FD");
@@ -289,9 +284,9 @@ function getPDF(){
 		leftOff+= classBarFigureW + maxLabelLength + 50; 
 		if (leftOff + classBarFigureW > pageWidth){ // if we'll go off the width of the page...
 			leftOff = 10; // ...reinitialize the left side
-			topOff += classBarFigureH + classBarHeaderSize;
-			classBarFigureH = 150; // return figure height to original value in case it got changed in the current row
-			if (topOff + classBarFigureH > pageHeight){ // if we'll go off the bottom of the page...
+			topOff += topSkip; // ... and move the next figure to the line below
+			topSkip  = classBarFigureH + classBarHeaderSize; // return class bar height to original value in case it got changed in this row
+			if (topOff + classBarFigureH > pageHeight && !isLastClassBarToBeDrawn(classBar)){ // if we'll go off the bottom of the page...
 				doc.addPage();
 				createHeader(); // ...create a new page and reinitialize the top
 				topOff = paddingTop + 5;
@@ -308,7 +303,7 @@ function getPDF(){
 	function getBarGraphForDiscreteClassBar(classBar, colorMap,name){
 		doc.text(leftOff, topOff , name, null);
 		var thresholds = colorMap.getThresholds();
-		var barHeight = !condenseClassBars ? classBarFigureH/(thresholds.length+1) : 10;
+		var barHeight = !condenseClassBars ? Math.max(classBarFigureH/(thresholds.length+1),10) : 10;
 		var counts = {}, maxCount = 0, maxLabelLength = doc.getStringUnitWidth("Missing Value")*classBarLegendTextSize;
 		// get the number N in each threshold
 		for(var i = 0; i< classBar.values.length; i++) {
@@ -329,20 +324,20 @@ function getPDF(){
 			var rgb = colorMap.getClassificationColor(thresholds[j]);
 			doc.setFillColor(rgb.r,rgb.g,rgb.b);
 			doc.setDrawColor(0,0,0);
+			var count = counts[thresholds[j]] ? counts[thresholds[j]] : 0;
 			if (condenseClassBars){
 				var barW = 10;
 				doc.rect(leftOff, bartop, barW, barHeight, "FD");
 				doc.setFontSize(classBarLegendTextSize);
-				doc.text(leftOff +barW + 5, bartop + classBarLegendTextSize, thresholds[j].toString() + "   " + "n = " + counts[thresholds[j]] , null);
+				doc.text(leftOff +barW + 5, bartop + classBarLegendTextSize, thresholds[j].toString() + "   " + "n = " + count, null);
 			} else {
-				var barW = counts[thresholds[j]]/maxCount*classBarFigureW;
+				var barW = count/maxCount*classBarFigureW;
 				doc.rect(leftOff + maxLabelLength, bartop, barW, barHeight, "FD");
 				doc.setFontSize(classBarLegendTextSize);
 				doc.text(leftOff + maxLabelLength - doc.getStringUnitWidth(thresholds[j].toString())*classBarLegendTextSize - 4, bartop + barHeight/2, thresholds[j].toString() , null);
-				doc.text(leftOff + maxLabelLength +barW + 5, bartop + barHeight/2, "n = " + counts[thresholds[j]] , null);
+				doc.text(leftOff + maxLabelLength +barW + 5, bartop + barHeight/2, "n = " + count, null);
 			}
-			
-			missingCount -= counts[thresholds[j]];
+			missingCount -= count;
 			bartop+=barHeight;
 		}
 			
@@ -362,15 +357,15 @@ function getPDF(){
 			doc.text(leftOff + maxLabelLength +barW + 5, bartop + barHeight/2, "n = " + missingCount , null);
 		}
 		
-		if (thresholds.length > 15){ // in case a discrete classbar has over 15 categories, make the topOff increment bigger
-			classBarFigureH = (1+thresholds.length)*10;
+		if (thresholds.length * barHeight > classBarFigureH){ // in case a discrete classbar has over 15 categories, make the topOff increment bigger
+			topSkip = (thresholds.length+1) * barHeight+classBarHeaderSize;
 		}
 		leftOff+= classBarFigureW + maxLabelLength + 50;
 		if (leftOff + classBarFigureW > pageWidth){ // if the next class bar figure will go beyond the width of the page...
 			leftOff = 10; // ...reset leftOff...
-			topOff += classBarFigureH+classBarHeaderSize; // ... and move the next figure to the line below
-			classBarFigureH = 150; // return class bar height to original value in case it got changed in this row
-			if (topOff + classBarFigureH > pageHeight){ // if the next class bar goes off the page vertically...
+			topOff += topSkip; // ... and move the next figure to the line below
+			topSkip  = classBarFigureH + classBarHeaderSize; // return class bar height to original value in case it got changed in this row
+			if (topOff + classBarFigureH > pageHeight && !isLastClassBarToBeDrawn(classBar)){ // if the next class bar goes off the page vertically...
 				doc.addPage(); // ... make a new page and reset topOff
 				createHeader();
 				topOff = paddingTop + 10;
@@ -380,6 +375,24 @@ function getPDF(){
 	function isChecked(el){
 		if(document.getElementById(el))
 		return document.getElementById(el).checked;
+	}
+	
+	/**********************************************************************************
+	 * FUNCTION - isLastClassBarToBeDrawn: checks if this is the last class bar to be 
+	 * drawn. Used to determine if we add a new page when drawing class bars.
+	 **********************************************************************************/
+	function isLastClassBarToBeDrawn(classBar){
+		if (isChecked('pdfInputRow')) {
+			var classBarCount = Object.keys(heatMap.getRowClassificationConfig()).length;
+		} else {
+			var classBarCount = Object.keys(heatMap.getColClassificationConfig()).length;
+		};
+		if (isChecked("pdfInputColumn") && i === classBarCount - 1){
+			return true;
+		} else if (isChecked("pdfInputRow") && !isChecked("pdfInputColumn") && i === classBarCount-1){
+			return true;
+		}
+		return false;
 	}
 }
 

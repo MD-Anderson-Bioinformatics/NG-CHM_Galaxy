@@ -9,19 +9,28 @@
 //Globals that provide information about heat map position selection.
 
 mode = null;          // Set to normal or ribbon vertical or ribbon horizontal 
+currentDl = "dl1";    // Set (default) to Data Layer 1 (set in application by user when flick views are toggled)
 currentRow=null;      // Top row of current selected position
 currentCol=null;      // Left column of the current selected position
 dataPerRow=null;      // How many rows are included in the current selection
 dataPerCol=null;      // How many columns in the current selection
 selectedStart=0;      // If dendrogram selection is used to limit ribbon view - which position to start selection.
 selectedStop=0;       // If dendrogram selection is used to limit ribbon view - which position is last of selection.
-var searchItems=[];   // Valid labels found from a user search
+var searchItems={};   // Valid labels found from a user search
 
                       //isSub will be set to true if windows are split and this is the child.
 isSub = getURLParameter('sub') == 'true';  
 hasSub = false;       //hasSub set to true if windows are split and this is the parent.
 
 
+
+/* This function is called on detailInit to initialize the searchItems arrays */
+function createEmptySearchItems(){
+	searchItems["Row"]= {};
+	searchItems["Column"]= {};
+	searchItems["RowCovar"] = {};
+	searchItems["ColumnCovar"]= {};
+}
 /* This routine is called when the selected row / column is changed.
  * It is assumed that the caller modified currentRow, currentCol, dataPerRow,
  * and dataPerCol as desired. This method does redrawing and notification as necessary.  
@@ -41,6 +50,7 @@ function updateSelection() {
 	//to the other browser.
 	if (isSub || hasSub) {
 		localStorage.removeItem('event');
+		localStorage.setItem('currentDl', '' + currentDl);
 		localStorage.setItem('currentRow', '' + currentRow);
 		localStorage.setItem('currentCol', '' + currentCol);
 		localStorage.setItem('dataPerRow', '' + dataPerRow);
@@ -69,6 +79,21 @@ function changeMode(newMode) {
 		localStorage.setItem('mode', newMode);
 		localStorage.setItem('event', 'changeMode');
 	}
+}
+
+/**********************************************************************************
+ * FUNCTION - getLevelFromMode: This function returns the level that is associated
+ * with a given mode.  A level is passed in from either the summary or detail display
+ * as a default value and returned if the mode is not one of the Ribbon modes.
+ **********************************************************************************/
+function getLevelFromMode(lvl) {
+	if (mode == 'RIBBONV') {
+		return MatrixManager.RIBBON_VERT_LEVEL;
+	} else if (mode == 'RIBBONH') {
+		return MatrixManager.RIBBON_HOR_LEVEL;
+	} else {
+		return lvl;
+	} 
 }
 
 /* Handle mouse scroll wheel events to zoom in / out.
@@ -156,6 +181,16 @@ function keyNavigate(e){
 				detailDataZoomOut();
 			}
 			break;
+		case 113: // F2 key 
+			if (flickIsOn()) {
+				var flickBtnSrc = document.getElementById("flick_btn").src;
+				if (flickBtnSrc.indexOf("Up") >= 0) {
+					flickChange("toggle2");
+				} else {
+					flickChange("toggle1");
+				}
+			}
+			break;
 		case 191: // "divide key" /
 			detailSplit();
 			break;
@@ -169,9 +204,17 @@ function keyNavigate(e){
     updateSelection();
 }
 
-/* Local storage is used to communicate between two browser windows when the display is split. Set
- * up an event to be notified when contents of local storage are modified.
- */ 
+/*==============================================================================================
+ * 
+ * LOCAL STORAGE (SPLIT SCREEN) FUNCTIONS
+ * 
+ *=============================================================================================*/
+
+/************************************************************************************************
+ * FUNCTION: setupLocalStorage - Local storage is used to communicate between two browser windows 
+ * when the display is split. Setup an event to be notified when contents of local storage are 
+ * modified.
+ ***********************************************************************************************/ 
 function setupLocalStorage () {
 	window.addEventListener('storage', function (evt) {
 		console.log('localstorage event ' + evt.key);
@@ -181,8 +224,10 @@ function setupLocalStorage () {
 	}, false);
 }
 
-//When the detail pane is in a separate window, local storage is used to send it updates from 
-//clicks in the summary view.
+/************************************************************************************************
+ * FUNCTION: handleLocalStorageEvent - When the detail pane is in a separate window, local storage 
+ * is used to send it updates from clicks in the summary view.
+ ***********************************************************************************************/ 
 function handleLocalStorageEvent(evt) {
 	if (evt.newValue == null)
 		return;
@@ -201,7 +246,17 @@ function handleLocalStorageEvent(evt) {
 		}
 		mode = localStorage.getItem('mode');
 		if (hasSub) {
-			searchItems = JSON.parse(localStorage.getItem('selected'));
+			if (currentDl != localStorage.getItem('currentDl')) {
+				currentDl = localStorage.getItem('currentDl');
+				summaryInit();
+			}
+			// if the selection changes, redraw the selection marks
+			if (JSON.stringify(searchItems) !== localStorage.getItem('selected')){
+				searchItems = JSON.parse(localStorage.getItem('selected'));
+				clearSelectionMarks();
+				drawRowSelectionMarks();
+				drawColSelectionMarks();
+			}
 			// Redraw the yellow selection box.
 			drawLeftCanvasBox ();
 		} 
@@ -231,9 +286,12 @@ function handleLocalStorageEvent(evt) {
 	}
 }
 
-//If a second detail browser window is launched, use local storage when first setting
-//up the detail chm to get current mode and selection settings.
+/************************************************************************************************
+ * FUNCTION: initFromLocalStorage - If a second detail browser window is launched, use local 
+ * storage when first setting up the detail chm to get current mode and selection settings.
+ ***********************************************************************************************/ 
 function initFromLocalStorage() {
+	currentDl = localStorage.getItem('currentDl');
 	currentRow = Number(localStorage.getItem('currentRow'));
 	currentCol = Number(localStorage.getItem('currentCol'));
 	dataPerRow = Number(localStorage.getItem('dataPerRow'));
@@ -242,9 +300,13 @@ function initFromLocalStorage() {
 	selectedStop = Number(localStorage.getItem('selectedStop'));
 	searchItems = JSON.parse(localStorage.getItem('selected'));
 	mode = localStorage.getItem('mode');
-	buildDendroMatrix(heatMap.getDendrogram(),'Column');
-	buildDendroMatrix(heatMap.getDendrogram(),'Row');
-
+	if (heatMap.showColDendrogram("DETAIL")) {
+		buildDendroMatrix('col');
+	}
+	if (heatMap.showRowDendrogram("DETAIL")) {
+		buildDendroMatrix('row');
+	}
+	heatMap.configureFlick();
 	dataBoxHeight = (DETAIL_SIZE_NORMAL_MODE-detailDataViewBoarder)/dataPerCol;
 	dataBoxWidth = (DETAIL_SIZE_NORMAL_MODE-detailDataViewBoarder)/dataPerRow;
 	
@@ -256,28 +318,20 @@ function initFromLocalStorage() {
 		detailNormal();		
 }
 
-
-
-//Called when a separate detail map window is joined back into the main chm browser window.
+/************************************************************************************************
+ * FUNCTION: rejoinNotice - Called when a separate detail map window is joined back into the 
+ * main chm browser window.
+ ***********************************************************************************************/ 
 function rejoinNotice() {
 	localStorage.removeItem('event');
 	localStorage.setItem('event', 'join');	
 }
 
-/**********************************************************************************
- * FUNCTION - getLevelFromMode: This function returns the level that is associated
- * with a given mode.  A level is passed in from either the summary or detail display
- * as a default value and returned if the mode is not one of the Ribbon modes.
- **********************************************************************************/
-function getLevelFromMode(lvl) {
-	if (mode == 'RIBBONV') {
-		return MatrixManager.RIBBON_VERT_LEVEL;
-	} else if (mode == 'RIBBONH') {
-		return MatrixManager.RIBBON_HOR_LEVEL;
-	} else {
-		return lvl;
-	} 
-}
+/*==============================================================================================
+ * 
+ * HEATMAP POSITIONING FUNCTIONS
+ * 
+ *=============================================================================================*/
 
 /**********************************************************************************
  * FUNCTIONS - checkRow(and Col): This function makes sure the currentRow/Col setting 
@@ -443,6 +497,121 @@ function setDataPerColFromDet(detDataPerCol) {
 	} 
 }
 
+/*==============================================================================================
+ * 
+ * FLICK VIEW PROCESSING FUNCTIONS
+ * 
+ *=============================================================================================*/
+
+/************************************************************************************************
+ * FUNCTION: flickExists - Returns true if the heatmap contains multiple data layers by checking
+ * to see if the "FLICK" button is present on the screen.
+ ***********************************************************************************************/ 
+function flickExists() {
+	var flicks = document.getElementById("flicks");
+	if (flicks.style.display === '') {
+		return true;
+	}
+	return false;
+}
+
+/************************************************************************************************
+ * FUNCTION: flickIsOn - Returns true if the user has opened the flick control by checking to 
+ * see if the flickViews DIV is visible.
+ ***********************************************************************************************/ 
+function flickIsOn() {
+	var flickViews = document.getElementById("flickViews");
+	if (flickViews.style.display === '') {
+		return true;
+	}
+	return false;
+}
+
+/************************************************************************************************
+ * FUNCTION: flickToggleOn - Opens the flick control.
+ ***********************************************************************************************/ 
+function flickToggleOn() {
+	flickInit();
+	var flicks = document.getElementById("flicks");
+	var flickViewsOff = document.getElementById("noFlickViews");
+	var flickViewsOn = document.getElementById("flickViews");
+	flickViewsOff.style.display="none";
+	flickViewsOn.style.display='';
+}
+
+/************************************************************************************************
+ * FUNCTION: flickToggleOff - Closes (hides) the flick control.
+ ***********************************************************************************************/ 
+function flickToggleOff() {
+	var flicks = document.getElementById("flicks");
+	var flickViewsOff = document.getElementById("noFlickViews");
+	var flickViewsOn = document.getElementById("flickViews");
+	flickViewsOn.style.display="none";
+	flickViewsOff.style.display='';
+}
+
+function flickInit() {
+	var flickBtn = document.getElementById("flick_btn");
+	var flickBtnSrc = flickBtn.src;
+	var flickDrop1 = document.getElementById("flick1");
+	var flickDrop2 = document.getElementById("flick2");
+	if (flickBtnSrc.indexOf("Up") >= 0) {
+		flickDrop1.style.backgroundColor="yellow";
+		flickDrop2.style.backgroundColor="white";
+	} else {
+		flickDrop1.style.backgroundColor="white";
+		flickDrop2.style.backgroundColor="yellow";
+	}
+
+}
+
+
+/************************************************************************************************
+ * FUNCTION: flickChange - Responds to a change in the flick view control.  All of these actions 
+ * depend upon the flick control being visible (i.e. active) There are 3 types of changes 
+ * (1) User clicks on the toggle control. (2) User changes the value of one of the 2 dropdowns 
+ * AND the toggle control is on that dropdown. (3) The user presses the one or two key, corresponding
+ * to the 2 dropdowns, AND the current visible data layer is for the opposite dropdown. 
+ * If any of the above cases are met, the currentDl is changed and the screen is redrawn.
+ ***********************************************************************************************/ 
+function flickChange(fromList) {
+	var flickBtn = document.getElementById("flick_btn");
+	var flickDrop1 = document.getElementById("flick1");
+	var flickDrop2 = document.getElementById("flick2");
+	var flickBtnSrc = flickBtn.src;
+	if (typeof fromList === 'undefined') {
+		if (flickBtnSrc.indexOf("Up") >= 0) {
+			flickBtn.setAttribute('src', staticPath + 'images/toggleDown.png');
+			currentDl = flickDrop2.value;
+		} else {
+			flickBtn.setAttribute('src', staticPath + 'images/toggleUp.png');
+			currentDl = flickDrop1.value;
+			flickDrop1.style.backgroundColor="yellow";
+		}
+	} else {
+		if ((fromList === "flick1") && (flickBtnSrc.indexOf("Up") >= 0)) {
+			currentDl = document.getElementById(fromList).value;
+		} else if ((fromList === "flick2") && (flickBtnSrc.indexOf("Down") >= 0)) {
+			currentDl = document.getElementById(fromList).value;
+		} else if ((fromList === "toggle1") && (flickBtnSrc.indexOf("Down") >= 0)) {
+			flickBtn.setAttribute('src', staticPath + 'images/toggleUp.png');
+			currentDl = flickDrop1.value;
+		} else if ((fromList === "toggle2") && (flickBtnSrc.indexOf("Up") >= 0)) {
+			flickBtn.setAttribute('src', staticPath + 'images/toggleDown.png');
+			currentDl = flickDrop2.value;
+		} else {
+			return;
+		}
+	}
+	flickInit();
+	
+	if (!isSub) {
+		summaryInit();
+	} else {
+		localStorage.setItem('currentDl', '' + currentDl);
+	}
+	detailInit();
+}
 
 
 

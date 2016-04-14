@@ -32,7 +32,6 @@ function userHelpOpen(e){
     	var col = Math.floor(currentCol + (mapLocX/rowElementSize)*getSamplingRatio('col'));
     	var rowLabels = heatMap.getRowLabels().labels;
     	var colLabels = heatMap.getColLabels().labels;
-    	var classBars = heatMap.getClassifications();
     	var helpContents = document.createElement("TABLE");
     	setTableRow(helpContents, ["<u>"+"Data Details"+"</u>", "&nbsp;"], 2);
     	setTableRow(helpContents,["&nbsp;Value:", heatMap.getValue(MatrixManager.DETAIL_LEVEL,row,col).toFixed(5)]);
@@ -42,19 +41,21 @@ function userHelpOpen(e){
     	var rowCtr = 8;
     	var writeFirstCol = true;
     	var pos = col;
-    	var classLen = Object.keys(classBars).length;
+		var classBars = heatMap.getRowClassificationData(); 
+   	    var classLen = Object.keys(classBars).length;
     	if (classLen > 0) {
 			setTableRow(helpContents, ["&nbsp;<u>"+"Row Classifications"+"</u>", "&nbsp;"], 2);
 	    	for (var key in classBars){
-	    		if (classBars[key].position == "column") {
-	    			if (writeFirstCol) {
-	    		    	helpContents.insertRow().innerHTML = formatBlankRow();
-	    				setTableRow(helpContents, ["&nbsp;<u>"+"Column Classifications"+"</u>", "&nbsp;"], 2);
-	    				writeFirstCol = false;
-	    			}
-	        		pos = row;
-	        		rowCtr = rowCtr++;
-	    		}
+	    		setTableRow(helpContents,["&nbsp;&nbsp;&nbsp;"+key+":"+"</u>", classBars[key].values[pos-1]]);	    		
+	    		rowCtr++;
+	    	}
+    	}
+    	helpContents.insertRow().innerHTML = formatBlankRow();
+		var classBars = heatMap.getColClassificationData(); 
+   	    var classLen = Object.keys(classBars).length;
+    	if (classLen > 0) {
+			setTableRow(helpContents, ["&nbsp;<u>"+"Column Classifications"+"</u>", "&nbsp;"], 2);
+	    	for (var key in classBars){
 	    		setTableRow(helpContents,["&nbsp;&nbsp;&nbsp;"+key+":"+"</u>", classBars[key].values[pos-1]]);	    		
 	    		rowCtr++;
 	    	}
@@ -63,62 +64,58 @@ function userHelpOpen(e){
     	helptext.appendChild(helpContents);
     	locateHelpBox(e, helptext);
     } else if (isOnObject(e,"rowClass") || isOnObject(e,"colClass")) {
-    	var pos, classInfo, names, colorSchemes, value;
-    	var classBars = heatMap.getClassifications();
+    	var pos, value;
     	var hoveredBar, hoveredBarColorScheme;                                                     //coveredWidth = 0, coveredHeight = 0;
     	if (isOnObject(e,"colClass")) {
     		var coveredHeight = detCanvas.clientHeight*detailDendroHeight/detCanvas.height
     		pos = Math.floor(currentCol + (mapLocX/rowElementSize));
-    		classInfo = getClassBarsToDraw("column");
-        	names = classInfo["bars"];
-        	colorSchemes = classInfo["colors"];
-        	for (var i = names.length-1; i >= 0; i--) { // find which class bar the mouse is over
-        		var currentBar = names[i];
-    			var bar =  classBars[currentBar];
-    			if ((bar.show === 'Y') && (bar.position === 'column')) {
-	        		coveredHeight += detCanvas.clientHeight*classBars[currentBar].height/detCanvas.height;
+    		var classBarsConfig = heatMap.getColClassificationConfig(); 
+			var keys = Object.keys(classBarsConfig);
+			for (var i = keys.length-1; i >= 0; i--) {
+				var key = keys[i];
+    			var currentBar = classBarsConfig[key];
+    			if (currentBar.show === 'Y') {
+	        		coveredHeight += detCanvas.clientHeight*currentBar.height/detCanvas.height;
 	        		if (coveredHeight >= e.layerY) {
-	        			hoveredBar = currentBar;
-	        			hoveredBarColorScheme = colorSchemes[i];
+	        			hoveredBar = key;
+	        			hoveredBarValues = heatMap.getColClassificationData()[key].values;
 	        			break;
 	        		}
     			}
-        	} 
+    		}
+        	var colorMap = heatMap.getColorMapManager().getColorMap("col",hoveredBar);
     	} else {
     		var coveredWidth = detCanvas.clientHeight*detailDendroWidth/detCanvas.height
     		pos = Math.floor(currentRow + (mapLocY/colElementSize));
-    		classInfo = getClassBarsToDraw("row");
-        	names = classInfo["bars"];
-        	colorSchemes = classInfo["colors"];
-        	for (var i = names.length-1; i >= 0; i--){ // find which class bar the mouse is over
-        		var currentBar = names[i];
-    			var bar =  classBars[currentBar];
-    			if ((bar.show === 'Y') && (bar.position === 'row')) {
-	        		coveredWidth += detCanvas.clientWidth*classBars[currentBar].height/detCanvas.width;
+    		var classBarsConfig = heatMap.getRowClassificationConfig(); 
+    		for (var key in classBarsConfig){
+    			var currentBar = classBarsConfig[key];
+    			if (currentBar.show === 'Y') {
+	        		coveredWidth += detCanvas.clientWidth*currentBar.height/detCanvas.width;
 	        		if (coveredWidth >= e.layerX){
-	        			hoveredBar = currentBar;
-	        			hoveredBarColorScheme = colorSchemes[i];
+	        			hoveredBar = key;
+	        			hoveredBarValues = heatMap.getRowClassificationData()[key].values;
 	        			break;
 	        		}
     			}
-        	}
+    		}
+    		var colorMap = heatMap.getColorMapManager().getColorMap("row",hoveredBar);
     	}
-    	var colorScheme = heatMap.getColorMapManager().getColorMap(hoveredBarColorScheme);
-    	var value = classBars[hoveredBar].values[pos-1];
-    	var colors = colorScheme.getColors();
-    	var classType = colorScheme.getType();
+    	var value = hoveredBarValues[pos-1];
+    	var colors = colorMap.getColors();
+    	var classType = colorMap.getType();
     	if (value == 'null') {
         	value = "Missing Value";
     	}
-    	var thresholds = colorScheme.getThresholds();
+    	var thresholds = colorMap.getThresholds();
     	var thresholdSize = 0;
     	// For Continuous Classifications: 
     	// 1. Retrieve continuous threshold array from colorMapManager
     	// 2. Retrieve threshold range size divided by 2 (1/2 range size)
     	// 3. If remainder of half range > .75 set threshold value up to next value, Else use floor value.
     	if (classType == 'continuous') {
-    		thresholds = colorScheme.getContinuousThresholdKeys();
-    		var threshSize = colorScheme.getContinuousThresholdKeySize()/2;
+    		thresholds = colorMap.getContinuousThresholdKeys();
+    		var threshSize = colorMap.getContinuousThresholdKeySize()/2;
     		if ((threshSize%1) > .5) {
     			// Used to calculate modified threshold size for all but first and last threshold
     			// This modified value will be used for color and display later.
@@ -138,7 +135,7 @@ function userHelpOpen(e){
     	for (var i = 0; i < thresholds.length; i++){ // generate the color scheme diagram
         	var color = colors[i];
         	var valSelected = 0;
-        	var valTotal = classBars[hoveredBar].values.length;
+        	var valTotal = hoveredBarValues.length;
         	var currThresh = thresholds[i];
         	var modThresh = currThresh;
         	if (classType == 'continuous') {
@@ -147,12 +144,12 @@ function userHelpOpen(e){
         		if ((i != 0) &&  (i != thresholds.length - 1)) {
         			modThresh = currThresh - thresholdSize;
         		}
-				color = colorScheme.getRgbToHex(colorScheme.getClassificationColor(modThresh));
+				color = colorMap.getRgbToHex(colorMap.getClassificationColor(modThresh));
         	}
         	
         	//Count classification value occurrences within each breakpoint.
         	for (var j = 0; j < valTotal; j++) {
-        		classBarVal = classBars[hoveredBar].values[j];
+        		classBarVal = hoveredBarValues[j];
         		if (classType == 'continuous') {
             		// Count based upon location in threshold array
             		// 1. For first threshhold, count those values <= threshold.
@@ -188,14 +185,14 @@ function userHelpOpen(e){
         	prevThresh = currThresh;
     	}
     	var valSelected = 0;  
-    	var valTotal = classBars[hoveredBar].values.length; 
+    	var valTotal = hoveredBarValues.length; 
     	for (var j = 0; j < valTotal; j++) { 
-    		if (classBars[hoveredBar].values[j] == "null") { 
+    		if (hoveredBarValues[j] == "null") { 
     			valSelected++;  
     		} 
     	} 
     	var selPct = Math.round(((valSelected / valTotal) * 100) * 100) / 100;  //new line
-    	setTableRow(helpContents, ["<div class='input-color'><div class='color-box' style='background-color: " +  colorScheme.getMissingColor() + ";'></div></div>", "Missing Color (n = " + valSelected + ", " + selPct+ "%)"]);
+    	setTableRow(helpContents, ["<div class='input-color'><div class='color-box' style='background-color: " +  colorMap.getMissingColor() + ";'></div></div>", "Missing Color (n = " + valSelected + ", " + selPct+ "%)"]);
         helptext.style.display="inherit";
     	helptext.appendChild(helpContents);
     	locateHelpBox(e, helptext);
@@ -246,13 +243,20 @@ function detailDataToolHelp(e,text,width) {
 	    var helptext = getDivElement("helptext");
 	    helptext.style.position = "absolute";
 	    document.getElementsByTagName('body')[0].appendChild(helptext);
-	    if (text === "Modify Map Preferences") {
+	    if ((text === "Modify Map Preferences") || (text === "Save as PDF")){
 	    	helptext.style.left = e.offsetLeft - 125;
-	    	
 	    } else {
-	    	helptext.style.left = e.offsetLeft + 15;
+	    	if (e.offsetLeft !== 0) {
+	    		helptext.style.left = e.offsetLeft + 15;
+	    	} else {
+	    		var pdfButt = document.getElementById('pdf_btn')
+	    		helptext.style.left = pdfButt.offsetLeft - 150;
+	    		helptext.style.top = pdfButt.offsetTop + (pdfButt.offsetHeight);
+	    	}
 	    }
-	    helptext.style.top = e.offsetTop + 15;
+    	if (e.offsetTop !== 0) {
+    		helptext.style.top = e.offsetTop + 15;
+    	}
 	    helptext.style.width = width;
 		var htmlclose = "</font></b>";
 		helptext.innerHTML = "<b><font size='2' color='#0843c1'>"+text+"</font></b>";
@@ -330,183 +334,6 @@ function userHelpClose(){
 		helptext.remove();
 	}
 }
-
-
-//============================
-// LABEL MENU FUNCTIONS START
-//============================
-
-var linkouts = {};
-
-function createLabelMenus(){
-	createLabelMenu('Column'); // create the menu divs
-	createLabelMenu('ColumnClass');
-	createLabelMenu('Row');
-	createLabelMenu('RowClass');
-	getDefaultLinkouts();
-	populateLabelMenus(); // fill the divs with the appropriate linkouts
-}
-
-function labelHelpClose(axis){
-	var labelMenu = document.getElementById(axis + 'LabelMenu');
-    if (labelMenu){
-    	labelMenu.style.display = 'none';
-    }
-}
-
-function labelHelpOpen(axis, e){
-	var labelMenu = document.getElementById(axis + 'LabelMenu');
-	var labelMenuTable = document.getElementById(axis + 'LabelMenuTable');
-    if (labelMenu){
-    	labelMenu.style.display = 'inherit';
-    	labelMenu.style.left = e.x + labelMenu.offsetWidth > window.innerWidth ? window.innerWidth-labelMenu.offsetWidth : e.x;
-    	labelMenu.style.top = e.y + labelMenu.offsetHeight > window.innerHeight ? window.innerHeight-labelMenu.offsetHeight : e.y;
-    }
-    var axisLabelsLength = getSearchLabelsByAxis(axis).length;
-    var header = labelMenu.getElementsByClassName('labelMenuHeader')[0];
-    var row = header.getElementsByTagName('TR')[0];
-    if (axisLabelsLength > 0){
-    	row.innerHTML = "Selected labels : " + axisLabelsLength;
-    	labelMenuTable.getElementsByTagName("TBODY")[0].style.display = 'inherit';
-    } else {
-    	row.innerHTML = "Please select a label";
-    	labelMenuTable.getElementsByTagName("TBODY")[0].style.display = 'none';
-    }
-    
-}
-
-function createLabelMenu(axis){ // creates the divs for the label menu
-	var labelMenu = getDivElement(axis + 'LabelMenu');
-	document.body.appendChild(labelMenu);
-	labelMenu.style.position = 'absolute';
-	labelMenu.classList.add('labelMenu');
-	var topDiv = document.createElement("DIV");
-	topDiv.classList.add("labelMenuCaption");
-	topDiv.innerHTML = axis + ' Label Menu:';
-	var closeMenu = document.createElement("IMG");
-	closeMenu.src = staticPath + "images/closeButton.png";
-	closeMenu.classList.add('labelMenuClose')
-	closeMenu.addEventListener('click', function(){labelHelpClose(axis)},false);
-	var table = document.createElement("TABLE");
-	table.id = axis + 'LabelMenuTable';
-	var tableHead = table.createTHead();
-	tableHead.classList.add('labelMenuHeader');
-	var row = tableHead.insertRow();
-	labelMenu.appendChild(topDiv);
-	labelMenu.appendChild(table);
-	labelMenu.appendChild(closeMenu);
-	var tableBody = table.createTBody();
-	tableBody.classList.add('labelMenuBody');
-	var labelHelpCloseAxis = function(){ labelHelpClose(axis)};
-    document.addEventListener('click', labelHelpCloseAxis);
-}
-
-
-function populateLabelMenus(){ // adds the row linkouts and the column linkouts to the menus
-	var table = document.getElementById('RowLabelMenuTable');
-	var labelType = heatMap.getRowLabels()["label_type"];
-	for (i = 0; i < linkouts[labelType].length; i++)
-		addMenuItemToTable("Row", table, linkouts[labelType][i]);
-	
-	table = document.getElementById('ColumnLabelMenuTable');
-	labelType = heatMap.getColLabels()["label_type"];
-	for (i = 0; i < linkouts[labelType].length; i++)
-		addMenuItemToTable("Column", table, linkouts[labelType][i]);
-	
-	table = document.getElementById('ColumnClassLabelMenuTable');
-	labelType = 'ColumnClass';
-	for (i = 0; i < linkouts[labelType].length; i++)
-		addMenuItemToTable("ColumnClass", table, linkouts[labelType][i]);
-	
-	table = document.getElementById('RowClassLabelMenuTable');
-	labelType = 'RowClass';
-	for (i = 0; i < linkouts[labelType].length; i++)
-		addMenuItemToTable("RowClass", table, linkouts[labelType][i]);
-}
-
-function addMenuItemToTable(axis, table, linkout){
-	var body = table.getElementsByClassName('labelMenuBody')[0];
-	var row = body.insertRow();
-	var cell = row.insertCell();
-	cell.innerHTML = linkout.title;
-	
-	function functionWithParams(){ // this is the function that gets called when the linkout is clicked
-		var input;
-		switch (linkout.inputType){ // TO DO: make the function input types (ie: labels, index, etc) global constants. Possibly add more input types?
-			case "labels": input = getSearchLabelsByAxis(axis); break;
-//			case "index": input = axis.toUpperCase() == "ROW" ? getSearchRows() : getSearchCols();break;
-			default: input = axis.toUpperCase() == "ROW" ? getSearchRows() : getSearchCols();break;
-		}
-		linkout.callback(input,axis); // all linkout functions will have these inputs!
-	};
-	cell.addEventListener('click', functionWithParams);
-}
-
-function getDefaultLinkouts(){
-	addLinkout("Copy " + heatMap.getColLabels()["label_type"] +" to Clipboard", heatMap.getColLabels()["label_type"], "labels", copyToClipBoard,0);
-	addLinkout("Copy " +heatMap.getRowLabels()["label_type"] + " to Clipboard", heatMap.getRowLabels()["label_type"], "labels", copyToClipBoard,0);
-	addLinkout("Copy bar data for all labels to Clipboard", "ColumnClass", "labels",copyEntireClassBarToClipBoard,0);
-	addLinkout("Copy bar data for selected labels to Clipboard", "ColumnClass", "labels",copyPartialClassBarToClipBoard,1);
-	addLinkout("Copy bar data for all labels to Clipboard", "RowClass", "labels",copyEntireClassBarToClipBoard,0);
-	addLinkout("Copy bar data for selected labels to Clipboard", "RowClass", "labels",copyPartialClassBarToClipBoard,1);
-}
-
-function linkout (title, inputType, callback){ // the linkout object
-	this.title = title;
-	this.inputType = inputType; // input type of the callback function
-	this.callback = callback;
-}
-
-function addLinkout(name, labelType, inputType, callback, index){ // adds linkout objects to the linkouts global variable
-	if (!linkouts[labelType]){
-		linkouts[labelType] = [new linkout(name, inputType,callback)];
-	} else {
-		if (index !== undefined){
-			linkouts[labelType].splice(index, 0, new linkout(name,inputType,callback)); 
-		}else {
-			linkouts[labelType].push(new linkout(name,inputType,callback));
-		}
-	}
-}
-
-function copyToClipBoard(labels,axis){
-	window.open("","",'width=335,height=330,resizable=1').document.write(labels.join(", "));
-}
-
-function copyEntireClassBarToClipBoard(labels,axis){
-	var newWindow = window.open("","",'width=335,height=330,resizable=1');
-	var newDoc = newWindow.document;
-	var axisLabels = axis == "ColumnClass" ? heatMap.getColLabels()["labels"] : heatMap.getRowLabels()["labels"]; 
-	var classifications = heatMap.getClassifications();
-	newDoc.write("Sample&emsp;" + labels.join("&emsp;") + ":<br>");
-	for (var i = 0; i < axisLabels.length; i++){
-		newDoc.write(axisLabels[i] + "&emsp;");
-		for (var j = 0; j < labels.length; j++){
-			newDoc.write(classifications[labels[j]].values[i] + "&emsp;");
-		}
-		newDoc.write("<br>");
-	}
-}
-
-function copyPartialClassBarToClipBoard(labels,axis){
-	var newWindow = window.open("","",'width=335,height=330,resizable=1');
-	var newDoc = newWindow.document;
-	var axisLabels = axis == "ColumnClass" ? getSearchLabelsByAxis("Column") : getSearchLabelsByAxis("Row");
-	var labelIndex = axis == "ColumnClass" ? getSearchCols() : getSearchRows(); 
-	var classifications = heatMap.getClassifications();
-	newDoc.write("Sample&emsp;" + labels.join("&emsp;") + ":<br>");
-	for (var i = 0; i < axisLabels.length; i++){
-		newDoc.write(axisLabels[i] + "&emsp;");
-		for (var j = 0; j < labels.length; j++){
-			newDoc.write(classifications[labels[j]].values[labelIndex[i]-1] + "&emsp;");
-		}
-		newDoc.write("<br>");
-	}
-}
-
-//===========================
-// LABEL MENU FUNCTIONS END 
-//===========================
 
 function showSearchError(type){
 	var searchError = getDivElement('searchError');

@@ -37,9 +37,9 @@ var detailDataViewHeight = 502;
 var detailDataViewWidth = 502;
 var detailDataViewBoarder = 2;
 var zoomBoxSizes = [1,2,4,5,10,20,25,50];
-var labelSizeLimit = 8;
-var currentSearchItem;
-var labelLastClicked;
+var minLabelSize = 8;
+var currentSearchItem = {};
+var labelLastClicked = {};
 
 var mouseDown = false;
 var dragOffsetX;
@@ -59,16 +59,14 @@ function initDetailDisplay() {
  		document.getElementById('summary_chm').style.display = 'none';
  		document.getElementById('divider').style.display = 'none';
  		document.getElementById('detail_chm').style.width = '100%';
+ 		document.getElementById('flicks').style.display = '';
  		document.getElementById('detail_buttons').style.display = '';
  		document.getElementById('split_btn').src= staticPath + "images/join.png";
  		document.getElementById('gear_btn').src= staticPath + "images/gearDis.png";
  		document.getElementById('pdf_btn').style.display = 'none';
 	}
-	
-	if (dataBoxWidth === undefined) {
-		setDetailDataSize(10);
-	}
 	if (heatMap.isInitialized() > 0) {
+ 		document.getElementById('flicks').style.display = '';
 		document.getElementById('detail_buttons').style.display = '';
 		detCanvas.width =  (detailDataViewWidth + calculateTotalClassBarHeight("row") + detailDendroWidth);
 		detCanvas.height = (detailDataViewHeight + calculateTotalClassBarHeight("column") + detailDendroHeight);
@@ -361,7 +359,6 @@ function detailHRibbon () {
 	detCanvas.height = (detailDataViewHeight + calculateTotalClassBarHeight("column") + detailDendroHeight);
 	detSetupGl();
 	detInitGl();
-	drawDetailHeatMap();
 	updateSelection();
 	highlightAllColLabels();
 	document.getElementById("viewport").setAttribute("content", "height=device-height");
@@ -407,7 +404,6 @@ function detailVRibbon () {
 	detCanvas.height = (detailDataViewHeight + calculateTotalClassBarHeight("column") + detailDendroHeight);
 	detSetupGl();
 	detInitGl();
-	drawDetailHeatMap();
 	updateSelection();
 	highlightAllRowLabels();
 	document.getElementById("viewport").setAttribute("content", "height=device-height");
@@ -464,8 +460,9 @@ function detailSplit(){
 	if (!isSub) {
 		//Write current selection settings to the local storage
 		hasSub=true;
+		clearLabels();
+		clearSelectionMarks();
 		updateSelection();
-		
 		//Create a new detail browser window
 		detWindow = window.open(window.location.href + '&sub=true', '_blank', 'modal=yes, width=' + (window.screen.availWidth / 2) + ', height='+ window.screen.availHeight + ',top=0, left=' + (window.screen.availWidth / 2));
 		detWindow.moveTo(window.screen.availWidth / 2, 0);
@@ -476,9 +473,13 @@ function detailSplit(){
 		dividerDiv.style.display = 'none';
 		//In summary window, hide the action buttons and expand the summary to 100% of the window.
 		var detailButtonDiv = document.getElementById('detail_buttons');
+		var detailFlickDiv = document.getElementById('flicks');
 		detailButtonDiv.style.display = 'none';
+		detailFlickDiv.style.display = 'none';
 		var summaryDiv = document.getElementById('summary_chm');
 		summaryDiv.style.width = '100%';
+		drawRowSelectionMarks();
+		drawColSelectionMarks();
 	} else {
 		updateSelection();
 		rejoinNotice();
@@ -498,6 +499,9 @@ function detailJoin() {
 	var summaryDiv = document.getElementById('summary_chm');
 	summaryDiv.style.width = '48%';
 	initFromLocalStorage();
+	clearSelectionMarks();
+	drawRowSelectionMarks();
+	drawColSelectionMarks();
 }
 
 
@@ -519,21 +523,27 @@ function processDetailMapUpdate (event, level) {
  
 //Perform all initialization functions for Detail heat map
 function detailInit() {
-	var dendroGram = heatMap.getDendrogram();
+	var rowDendroConfig = heatMap.getRowDendroConfig();
+	var colDendroConfig = heatMap.getColDendroConfig();
 	if (!heatMap.showRowDendrogram("DETAIL")) {
 		detailDendroWidth = 15;
 	} else {
-		detailDendroWidth = parseInt(dendroGram['row_dendro_height'])+5;
+		detailDendroWidth = parseInt(rowDendroConfig.height)+5;
 	}
 	if (!heatMap.showColDendrogram("DETAIL")) {
 		detailDendroHeight = 15;
 	} else {
-		detailDendroHeight = parseInt(dendroGram['col_dendro_height'])+5;
+		detailDendroHeight = parseInt(colDendroConfig.height)+5;
 	}
 	document.getElementById('detail_buttons').style.display = '';
+
 	detCanvas.width =  (detailDataViewWidth + calculateTotalClassBarHeight("row") + detailDendroWidth);
 	detCanvas.height = (detailDataViewHeight + calculateTotalClassBarHeight("column") + detailDendroHeight);
 	createLabelMenus();
+	createEmptySearchItems();
+	if (dataBoxWidth === undefined) {
+		setDetailDataSize(10);
+	}
 	detSetupGl();
 	detInitGl();
 	if (isSub)
@@ -547,7 +557,7 @@ function drawDetailHeatMap() {
 	if ((currentRow == null) || (currentRow == 0)) {
 		return;
 	}
-	var colorMap = heatMap.getColorMapManager().getColorMap("dl1");
+	var colorMap = heatMap.getColorMapManager().getColorMap("data",currentDl);
 	var rowClassBarWidth = calculateTotalClassBarHeight("row");
 	var searchRows = getSearchRows();
 	var searchCols = getSearchCols();
@@ -564,7 +574,7 @@ function drawDetailHeatMap() {
 		for (var j = 0; j < detDataPerRow; j++) {
 			var gridColor = ((searchCols.indexOf(currentCol+j) > -1) || (searchCols.indexOf(currentCol+j+1) > -1)) ? searchGridColor : regularGridColor;
 			for (var k = 0; k < dataBoxWidth; k++) {
-				if (k==dataBoxWidth-1 && detailGrid == true && dataBoxWidth > labelSizeLimit ){ // should the grid line be drawn?
+				if (k==dataBoxWidth-1 && detailGrid == true && dataBoxWidth > minLabelSize ){ // should the grid line be drawn?
 					gridLine[linePos] = gridColor[0]; gridLine[linePos+1] = gridColor[1]; gridLine[linePos+2] = gridColor[2];	gridLine[linePos+3] = 255;
 				} else {
 					gridLine[linePos]=regularGridColor[0]; gridLine[linePos + 1]=regularGridColor[1]; gridLine[linePos + 2]=regularGridColor[2]; gridLine[linePos + 3]=255;
@@ -596,7 +606,7 @@ function drawDetailHeatMap() {
 
 			//For each data point, write it several times to get correct data point width.
 			for (var k = 0; k < dataBoxWidth; k++) {
-				if (k==dataBoxWidth-1 && detailGrid == true && dataBoxWidth > labelSizeLimit ){ // should the grid line be drawn?
+				if (k==dataBoxWidth-1 && detailGrid == true && dataBoxWidth > minLabelSize ){ // should the grid line be drawn?
 					line[linePos] = gridColor[0]; line[linePos+1] = gridColor[1]; line[linePos+2] = gridColor[2];	line[linePos+3] = 255;
 				} else {
 					line[linePos] = color['r'];	line[linePos + 1] = color['g'];	line[linePos + 2] = color['b'];	line[linePos + 3] = color['a'];
@@ -609,7 +619,7 @@ function drawDetailHeatMap() {
 
 		//Write each line several times to get correct data point height.
 		for (dup = 0; dup < dataBoxHeight; dup++) {
-			if (dup == dataBoxHeight-1 && detailGrid == true && dataBoxHeight > labelSizeLimit){ // do we draw gridlines?
+			if (dup == dataBoxHeight-1 && detailGrid == true && dataBoxHeight > minLabelSize){ // do we draw gridlines?
 				if ((searchRows.indexOf(currentRow+i) > -1) || (searchRows.indexOf(currentRow+i-1) > -1)) {
 					pos += (rowClassBarWidth + detailDendroWidth)*BYTE_PER_RGBA;
 					for (var k = 0; k < detailDataViewWidth; k++) {
@@ -637,11 +647,11 @@ function drawDetailHeatMap() {
 	}
 	clearDetailDendrograms();
 	if (heatMap.showRowDendrogram("DETAIL")) {
-		rowDetailDendroMatrix = buildDetailDendroMatrix('Row', currentRow, currentRow+dataPerCol, heatMap.getNumRows(MatrixManager.DETAIL_LEVEL)/dataPerCol);
+		rowDetailDendroMatrix = buildDetailDendroMatrix('row', currentRow, currentRow+dataPerCol, heatMap.getNumRows(MatrixManager.DETAIL_LEVEL)/dataPerCol);
 		detailDrawRowDendrogram(detTexPixels);
 	}
 	if (heatMap.showColDendrogram("DETAIL")) {
-		colDetailDendroMatrix = buildDetailDendroMatrix('Column', currentCol, currentCol+dataPerRow, heatMap.getNumColumns(MatrixManager.DETAIL_LEVEL)/dataPerRow);
+		colDetailDendroMatrix = buildDetailDendroMatrix('col', currentCol, currentCol+dataPerRow, heatMap.getNumColumns(MatrixManager.DETAIL_LEVEL)/dataPerRow);
 		detailDrawColDendrogram(detTexPixels);
 	}
 	//Draw column classification bars.
@@ -692,7 +702,8 @@ function detailResize() {
 function detailSearch() {
 	var searchElement = document.getElementById('search_text');
 	var searchString = searchElement.value;
-	searchItems = [];
+	createEmptySearchItems();
+	clearSelectionMarks();
 	var tmpSearchItems = searchString.split(/[;, ]+/);
 	itemsFound = [];
 	
@@ -708,7 +719,7 @@ function detailSearch() {
 		for (var i = 0; i < labels.length; i++) {
 			if ((labels[i].toUpperCase() == tmpSearchItems[j].toUpperCase()) ||
 				((reg != null) && reg.test(labels[i].toUpperCase()))){
-				searchItems.push({'axis' : 'Row', 'label': labels[i]});
+				searchItems["Row"][i+1] = 1;
 				if (itemsFound.indexOf(tmpSearchItems[j]) == -1)
 					itemsFound.push(tmpSearchItems[j]);
 			}
@@ -724,7 +735,7 @@ function detailSearch() {
 		for (var i = 0; i < labels.length; i++) {
 			if ((labels[i].toUpperCase() == tmpSearchItems[j].toUpperCase()) ||
 				((reg != null) && reg.test(labels[i].toUpperCase()))){
-				searchItems.push({'axis' : 'Column', 'label': labels[i]});
+				searchItems["Column"][i+1] = 1;
 				if (itemsFound.indexOf(tmpSearchItems[j]) == -1)
 					itemsFound.push(tmpSearchItems[j]);
 			}
@@ -732,16 +743,23 @@ function detailSearch() {
 	}
 
 	//Jump to the first match
-	var srchText = document.getElementById('search_text');
-	if (searchItems.length > 0) {
-		currentSearchItem = searchItems[0];
-		goToCurrentSearchItem();
-		if (itemsFound.length != tmpSearchItems.length) {
-			srchText.style.backgroundColor = "rgba(255,255,0,0.3)";
+	if (searchString == null || searchString == ""){
+		return;
+	}
+	searchNext();
+	if (!isSub){
+		drawRowSelectionMarks();
+		drawColSelectionMarks();
+	}
+	if (currentSearchItem.index && currentSearchItem.axis){
+		if (itemsFound.length != tmpSearchItems.length && itemsFound.length > 0) {
+			searchElement.style.backgroundColor = "rgba(255,255,0,0.3)";
+		} else if (itemsFound.length == 0){
+			searchElement.style.backgroundColor = "rgba(255,0,0,0.3)";
 		}
 	} else {
 		if (searchString != null && searchString.length> 0) {
-			srchText.style.backgroundColor = "rgba(255,0,0,0.3)";
+			searchElement.style.backgroundColor = "rgba(255,0,0,0.3)";
 		}	
 		//Clear previous matches when search is empty.
 		updateSelection();
@@ -749,17 +767,16 @@ function detailSearch() {
 }
 
 function goToCurrentSearchItem() {
-	var row = findRowLabel(currentSearchItem.label);
-	if (row > -1) {
-		currentRow = row;
+	if (currentSearchItem.axis == "Row") {
+		currentRow = currentSearchItem.index;
 		if ((mode == 'RIBBONV') && selectedStart!= 0 && (currentRow < selectedStart-1 || selectedStop-1 < currentRow)){
 			showSearchError(1);
 		} else if (mode == 'RIBBONV' && selectedStart == 0){
 			showSearchError(2);
 		} 
 		checkRow();
-	} else {
-		currentCol = findColLabel(currentSearchItem.label);
+	} else if (currentSearchItem.axis == "Column"){
+		currentCol = currentSearchItem.index;
 		if ((mode == 'RIBBONH') && selectedStart!= 0 && (currentCol < selectedStart-1 || selectedStop-1 < currentCol )){
 			showSearchError(1)
 		} else if (mode == 'RIBBONH' && selectedStart == 0){
@@ -792,33 +809,84 @@ function findColLabel(name) {
 	return -1;
 }
 
+function findNextSearchItem(index, axis){
+	var axisLength = axis == "Row" ? heatMap.getRowLabels().labels.length : heatMap.getColLabels().labels.length;
+	var otherAxis = axis == "Row" ? "Column" : "Row";
+	var otherAxisLength = axis == "Column" ? heatMap.getRowLabels().labels.length : heatMap.getColLabels().labels.length;
+	var curr = index;
+	while( !searchItems[axis][++curr] && curr <  axisLength); // find first searchItem in row
+	if (curr >= axisLength){ // if no searchItems exist in first axis, move to other axis
+		curr = -1;
+		while( !searchItems[otherAxis][++curr] && curr <  otherAxisLength);
+		if (curr >=otherAxisLength){ // if no matches in the other axis, check the earlier indices of the first axis (loop back)
+			curr = -1;
+			while( !searchItems[axis][++curr] && curr <  index);
+			if (curr < index && index != -1){
+				currentSearchItem["axis"] = axis;
+				currentSearchItem["index"] = index;
+			}
+		} else {
+			currentSearchItem["axis"] = otherAxis;
+			currentSearchItem["index"] = curr;
+		}
+	} else {
+		currentSearchItem["axis"] = axis;
+		currentSearchItem["index"] = curr;
+	}
+}
+
+function findPrevSearchItem(index, axis){
+	var axisLength = axis == "Row" ? heatMap.getRowLabels().labels.length : heatMap.getColLabels().labels.length;
+	var otherAxis = axis == "Row" ? "Column" : "Row";
+	var otherAxisLength = axis == "Column" ? heatMap.getRowLabels().labels.length : heatMap.getColLabels().labels.length;
+	var curr = index;
+	while( !searchItems[axis][--curr] && curr > -1 ); // find first searchItem in row
+	if (curr < 0){ // if no searchItems exist in first axis, move to other axis
+		curr = otherAxisLength;
+		while( !searchItems[otherAxis][--curr] && curr > -1);
+		if (curr > 0){
+			currentSearchItem["axis"] = otherAxis;
+			currentSearchItem["index"] = curr;
+		} else {
+			curr = axisLength;
+			while( !searchItems[axis][--curr] && curr > index );
+			if (curr > index){
+				currentSearchItem["axis"] = axis;
+				currentSearchItem["index"] = curr;
+			}
+		}
+	} else {
+		currentSearchItem["axis"] = axis;
+		currentSearchItem["index"] = curr;
+	}
+}
+
 //Go to next search item
 function searchNext() {
-	var pos = findCurrentSelection();
-	if (pos == searchItems.length-1)
-		pos = 0;
-	else 
-		pos++;
-	currentSearchItem = searchItems[pos];
-	goToCurrentSearchItem();	
+	if (!currentSearchItem["index"] || !currentSearchItem["axis"]){ // if currentSeachItem isnt set (first time search)
+		findNextSearchItem(-1,"Row");
+	} else {
+		findNextSearchItem(currentSearchItem["index"],currentSearchItem["axis"]);
+	}
+	goToCurrentSearchItem();
 }
 
 //Go back to previous search item.
 function searchPrev() {
-	var pos = findCurrentSelection();
-	if (pos == 0)
-		pos = searchItems.length-1;
-	else 
-		pos--;
-	currentSearchItem = searchItems[pos];
-	goToCurrentSearchItem();	
+	findPrevSearchItem(currentSearchItem["index"],currentSearchItem["axis"]);
+	goToCurrentSearchItem();
 }
 
 //Called when red 'X' is clicked.
 function clearSearch(){
 	var searchElement = document.getElementById('search_text');
 	searchElement.value = "";
+	currentSearchItem = {};
+	labelLastClicked = {};
+	createEmptySearchItems();
+	clearSelectionMarks();
 	clearSrchBtns();
+	detailResize();
 	detailSearch();
 }
 
@@ -837,7 +905,7 @@ function findCurrentSelection() {
 	if (currentSearchItem === undefined){
 		return 0;
 	}
-	for (var i = 0; i < searchItems.length; i++) {
+	for (var i = 0; i < searchItems[currentSearchItem["axis"]].length; i++) {
 		if (currentSearchItem.label == searchItems[i].label && currentSearchItem.axis == searchItems[i].axis)
 			return i;
 	}
@@ -847,10 +915,8 @@ function findCurrentSelection() {
 //Return the column number of any columns meeting the current user search.
 function getSearchCols() {
 	var selected = [];
-	for (var i = 0; i < searchItems.length; i++) {
-		var col = findColLabel(searchItems[i].label);
-		if (col > -1)
-			selected.push(col+1);
+	for (var i in searchItems["Column"]) {
+		selected.push(i);
 	}
 	return selected;	
 }
@@ -858,12 +924,10 @@ function getSearchCols() {
 //Return row numbers of any rows meeting current user search.
 function getSearchRows() {
 	var selected = [];
-	for (var i = 0; i < searchItems.length; i++) {
-		var row = findRowLabel(searchItems[i].label);
-		if (row > -1)
-			selected.push(row+1);
+	for (var i in searchItems["Row"]) {
+		selected.push(i);
 	}
-	return selected;	
+	return selected;
 }
 
 /***********************************************************
@@ -890,11 +954,12 @@ function drawRowLabels() {
 	var labels = heatMap.getRowLabels()["labels"];
 	
 	
-	if (skip > labelSizeLimit) {
+	if (skip > minLabelSize) {
 		for (var i = currentRow; i < currentRow + dataPerCol; i++) {
 			var xPos = detCanvas.clientWidth + 3;
 			var yPos = start + ((i-currentRow) * skip);
-			addLabelDiv(labelElement, 'detail_row' + i, 'DynamicLabel', labels[i-1], xPos, yPos, fontSize, 'F');
+			var shownLabel = labels[i-1].split("|")[0];
+			addLabelDiv(labelElement, 'detail_row' + i, 'DynamicLabel', shownLabel, xPos, yPos, fontSize, 'F',i,"Row");
 		}
 	}
 }
@@ -912,40 +977,47 @@ function drawColLabels() {
 	var labels = heatMap.getColLabels()["labels"];
 	var labelLen = getMaxLength(labels);
 		
-	if (skip > labelSizeLimit) {
+	if (skip > minLabelSize) {
 		var yPos = detCanvas.clientHeight + 4;
 		for (var i = currentCol; i < currentCol + dataPerRow; i++) {
 			var xPos = start + ((i-currentCol) * skip);
-			addLabelDiv(labelElement, 'detail_col' + i, 'DynamicLabel', labels[i-1], xPos, yPos, fontSize, 'T');
+			var shownLabel = labels[i-1].split("|")[0];
+			addLabelDiv(labelElement, 'detail_col' + i, 'DynamicLabel', shownLabel, xPos, yPos, fontSize, 'T',i,"Column");
 		}
 	}
 }
 
-function addLabelDiv(parent, id, className, text, left, top, fontSize, rotate) {
+function addLabelDiv(parent, id, className, text, left, top, fontSize, rotate, index,axis) {
 	var div = document.createElement('div');
 	div.id = id;
 	div.className = className;
 	div.innerHTML = text;
+	div.setAttribute("index",index)
 	if (div.classList.contains('ClassBar')){
-		div.setAttribute('axis','ColumnClass');
+		div.setAttribute('axis','ColumnCovar');
 	} else {
 		div.setAttribute('axis', 'Row');
 	}
-	if (labelIndexInSearch(text,"Row") > -1 || labelIndexInSearch(text, "Column") > -1 || labelIndexInSearch(text, "ColumnClass") > -1 || labelIndexInSearch(text, "RowClass") > -1) 
+	if (labelIndexInSearch(index,axis)) 
 		div.classList.add('searchItem');
 	if (text == "<") {
 		div.style.backgroundColor = "rgba(255,255,0,0.2)";
-	}	
+	}
 	if (rotate == 'T') {
 		div.style.transformOrigin = 'left top';
 		div.style.transform = 'rotate(90deg)';
 		div.style.webkitTransformOrigin = "left top";
 		div.style.webkitTransform = "rotate(90deg)";
 		if (div.classList.contains('ClassBar')){
-			div.setAttribute('axis','RowClass');
+			div.setAttribute('axis','RowCovar');
 		} else {
 			div.setAttribute('axis','Column');
 		}
+	}
+	
+	if (text !== "<" && text !== "..."){
+		div.addEventListener('click',labelClick,false);
+		div.addEventListener('contextmenu',labelRightClick,false);
 	}
 	div.style.position = "absolute";
 	div.style.left = left;
@@ -953,8 +1025,7 @@ function addLabelDiv(parent, id, className, text, left, top, fontSize, rotate) {
 	div.style.fontSize = fontSize.toString() +'pt';
 	div.style.fontFamily = 'times new roman';
 	div.style.fontWeight = 'bold';
-	div.addEventListener('click',labelClick,false);
-	div.addEventListener('contextmenu',labelRightClick,false);
+	div.style.whiteSpace = "nowrap";
 	
 	parent.appendChild(div);
 }
@@ -973,52 +1044,47 @@ function getMaxLength(list) {
 function labelClick(e){
 	if (e.shiftKey){ // shift + click
 		var selection = window.getSelection();
-		var focusNode = selection.focusNode.parentElement;
-		var focusIndex = Number(selection.focusNode.parentElement.id.substring(10)); // id = detail_rowX
-		if (labelLastClicked != undefined && labelLastClicked.axis == focusNode.getAttribute('axis')){ // if label in the same axis was clicked last, highlight all
-			var anchorIndex = labelLastClicked.index;
-			var anchorNode = document.getElementById('detail_' + labelLastClicked.axis.toLowerCase().substring(0,3) + labelLastClicked.index);
-			var currentNode = (anchorIndex < focusIndex) ? anchorNode: focusNode; 
-			var range = Math.abs(focusIndex-anchorIndex);
-			for (var i =0; i < range+1; i++){
-				if (labelIndexInSearch(currentNode.innerHTML, currentNode.getAttribute('axis')) == -1){
-					searchItems.push({'axis':currentNode.getAttribute('axis'), 'label':currentNode.innerHTML});
+		selection.removeAllRanges();
+		var focusNode = this;
+		var focusIndex = Number(this.getAttribute('index'));
+		var axis = focusNode.getAttribute("axis");
+		if (labelLastClicked[axis]){ // if label in the same axis was clicked last, highlight all
+			var anchorIndex = Number(labelLastClicked[axis]);
+			var startIndex = Math.min(focusIndex,anchorIndex), endIndex = Math.max(focusIndex,anchorIndex);
+			for (var i = startIndex; i <= endIndex; i++){
+				if (!labelIndexInSearch(i, axis)){
+					searchItems[axis][i] = 1;
 				}
-				currentNode = currentNode.nextSibling;
 			}
 		} else { // otherwise, treat as normal click
 			clearSearchItems(this.getAttribute('axis'));
-			var labelIndex = labelIndexInSearch(this.innerHTML, this.getAttribute('axis'));
-			if (labelIndex > -1){
-				searchItems.splice(labelIndex, 1);
+			var searchIndex = labelIndexInSearch(focusIndex,axis);
+			if (searchIndex ){
+				delete searchItems[axis][index];
 			} else {
-				searchItems.push({'axis':this.getAttribute('axis'), 'label':this.innerHTML});
+				searchItems[axis][focusIndex] = 1;
 			}
 		}
-		labelLastClicked = {"axis": focusNode.getAttribute('axis'), "label" : focusNode.innerHTML, "index": Number(focusNode.id.substring(10))};
-		selection.empty();
+		labelLastClicked[axis] = focusIndex;
 	} else if (e.ctrlKey || e.metaKey){ // ctrl or Mac key + click
-		var labelIndex = labelIndexInSearch(this.innerHTML, this.getAttribute('axis'));
-		if (labelIndex > -1){ // if already searched, remove from search items
-			searchItems.splice(labelIndex, 1);
+		var axis = this.getAttribute("axis");
+		var index = this.getAttribute("index");
+		var searchIndex = labelIndexInSearch(index, axis);
+		if (searchIndex){ // if already searched, remove from search items
+			delete searchItems[axis][index];
 		} else {
-			searchItems.push({'axis':this.getAttribute('axis'), 'label':this.innerHTML});
-			this.classList.add("searchItem");
+			searchItems[axis][index] = 1;
 		}
-		labelLastClicked = {"axis": this.getAttribute('axis'), "label" : this.innerHTML, "index": Number(this.id.substring(10))};
+		labelLastClicked[axis] = index;
 	} else { // standard click
-		clearSearchItems(this.getAttribute('axis'));
-		var labelIndex = labelIndexInSearch(this.innerHTML, this.getAttribute('axis'));
-		if (labelIndex > -1){
-			searchItems.splice(labelIndex, 1);
-		} else {
-			searchItems.push({'axis':this.getAttribute('axis'), 'label':this.innerHTML});
-		}
-		labelLastClicked = {"axis": this.getAttribute('axis'), "label" : this.innerHTML, "index": Number(this.id.substring(10))};
+		var axis = this.getAttribute("axis");
+		var index = this.getAttribute("index");
+		clearSearchItems(axis);
+		searchItems[axis][index] = 1;
+		labelLastClicked[axis] = index;
 	}
 	var searchElement = document.getElementById('search_text');
 	searchElement.value = "";
-//	clearSrchBtns();
 	document.getElementById('prev_btn').style.display='';
 	document.getElementById('next_btn').style.display='';
 	document.getElementById('cancel_btn').style.display='';
@@ -1039,19 +1105,9 @@ function labelClick(e){
 }
 
 function clearSearchItems(clickAxis){ // clears the search items on a particular axis
-	var tempSearchItems = searchItems;
-	searchItems = [];
-	for (var i = 0; i < tempSearchItems.length; i++){
-		var tempSearch = tempSearchItems[i]; 
-		if (tempSearch.axis !== clickAxis){
-			searchItems.push(tempSearch);
-		}
-	}
-//	var searchItemsDiv = document.getElementsByClassName('searchItem');
-//	while (searchItemsDiv.length>0){ // clear highlighted labels
-//		var searchItem = searchItemsDiv[0];
-//		searchItem.classList.remove('searchItem');
-//	}
+	var length = searchItems[clickAxis].length;
+//	searchItems[clickAxis] = new Array(length);
+	searchItems[clickAxis] = {};
 	var markLabels = document.getElementsByClassName('MarkLabel');
 	while (markLabels.length>0){ // clear tick marks
 		markLabels[0].remove();
@@ -1066,7 +1122,7 @@ function highlightAllColLabels(){
 		for (var i = 0; i < labels.length; i++){
 			var label = labels[i];
 			if (label.getAttribute('axis') == 'Column' && !label.classList.contains('ClassBar')){
-				searchItems.push({'axis':"Column", 'label':label.innerHTML});
+				searchItems["Column"][label.getAttribute('index')] = 1;
 				label.classList.add('searchItem');
 			}
 		}
@@ -1083,7 +1139,7 @@ function highlightAllRowLabels(){
 		for (var i = 0; i < labels.length; i++){
 			var label = labels[i];
 			if (label.getAttribute('axis') == 'Row' && !label.classList.contains('ClassBar')){
-				searchItems.push({'axis':"Row", 'label':label.innerHTML});
+				searchItems["Row"][label.getAttribute('index')] = 1;
 				label.classList.add('searchItem');
 			}
 		}
@@ -1094,54 +1150,69 @@ function highlightAllRowLabels(){
 
 function labelRightClick(e) {
     e.preventDefault();
-    labelHelpClose();
     var axis = e.target.getAttribute('axis');
     var labels = searchItems;
+    labelHelpClose(axis);
     labelHelpOpen(axis,e);
+    var selection = window.getSelection();
+    selection.removeAllRanges();
     return false;
 }
 
-function labelIndexInSearch(label,axis){ // basically a Array.contains function, but for searchItems
-	for (var i=0; i < searchItems.length; i++) {
-        if (searchItems[i].label === label && searchItems[i].axis === axis) {
-            return i;
-        }
-    }
-	return -1;
+function labelIndexInSearch(index,axis){ // basically a Array.contains function, but for searchItems
+	if (searchItems[axis][index] == 1){
+		return true;
+	}else{
+		return false;
+	}
 }
 
 
-function getSearchLabelsByAxis(axis){
-	var labels = [];
-	for (i = 0; i < searchItems.length; i++){
-		if (searchItems[i]["axis"] === axis){
-			labels.push(searchItems[i]["label"])
+function getSearchLabelsByAxis(axis, labelType){
+	var searchLabels = [];
+	var keys = Object.keys(heatMap.getColClassificationConfig());
+	var labels = axis == 'Row' ? heatMap.getRowLabels()["labels"] : axis == "Column" ? heatMap.getColLabels()['labels'] : axis == "ColumnCovar" ? Object.keys(heatMap.getColClassificationConfig()) : Object.keys(heatMap.getRowClassificationConfig());
+	for (var i in searchItems[axis]){
+		if (axis.includes("Covar")){
+			if (labelType == linkouts.VISIBLE_LABELS){
+				searchLabels.push(labels[i].split("|")[0])
+			}else if (labelType == linkouts.HIDDEN_LABELS){
+				searchLabels.push(labels[i].split("|")[1])
+			} else {
+				searchLabels.push(labels[i])
+			}
+		} else {
+			if (labelType == linkouts.VISIBLE_LABELS){
+				searchLabels.push(labels[i-1].split("|")[0])
+			}else if (labelType == linkouts.HIDDEN_LABELS){
+				searchLabels.push(labels[i-1].split("|")[1])
+			} else {
+				searchLabels.push(labels[i-1])
+			}
 		}
 	}
-	return labels;
+	return searchLabels;
 }
 
-//draws row classification bars into the texture array ("dataBuffer"). "names"/"colorSchemes" should be array of strings.
 function detailDrawColClassBars(){
-	var classBars = heatMap.getClassifications();
-	var colClassInfo = getClassBarsToDraw("column");
-	var names = colClassInfo["bars"];
-	var colorSchemes = colClassInfo["colors"];
-
+	var colClassBarConfig = heatMap.getColClassificationConfig();
+	var colClassBarData = heatMap.getColClassificationData();
 	var rowClassBarWidth = calculateTotalClassBarHeight("row");
 	var fullWidth = detailDataViewWidth + rowClassBarWidth + detailDendroWidth;
 	var mapHeight = detailDataViewHeight;
 	var pos = fullWidth*mapHeight*BYTE_PER_RGBA;
-	for (var i = 0; i < names.length; i++){	//for each column class bar we draw...
-		var currentClassBar = classBars[names[i]];
+	var colorMapMgr = heatMap.getColorMapManager();
+	for (var key in colClassBarConfig){
+		var currentClassBar = colClassBarConfig[key];
 		if (currentClassBar.show === 'Y') {
-			var colorMap = heatMap.getColorMapManager().getColorMap(colorSchemes[i]); // assign the proper color scheme...
+			var colorMap = colorMapMgr.getColorMap("col",key); // assign the proper color scheme...
+			var classBarValues = colClassBarData[key].values;
 			var classBarLength = getCurrentDetDataPerRow() * dataBoxWidth;
 			pos += fullWidth*paddingHeight*BYTE_PER_RGBA; // draw padding between class bars
 			var line = new Uint8Array(new ArrayBuffer(classBarLength * BYTE_PER_RGBA)); // save a copy of the class bar
 			var loc = 0;
 			for (var k = currentCol; k <= currentCol + getCurrentDetDataPerRow() -1; k++) { 
-				var val = currentClassBar.values[k-1];
+				var val = classBarValues[k-1];
 				var color = colorMap.getClassificationColor(val);
 				for (var j = 0; j < dataBoxWidth; j++) {
 					line[loc] = color['r'];
@@ -1151,7 +1222,6 @@ function detailDrawColClassBars(){
 					loc += BYTE_PER_RGBA;
 				}
 			}
-	
 			for (var j = 0; j < currentClassBar.height-paddingHeight; j++){ // draw the class bar into the dataBuffer
 				pos += (rowClassBarWidth + detailDendroWidth + 1)*BYTE_PER_RGBA;
 				for (var k = 0; k < line.length; k++) { 
@@ -1160,51 +1230,61 @@ function detailDrawColClassBars(){
 				}
 				pos+=BYTE_PER_RGBA;
 			}
-	  }
+		  }
 
 	}
+
 }
 
 function detailDrawColClassBarLabels() {
+	if (document.getElementById("missingDetColClassBars"))document.getElementById("missingDetColClassBars").remove();
 	var scale =  detCanvas.clientHeight / (detailDataViewHeight + calculateTotalClassBarHeight("column")+detailDendroHeight);
-	var colClassInfo = getClassBarsToDraw("column");
-	if (colClassInfo != null && colClassInfo.bars.length > 0) {
-		var names = colClassInfo["bars"];
-		var classBars = heatMap.getClassifications();
-		var fontSize = Math.min((classBars[names[0]].height - paddingHeight) * scale, 11);
+	var colClassBarConfig = heatMap.getColClassificationConfig();
+	var colClassLength = Object.keys(colClassBarConfig).length;
+	if (colClassBarConfig != null && colClassLength > 0) {
+		var classBar = colClassBarConfig[Object.keys(colClassBarConfig)[0]];
+		var fontSize = Math.min((classBar.height - paddingHeight) * scale, 11);
 		if (fontSize > 7) {
 			var xPos = detCanvas.clientWidth + 3;
 			var yPos = detailDendroHeight*scale;
-			for (var i = names.length-1; i >= 0; i--){	//for each column class bar 
-				var currentClassBar = classBars[names[i]];
+			var i = colClassLength - 1;
+			var keys = Object.keys(colClassBarConfig);
+			for (var i = keys.length-1; i >= 0; i--) {
+				var key = keys[i];
+				var currentClassBar = colClassBarConfig[key];
 				if (currentClassBar.show === 'Y') {
-					addLabelDiv(labelElement, 'detail_col_class' + i, 'DynamicLabel ClassBar', names[i], xPos, yPos, fontSize, 'F');
+					addLabelDiv(labelElement, 'detail_col_class' + i, 'DynamicLabel ClassBar', key, xPos, yPos, fontSize, 'F', i, "ColumnCovar");
 					yPos += (currentClassBar.height * scale);
+				} else {
+					if (!document.getElementById("missingDetColClassBars")){
+						var x =  detCanvas.clientWidth+2;
+						var y = detailDendroHeight*scale-12;
+						addLabelDiv(labelElement, "missingDetColClassBars", "ClassBar", "...", x, y, 10, "F", null,"Column")
+					}		
 				}
 			}	
 		}
 	}
 }
 
-
-//draws row classification bars into the texture array ("dataBuffer"). "names"/"colorSchemes" should be array of strings.
 function detailDrawRowClassBars(){
-	var rowClassInfo = getClassBarsToDraw("row");
-	var names = rowClassInfo["bars"];
-	var colorSchemes = rowClassInfo["colors"];
+	var rowClassBarConfig = heatMap.getRowClassificationConfig();
+	var rowClassBarData = heatMap.getRowClassificationData();
+	var rowClassBarWidth = calculateTotalClassBarHeight("row");
 	var detailTotalWidth = detailDendroWidth + calculateTotalClassBarHeight("row") + detailDataViewWidth;
 	var offset = ((detailTotalWidth*detailDataViewBoarder/2)+detailDendroWidth) * BYTE_PER_RGBA; // start position of very bottom dendro
-	var mapWidth = detailDataViewWidth;
+	var mapWidth = detailDendroWidth + calculateTotalClassBarHeight("row") + detailDataViewWidth;
 	var mapHeight = detailDataViewHeight;
-	var classBars = heatMap.getClassifications();
-	for (var i = 0; i < names.length; i++){ // for each class bar to draw...
-		var currentClassBar = classBars[names[i]];
+	var colorMapMgr = heatMap.getColorMapManager();
+	for (var key in rowClassBarConfig){
+		var currentClassBar = rowClassBarConfig[key];
 		if (currentClassBar.show === 'Y') {
 			var pos = offset; // move past the dendro and the other class bars...
-			var colorMap = heatMap.getColorMapManager().getColorMap(colorSchemes[i]);
-			var classBarLength = currentClassBar.values.length;
+			var colorMap = colorMapMgr.getColorMap("row",key); // assign the proper color scheme...
+			var classBarValues = rowClassBarData[key].values;
+			var classBarLength = classBarValues.length;
 			for (var j = currentRow + getCurrentDetDataPerCol() - 1; j >= currentRow; j--){ // for each row shown in the detail panel
-				var val = currentClassBar.values[j-1];
+				var val = classBarValues[j-1];
 				var color = colorMap.getClassificationColor(val);
 				for (var boxRows = 0; boxRows < dataBoxHeight; boxRows++) { // draw this color to the proper height
 					for (var k = 0; k < currentClassBar.height-paddingHeight; k++){ // draw this however thick it needs to be
@@ -1217,35 +1297,44 @@ function detailDrawRowClassBars(){
 	
 					// padding between class bars
 					pos+=paddingHeight*BYTE_PER_RGBA;
-					pos+=(mapWidth + detailDendroWidth)*BYTE_PER_RGBA;
+					pos+=(mapWidth - currentClassBar.height)*BYTE_PER_RGBA;
 				}
 			}
-			offset+= currentClassBar.height;
+			offset+= currentClassBar.height*BYTE_PER_RGBA;
 		}
-	}
+	}	
 }
 
 function detailDrawRowClassBarLabels() {
+	if (document.getElementById("missingDetRowClassBars"))document.getElementById("missingDetRowClassBars").remove();
 	var scale =  detCanvas.clientWidth / (detailDataViewWidth + calculateTotalClassBarHeight("row")+detailDendroWidth);
-	var colClassInfo = getClassBarsToDraw("row");
-	if (colClassInfo != null && colClassInfo.bars.length > 0) {
-		var names = colClassInfo["bars"];
-		var classBars = heatMap.getClassifications();
-		var fontSize = Math.min((classBars[names[0]].height - paddingHeight) * scale, 11);
+	var rowClassBarConfig = heatMap.getRowClassificationConfig();
+	var rowClassLength = Object.keys(rowClassBarConfig).length;
+	if (rowClassBarConfig != null && rowClassLength > 0) {
+		var classBar = rowClassBarConfig[Object.keys(rowClassBarConfig)[0]];
+		var fontSize = Math.min((classBar.height - paddingHeight) * scale, 11);
 		if (fontSize > 7) {
 			var xPos = detailDendroWidth*scale+fontSize + 5;
 			var yPos = detCanvas.clientHeight + 4;;
-			for (var i = names.length-1; i >= 0; i--){	//for each column class bar 
-				var currentClassBar = classBars[names[i]];
+			var i = rowClassLength - 1;
+			var keys = Object.keys(rowClassBarConfig);
+			for (var i = keys.length-1; i >= 0; i--) {
+				var key = keys[i];
+				var currentClassBar = rowClassBarConfig[key];
 				if (currentClassBar.show === 'Y') {
-					addLabelDiv(labelElement, 'detail_row_class' + i, 'DynamicLabel ClassBar', names[i], xPos, yPos, fontSize, 'T');
-					xPos += (currentClassBar.height * scale);
+					addLabelDiv(labelElement, 'detail_row_class' + i, 'DynamicLabel ClassBar', key, xPos, yPos, fontSize, 'T', i, "RowCovar");
+					yPos += (currentClassBar.height * scale);
+				} else {
+					if (!document.getElementById("missingDetRowClassBars")){
+						var x = detailDendroWidth*scale + 10;
+						var y = detCanvas.clientHeight+2;
+						addLabelDiv(labelElement, "missingDetRowClassBars", "ClassBar", "...", x, y, 10, 'T', i, "Row");
+					}
 				}
 			}
 		}	
 	}
 }
-
 
 /******************************************************
  *****  DETAIL DENDROGRAM FUNCTIONS START HERE!!! *****
@@ -1256,13 +1345,14 @@ function detailDrawRowClassBarLabels() {
 function buildDetailDendroMatrix(axis, start, stop, heightRatio){
 	var start3NIndex = convertMapIndexTo3NSpace(start);
 	var stop3NIndex = convertMapIndexTo3NSpace(stop);
-	var boxLength, currentIndex, matrixWidth, dendroBars;
-	var dendroInfo = heatMap.getDendrogram()[axis]; // dendro JSON object
-	if (axis =='Column'){ // assign proper axis-specific variables
+	var boxLength, currentIndex, matrixWidth, dendroBars, dendroInfo;
+	if (axis =='col'){ // assign proper axis-specific variables
+		dendroInfo = heatMap.getColDendroData(); // dendro JSON object
 		boxLength = dataBoxWidth;
 		matrixWidth = detailDataViewWidth;
 		dendroBars = colDendroBars; // array of the dendro bars
 	} else {
+		dendroInfo = heatMap.getRowDendroData(); // dendro JSON object
 		boxLength = dataBoxHeight;
 		matrixWidth = detailDataViewHeight;
 		dendroBars = rowDendroBars;
@@ -1377,7 +1467,7 @@ function buildDetailDendroMatrix(axis, start, stop, heightRatio){
 
 function colDendroMatrixCoordToDetailTexturePos(matrixRow,matrixCol){ // convert the matrix coord to the data buffer position (start of the RGBA block)
 	var mapx = matrixCol*getSamplingRatio('row');
-	var mapy = Math.round(matrixRow/normDetailDendroMatrixHeight * columnDendroHeight);
+	var mapy = Math.round(matrixRow/normDetailDendroMatrixHeight * (detailDendroHeight-1));
 	var detailTotalWidth = detailDendroWidth + calculateTotalClassBarHeight("row") + detailDataViewWidth;
 	var pos = (detailTotalWidth*(calculateTotalClassBarHeight("column") + detailDataViewHeight))*BYTE_PER_RGBA;
 	pos += (detailDendroWidth + calculateTotalClassBarHeight("row")-1)*BYTE_PER_RGBA;
@@ -1393,30 +1483,86 @@ function rowDendroMatrixCoordToDetailTexturePos(matrixRow,matrixCol){ // convert
 	return pos;
 }
 
-function detailDrawColDendrogram(dataBuffer){
+function detailDrawColDendrogram(dataBuffer, shift){
 	var detailTotalWidth = detailDendroWidth + calculateTotalClassBarHeight("row") + detailDataViewWidth;
+	shift = !shift || isNaN(shift) ? 0 : shift;
 	for (var i = 0; i < colDetailDendroMatrix.length; i++){
 		var line = colDetailDendroMatrix[i]; // line = each row of the col dendro matrix
 		for (var j in line){
-			var pos = colDendroMatrixCoordToDetailTexturePos(i,Number(j));
-			if (j > detailDataViewWidth){ // TO DO: find out why some rows in the dendro matrix are longer than they should be
+			var pos = colDendroMatrixCoordToDetailTexturePos(i,Number(j)) + shift*BYTE_PER_RGBA;
+			if (j > detailDataViewWidth){ // TODO: find out why some rows in the dendro matrix are longer than they should be
 				continue;
 			}else {
 				dataBuffer[pos] = 3,dataBuffer[pos+1] = 3,dataBuffer[pos+2] = 3,dataBuffer[pos+3] = 255;
+				// if the dendro size has been changed in preferences, make sure the pixels above and below are filled in
+				if (columnDendroHeight > colDetailDendroMatrix.length && colDetailDendroMatrix[i+1] && colDetailDendroMatrix[i+1][j] && colDetailDendroMatrix[i-1][j]){
+					pos -= (detailDendroWidth + calculateTotalClassBarHeight("row") + detailDataViewWidth)*BYTE_PER_RGBA;
+					dataBuffer[pos] = 3,dataBuffer[pos+1] = 3,dataBuffer[pos+2] = 3,dataBuffer[pos+3] = 255;
+					pos += (detailDendroWidth + calculateTotalClassBarHeight("row") + detailDataViewWidth)*2*BYTE_PER_RGBA;
+					dataBuffer[pos] = 3,dataBuffer[pos+1] = 3,dataBuffer[pos+2] = 3,dataBuffer[pos+3] = 255;
+				}
 			}
 		}
 	}
 }
 
+function detailDrawColDendrogramShiftRight(dataBuffer){
+	var detailTotalWidth = detailDendroWidth + calculateTotalClassBarHeight("row") + detailDataViewWidth;
+	for (var i = 0; i < colDetailDendroMatrix.length; i++){
+		var line = colDetailDendroMatrix[i]; // line = each row of the col dendro matrix
+		for (var j in line){
+			var pos = colDendroMatrixCoordToDetailTexturePos(i,Number(j)) + 4;
+			if (j > detailDataViewWidth){ // TODO: find out why some rows in the dendro matrix are longer than they should be
+				continue;
+			}else {
+				dataBuffer[pos] = 3,dataBuffer[pos+1] = 3,dataBuffer[pos+2] = 3,dataBuffer[pos+3] = 255;
+				if (columnDendroHeight > colDetailDendroMatrix.length && colDetailDendroMatrix[i+1] && colDetailDendroMatrix[i+1][j] && colDetailDendroMatrix[i-1][j]){
+					pos -= (detailDendroWidth + calculateTotalClassBarHeight("row") + detailDataViewWidth)*BYTE_PER_RGBA;
+					dataBuffer[pos] = 3,dataBuffer[pos+1] = 3,dataBuffer[pos+2] = 3,dataBuffer[pos+3] = 255;
+					pos += (detailDendroWidth + calculateTotalClassBarHeight("row") + detailDataViewWidth)*2*BYTE_PER_RGBA;
+					dataBuffer[pos] = 3,dataBuffer[pos+1] = 3,dataBuffer[pos+2] = 3,dataBuffer[pos+3] = 255;
+				}
+			}
+		}
+	}
+}
+
+
+function drawDetMap(){ // draw the green dots
+	det_gl.activeTexture(det_gl.TEXTURE0);
+	det_gl.texImage2D(
+			det_gl.TEXTURE_2D, 
+			0, 
+			det_gl.RGBA, 
+			detTextureParams['width'], 
+			detTextureParams['height'], 
+			0, 
+			det_gl.RGBA,
+			det_gl.UNSIGNED_BYTE, 
+			detTexPixels);
+	det_gl.uniform2fv(detUScale, detCanvasScaleArray);
+	det_gl.uniform2fv(detUTranslate, detCanvasTranslateArray);
+	det_gl.uniform2fv(detUBoxLeftTop, detCanvasBoxLeftTopArray);
+	det_gl.uniform2fv(detUBoxRightBottom, detCanvasBoxRightBottomArray);
+	det_gl.uniform1f(detUBoxThickness, 0.002);
+	det_gl.uniform4fv(detUBoxColor, [1.0, 1.0, 0.0, 1.0]);
+	det_gl.drawArrays(det_gl.TRIANGLE_STRIP, 0, det_gl.buffer.numItems);
+}
 function detailDrawRowDendrogram(dataBuffer){
 	for (var i = 0; i <= rowDetailDendroMatrix.length+1; i++){
 		var line = rowDetailDendroMatrix[i]; // line = each row of the col dendro matrix
 		for (var j  in line){
 			var pos = rowDendroMatrixCoordToDetailTexturePos(i,Number(j));
-			if (j > detailDataViewHeight){ // TO DO: find out why some rows in the dendro matrix are longer than they should be
+			if (j > detailDataViewHeight){ // TODO: find out why some rows in the dendro matrix are longer than they should be
 				continue;
 			} else {
 				dataBuffer[pos] = 3,dataBuffer[pos+1] = 3,dataBuffer[pos+2] = 3,dataBuffer[pos+3] = 255;
+				if (rowDendroHeight > rowDetailDendroMatrix.length && rowDetailDendroMatrix[i+1] && rowDetailDendroMatrix[i+1][j] && rowDetailDendroMatrix[i-1][j]){
+					pos -= BYTE_PER_RGBA;
+					dataBuffer[pos] = 3,dataBuffer[pos+1] = 3,dataBuffer[pos+2] = 3,dataBuffer[pos+3] = 255;
+					pos += 2*BYTE_PER_RGBA;
+					dataBuffer[pos] = 3,dataBuffer[pos+1] = 3,dataBuffer[pos+2] = 3,dataBuffer[pos+3] = 255;
+				}
 			}
 		}
 	}

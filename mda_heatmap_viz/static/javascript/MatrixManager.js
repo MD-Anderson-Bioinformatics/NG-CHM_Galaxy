@@ -43,16 +43,12 @@ function MatrixManager(mode){
 //ToDo switch from using heat map name to blob key?
 function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 	//This holds the various zoom levels of data.
-	var datalayers = {};
+	var mapConfig = null;
+	var mapData = null;
+	var datalevels = {};
 	var tileCache = {};
 	var zipFiles = {};
-	var colorMaps = null;
 	var colorMapMgr;
-	var classifications = null;
-	var rowLabels = null;
-	var colLabels = null;
-	var dendrogram = null;
-	var chm = null;
 	var initialized = 0;
 	var eventListeners = [];
 	
@@ -67,37 +63,31 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 	
 	//Return the number of rows for a given level
 	this.getNumRows = function(level){
-		return datalayers[level].totalRows;
+		return datalevels[level].totalRows;
 	}
 	
 	//Return the number of columns for a given level
 	this.getNumColumns = function(level){
-		return datalayers[level].totalColumns;
+		return datalevels[level].totalColumns;
 	}
 	
 	//Return the row summary ratio for a given level
 	this.getRowSummaryRatio = function(level){
-		return datalayers[level].rowSummaryRatio;
+		return datalevels[level].rowSummaryRatio;
 	}
 	
 	//Return the column summary ratio for a given level
 	this.getColSummaryRatio = function(level){
-		return datalayers[level].colSummaryRatio;
+		return datalevels[level].colSummaryRatio;
 	}
 	
 	//Get a data value in a given row / column
 	this.getValue = function(level, row, column) {
-		return datalayers[level].getValue(row,column);
+		return datalevels[level].getValue(row,column);
 	}
 	
 	this.saveHeatMapProperties = function () {
-		var success = saveMapProperties("colorMap",JSON.stringify(colorMaps));
-		if (success !== "false") {
-			saveMapProperties("classifications",JSON.stringify(classifications));
-		} 
-		if (success !== "false") {
-			saveMapProperties("dendrogram",JSON.stringify(dendrogram));
-		} 
+		var success = saveMapProperties("mapConfig",JSON.stringify(mapConfig));
 		return success;
 	}
 	
@@ -107,7 +97,7 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
     this.setReadWindow = function(level, row, column, numRows, numColumns) {
   	//Thumb nail and summary level are always kept in the cache.  Don't do fetch for them.
   	if (level != MatrixManager.THUMBNAIL_LEVEL && level != MatrixManager.SUMMARY_LEVEL)
-  		datalayers[level].setReadWindow(row, column, numRows, numColumns);
+  		datalevels[level].setReadWindow(row, column, numRows, numColumns);
     } 	
 
 	// Retrieve color map Manager for this heat map.
@@ -116,67 +106,109 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 			return null;
 		
 		if (colorMapMgr == null ) {
-			colorMapMgr = new ColorMapManager(colorMaps);
+			colorMapMgr = new ColorMapManager(mapConfig);
 		}
 		return colorMapMgr;
 	}
 	
-	//Retrieve classifications
-	this.getClassifications = function() {
-		return classifications;
+	this.getRowClassificationConfig = function() {
+		return mapConfig.row_configuration.classifications;
 	}
 	
-	this.setClassificationShow = function(classname, value) {
-		classifications[classname].show = value ? 'Y' : 'N';
+	this.getColClassificationConfig = function() {
+		return mapConfig.col_configuration.classifications;
 	}
 	
-	this.setClassificationPrefs = function(classname, showVal, heightVal) {
-		classifications[classname].show = showVal ? 'Y' : 'N';
-		classifications[classname].height = parseInt(heightVal);
+	this.getRowClassificationData = function() {
+		return mapData.row_data.classifications;
+	}
+	
+	this.getColClassificationData = function() {
+		return mapData.col_data.classifications;
+	}
+	
+	this.getMapInformation = function() {
+		return mapConfig.data_configuration.map_information;
+	}
+	
+	this.getDataLayers = function() {
+		return mapConfig.data_configuration.map_information.data_layer;
+	}
+	
+	this.setClassificationPrefs = function(classname, type, showVal, heightVal) {
+		if (type === "row") {
+			mapConfig.row_configuration.classifications[classname].show = showVal ? 'Y' : 'N';
+			mapConfig.row_configuration.classifications[classname].height = parseInt(heightVal);
+		} else {
+			mapConfig.col_configuration.classifications[classname].show = showVal ? 'Y' : 'N';
+			mapConfig.col_configuration.classifications[classname].height = parseInt(heightVal);
+		}
+	}
+	
+	//Get Row Organization
+	this.getRowOrganization = function() {
+		return mapConfig.row_configuration.organization;
 	}
 	
 	//Get Row Labels
 	this.getRowLabels = function() {
-		return rowLabels;
+		return mapData.row_data.label;
+	}
+	
+	//Get Column Organization
+	this.getColOrganization = function() {
+		return mapConfig.col_configuration.organization;
 	}
 	
 	//Get Column Labels
 	this.getColLabels = function() {
-		return colLabels;
+		return mapData.col_data.label;
 	}
 	
-	//Get Column Labels
-	this.getChm = function() {
-		return chm; 
+	//Get map information config data
+	this.getMapInformation = function() {
+		return mapConfig.data_configuration.map_information; 
 	}
 
-	//Get Column Labels
-	this.getDendrogram = function() {
-		return dendrogram;
+	this.getRowDendroConfig = function() {
+		return mapConfig.row_configuration.dendrogram;
+	}
+	
+	this.getColDendroConfig = function() {
+		return mapConfig.col_configuration.dendrogram;
+	}
+	
+	this.getRowDendroData = function() {
+		return mapData.row_data.dendrogram;
+	}
+	
+	this.getColDendroData = function() {
+		return mapData.col_data.dendrogram;
 	}
 	
 	this.setRowDendrogramShow = function(value) {
-		dendrogram.row_dendro_show = value;
+		mapConfig.row_configuration.dendrogram.show = value;
 	}
 	
 	this.setColDendrogramShow = function(value) {
-		dendrogram.col_dendro_show = value;
+		mapConfig.col_configuration.dendrogram.show = value;
 	}
 	
 	this.setRowDendrogramHeight = function(value) {
-		dendrogram.row_dendro_height = value;
+		mapConfig.row_configuration.dendrogram.height = value;
 	}
 	
 	this.setColDendrogramHeight = function(value) {
-		dendrogram.col_dendro_height = value;
+		mapConfig.col_configuration.dendrogram.col_dendro_height = value;
 	}
 	
 	this.showRowDendrogram = function(layer) {
 		var showDendro = true;
-		if ((dendrogram.row_dendro_show === 'NONE') || (dendrogram.row_dendro_show === 'NA')) {
+		var showVal = mapConfig.row_configuration.dendrogram.show;
+		if ((showVal === 'NONE') || (showVal === 'NA')) {
 			showDendro = false;
 		}
-		if ((layer === 'DETAIL') && (dendrogram.row_dendro_show === 'SUMMARY')) {
+		if ((layer === 'DETAIL') && (showVal === 'SUMMARY')) {
 			showDendro = false;
 		}
 		return showDendro;
@@ -184,10 +216,11 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 
 	this.showColDendrogram = function(layer) {
 		var showDendro = true;
-		if ((dendrogram.col_dendro_show === 'NONE') || (dendrogram.col_dendro_show === 'NA')) {
+		var showVal = mapConfig.col_configuration.dendrogram.show;
+		if ((showVal === 'NONE') || (showVal === 'NA')) {
 			showDendro = false;
 		}
-		if ((layer === 'DETAIL') && (dendrogram.col_dendro_show === 'SUMMARY')) {
+		if ((layer === 'DETAIL') && (showVal === 'SUMMARY')) {
 			showDendro = false;
 		}
 		return showDendro;
@@ -205,8 +238,28 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 		return initialized;
 	}
 	
-	//ToDo: Add methods for getting ordering/dendrogram
-	
+	this.configureFlick = function(){
+		var flicks = document.getElementById("flicks");
+		var flickViewsOff = document.getElementById("noFlickViews");
+		var flickViewsDiv = document.getElementById("flickViews");
+		var flick1 = document.getElementById("flick1");
+		var flick2 = document.getElementById("flick2");
+		var dl = this.getDataLayers();
+		if (Object.keys(dl).length > 1) {
+			var flickOptions = "";
+			for (var key in dl){
+				flickOptions+= '<option value="'+key+'">'+dl[key].name.substring(0,30)+'</option>';
+			}
+			flick1.innerHTML=flickOptions;
+			flick2.innerHTML=flickOptions;
+			flick1.value=Object.keys(dl)[0];
+			flick2.value=Object.keys(dl)[1];
+			flicks.style.display='';
+			flicks.style.right=1;
+			flickViewsOff.style.display='';
+		}
+	}
+
 	
 	//************************************************************************************************************
 	//
@@ -220,31 +273,13 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 	eventListeners.push(updateCallback);
 	
 	if (mode == MatrixManager.WEB_SOURCE){
-		//mode is web so user server to initialize.
-		
-		//Retrieve  the high-level information about how many data tiles there are at each level.
-		webFetchJson('tilestructure', addDataLayers);
-	
-		//Retrieve the color maps.
-		webFetchJson('colormaps', addColor);
-
-		//Retrieve classification data.
-		webFetchJson('classifications', addClassification);
-		
-		//Retrieve classification data.
-		webFetchJson('rowLabels', addRowLabels);
-		
-		//Retrieve classification data.
-		webFetchJson('colLabels', addColLabels);
-		
-		//Retrieve dendrogram data.
-		webFetchJson('dendrogram', addDendrogram);
-
-		//Retrieve chm data.
-		webFetchJson('chm', addChm);
+		//mode is web so get JSON files from server
+		//Retrieve  all map configuration data.
+		webFetchJson('mapConfig', addMapConfig);
+		//Retrieve  all map supporting data (e.g. labels, dendros) from JSON.
+		webFetchJson('mapData', addMapData);
 	} else {
-		//mode is file so get the json files from the zip file.
-		
+		//mode is file so get the JSON files from the zip file.
 		//First create a dictionary of all the files in the zip.
 		var zipBR = new zip.BlobReader(chmFile);
 		zip.createReader(zipBR, function(reader) {
@@ -253,13 +288,8 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 				for (var i = 0; i < entries.length; i++) {
 					zipFiles[entries[i].filename] = entries[i];
 				}
-				zipFetchJson('tilestructure.json', addDataLayers);	
-				zipFetchJson('colormaps.json', addColor);	
-				zipFetchJson('classifications.json', addClassification);	
-				zipFetchJson('rowLabels.json', addRowLabels);	
-				zipFetchJson('colLabels.json', addColLabels);
-				zipFetchJson('dendrogram.json', addDendrogram);		
-				zipFetchJson('chm.json', addChm);		
+				zipFetchJson('mapConfig.json', addMapConfig);	 
+				zipFetchJson('mapData.json', addMapData);	 
 			});
 		}, function(error) {
 			console.log('Zip file read error ' + error);
@@ -273,7 +303,6 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 		var req = new XMLHttpRequest();
 		req.open("POST", name, false);
 		req.setRequestHeader("Content-Type", "application/json");
-		//req.responseType = "text";
 		req.onreadystatechange = function () {
 			if (req.readyState == req.DONE) {
 				if (req.status != 200) {
@@ -290,111 +319,97 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 
 	//  Initialize the data layers once we know the tile structure.
 	//  JSON structure object describing available data layers passed in.
-	function addDataLayers(tileStructure) {
+	function addDataLayers(mapConfig) {
 		//Create heat map data objects for each data level.  All maps should have thumb nail and full level.
 		//Each data layer keeps a pointer to the next lower level data layer.
-      
-		//Thumb nail
-		if (tileStructure.levels.tn !== undefined) {
-			datalayers[MatrixManager.THUMBNAIL_LEVEL] = new HeatMapData(heatMapName, 
+		levels = mapConfig.data_configuration.map_information.levels;
+		datalayers = mapConfig.data_configuration.map_information.data_layer
+        
+        //Thumb nail
+		if (levels.tn !== undefined) {
+			datalevels[MatrixManager.THUMBNAIL_LEVEL] = new HeatMapData(heatMapName, 
                                                          MatrixManager.THUMBNAIL_LEVEL,
-                                                         tileStructure.levels.tn,
+                                                         levels.tn,
+                                                         datalayers,
                                                          null,
                                                          tileCache,
                                                          getTile); //special callback for thumb nail.
 			//Kickoff retrieve of thumb nail data tile.
-			datalayers[MatrixManager.THUMBNAIL_LEVEL].setReadWindow(1,1,tileStructure.levels.tn.total_rows,tileStructure.levels.tn.total_cols);
+			datalevels[MatrixManager.THUMBNAIL_LEVEL].loadTiles(levels.tn.tile_rows, levels.tn.tile_cols);
 		}
       
 
 		//Summary
-		if (tileStructure.levels.s !== undefined) {
-			datalayers[MatrixManager.SUMMARY_LEVEL] = new HeatMapData(heatMapName, 
+		if (levels.s !== undefined) {
+			datalevels[MatrixManager.SUMMARY_LEVEL] = new HeatMapData(heatMapName, 
                                                        MatrixManager.SUMMARY_LEVEL,
-                                                       tileStructure.levels.s,
-                                                       datalayers[MatrixManager.THUMBNAIL_LEVEL],
+                                                       levels.s,
+                                                       datalayers,
+                                                       datalevels[MatrixManager.THUMBNAIL_LEVEL],
                                                        tileCache,
                                                        getTile);
 			//Kickoff retrieve of summary data tiles.
-			datalayers[MatrixManager.SUMMARY_LEVEL].setReadWindow(1,1,datalayers[MatrixManager.SUMMARY_LEVEL].totalRows,datalayers[MatrixManager.SUMMARY_LEVEL].totalColumns);
+			datalevels[MatrixManager.SUMMARY_LEVEL].loadTiles(levels.s.tile_rows, levels.s.tile_cols);
 		} else {			
 			//If no summary level, set the summary to be the thumb nail.
-			datalayers[MatrixManager.SUMMARY_LEVEL] = datalayers[MatrixManager.THUMBNAIL_LEVEL];
+			datalevels[MatrixManager.SUMMARY_LEVEL] = datalevels[MatrixManager.THUMBNAIL_LEVEL];
 		}
 
 		//Detail level
-		if (tileStructure.levels.d !== undefined) {
-			datalayers[MatrixManager.DETAIL_LEVEL] = new HeatMapData(heatMapName, 
+		if (levels.d !== undefined) {
+			datalevels[MatrixManager.DETAIL_LEVEL] = new HeatMapData(heatMapName, 
                                                     MatrixManager.DETAIL_LEVEL,
-                                                    tileStructure.levels.d,
-                                                    datalayers[MatrixManager.SUMMARY_LEVEL],
+                                                    levels.d,
+                                                    datalayers,
+                                                    datalevels[MatrixManager.SUMMARY_LEVEL],
                                                     tileCache,
                                                     getTile);
 		} else {
 			//If no detail layer, set it to summary.
-			datalayers[MatrixManager.DETAIL_LEVEL] = datalayers[MatrixManager.SUMMARY_LEVEL];
+			datalevels[MatrixManager.DETAIL_LEVEL] = datalevels[MatrixManager.SUMMARY_LEVEL];
 		}
 
 		
 				
 		//Ribbon Vertical
-		if (tileStructure.levels.rv !== undefined) {
-			datalayers[MatrixManager.RIBBON_VERT_LEVEL] = new HeatMapData(heatMapName, 
+		if (levels.rv !== undefined) {
+			datalevels[MatrixManager.RIBBON_VERT_LEVEL] = new HeatMapData(heatMapName, 
 	        		                                         MatrixManager.RIBBON_VERT_LEVEL,
-	        		                                         tileStructure.levels.rv,
-	        		                                         datalayers[MatrixManager.SUMMARY_LEVEL],
+	        		                                         levels.rv,
+	                                                         datalayers,
+	        		                                         datalevels[MatrixManager.SUMMARY_LEVEL],
 	        		                                         tileCache,
 	        		                                         getTile);
 		} else {
-			datalayers[MatrixManager.RIBBON_VERT_LEVEL] = datalayers[MatrixManager.DETAIL_LEVEL];
+			datalevels[MatrixManager.RIBBON_VERT_LEVEL] = datalevels[MatrixManager.DETAIL_LEVEL];
 		}
       
 		//Ribbon Horizontal
-		if (tileStructure.levels.rh !== undefined) {
-			datalayers[MatrixManager.RIBBON_HOR_LEVEL] = new HeatMapData(heatMapName, 
+		if (levels.rh !== undefined) {
+			datalevels[MatrixManager.RIBBON_HOR_LEVEL] = new HeatMapData(heatMapName, 
 	        		                                         MatrixManager.RIBBON_HOR_LEVEL,
-	        		                                         tileStructure.levels.rh,
-	        		                                         datalayers[MatrixManager.SUMMARY_LEVEL],
+	        		                                         levels.rh,
+	                                                         datalayers,
+	        		                                         datalevels[MatrixManager.SUMMARY_LEVEL],
 	        		                                         tileCache,
 	        		                                         getTile);
 		} else {
-			datalayers[MatrixManager.RIBBON_HOR_LEVEL] = datalayers[MatrixManager.DETAIL_LEVEL];
+			datalevels[MatrixManager.RIBBON_HOR_LEVEL] = datalevels[MatrixManager.DETAIL_LEVEL];
 		}
 		
 		sendCallBack(MatrixManager.Event_INITIALIZED);
 	}
 	
-	function addColor(cm) {
-		colorMaps = cm;
+	function addMapData(md) {
+		mapData = md;
 		sendCallBack(MatrixManager.Event_JSON);
 	}
 	
-	
-	function addClassification(cs) {
-		classifications = cs;
+	function addMapConfig(mc) {
+		mapConfig = mc;
+		addDataLayers(mc);
 		sendCallBack(MatrixManager.Event_JSON);
 	}
-	
-	function addRowLabels(rl) {
-		rowLabels = rl;
-		sendCallBack(MatrixManager.Event_JSON);
-	}
-	
-	function addColLabels(cl) {
-		colLabels = cl;
-		sendCallBack(MatrixManager.Event_JSON);
-	}
-	
-	function addDendrogram(d) {
-		dendrogram = d;
-		sendCallBack(MatrixManager.Event_JSON);
-	}
-	
-	function addChm(d) {
-		chm = d;
-		sendCallBack(MatrixManager.Event_JSON);
-	}
-	
 	
 	//Call the users call back function to let them know the chm is initialized or updated.
 	function sendCallBack(event, level) {
@@ -403,20 +418,16 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 		if ((event == MatrixManager.Event_INITIALIZED) || (event == MatrixManager.Event_JSON) ||
 			((event == MatrixManager.Event_NEWDATA) && (level == MatrixManager.THUMBNAIL_LEVEL))) {
 			//Only send initialized status if several conditions are met: need all summary JSON and thumb nail.
-			if ((colorMaps != null) &&
-				(classifications != null) &&
-				(rowLabels != null) &&
-				(colLabels != null) &&
-				(dendrogram != null) &&
-				(chm != null) &&
-				(Object.keys(datalayers).length > 0) &&
-				(tileCache[MatrixManager.THUMBNAIL_LEVEL+".1.1"] != null)) {
+			if ((mapData != null) &&
+				(mapConfig != null) &&
+				(Object.keys(datalevels).length > 0) &&
+				(tileCache[currentDl+"."+MatrixManager.THUMBNAIL_LEVEL+".1.1"] != null)) {
 				initialized = 1;
 				sendAllListeners(MatrixManager.Event_INITIALIZED);
 			}
 			//Unlikely, but possible to get init finished after all the summary tiles.  
 			//As a back stop, if we already have the top left summary tile, send a data update event too.
-			if (tileCache[MatrixManager.SUMMARY_LEVEL+".1.1"] != null) {
+			if (tileCache[currentDl+"."+MatrixManager.SUMMARY_LEVEL+".1.1"] != null) {
 				sendAllListeners(MatrixManager.Event_NEWDATA, MatrixManager.SUMMARY_LEVEL);
 			}
 		} else	if ((event == MatrixManager.Event_NEWDATA) && (initialized == 1)) {
@@ -433,20 +444,19 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 	}
 	
 	//Fetch a data tile if needed.
-	function getTile(level, tileRow, tileColumn) {
-		var tileName=level + "." + tileRow + "." + tileColumn;
-		if (tileCache.hasOwnProperty(tileName)) {
+	function getTile(layer, level, tileRow, tileColumn) {      
+		var tileCacheName=layer + "." +level + "." + tileRow + "." + tileColumn;  
+		if (tileCache.hasOwnProperty(tileCacheName)) {
 			//Already have tile in cache - do nothing.
 			return;
 		}
+		var tileName=level + "." + tileRow + "." + tileColumn;  
 
   	//ToDo: need to limit the number of tiles retrieved.
-  	
   	//ToDo: need to remove items from the cache if it is maxed out. - don't get rid of thumb nail or summary.
-  	
 
 		if (mode == MatrixManager.WEB_SOURCE) {
-			var name = "GetTile?map=" + heatMapName + "&level=" + level + "&tile=" + tileName;
+			var name = "GetTile?map=" + heatMapName + "&datalayer=" + layer + "&level=" + level + "&tile=" + tileName;
 			var req = new XMLHttpRequest();
 			req.open("GET", name, true);
 			req.responseType = "arraybuffer";
@@ -456,7 +466,7 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 						console.log('Failed in call to get tile from server: ' + req.status);
 					} else {
 						var arrayData = new Float32Array(req.response);
-						tileCache[tileName] = arrayData;
+						tileCache[tileCacheName] = arrayData;
 						sendCallBack(MatrixManager.Event_NEWDATA, level);
 					}
 				}
@@ -464,13 +474,13 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 			req.send();	
 		} else {
 			//File mode - get tile from zip
-			zipFiles[heatMapName + "/" + level + "/" + tileName + '.bin'].getData(new zip.BlobWriter(), function(blob) {
+			zipFiles[heatMapName + "/" + layer + "/"+ level + "/" + tileName + '.bin'].getData(new zip.BlobWriter(), function(blob) {
 				var fr = new FileReader();
 				
 				fr.onload = function(e) {
 			        var arrayBuffer = fr.result;
 			        var far32 = new Float32Array(arrayBuffer);
-			        tileCache[tileName] = far32;
+			        tileCache[tileCacheName] = far32;
 					sendCallBack(MatrixManager.Event_NEWDATA, level);
 			     }
 			    	  
@@ -514,7 +524,7 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 
 
 //Internal object for traversing the data at a given zoom level.
-function HeatMapData(heatMapName, level, jsonData, lowerLevel, tileCache, getTile) {	
+function HeatMapData(heatMapName, level, jsonData, datalayers, lowerLevel, tileCache, getTile) {	
 	this.totalRows = jsonData.total_rows;
 	this.totalColumns = jsonData.total_cols;
     var numTileRows = jsonData.tile_rows;
@@ -532,7 +542,7 @@ function HeatMapData(heatMapName, level, jsonData, lowerLevel, tileCache, getTil
 		//Calculate which tile holds the row / column we are looking for.
 		var tileRow = Math.floor((row-1)/rowsPerTile) + 1;
 		var tileCol = Math.floor((column-1)/colsPerTile) + 1;
-		arrayData = tileCache[level+"."+tileRow+"."+tileCol];
+		arrayData = tileCache[currentDl+"."+level+"."+tileRow+"."+tileCol];   
 
 		//If we have the tile, use it.  Otherwise, use a lower resolution tile to provide a value.
 	    if (arrayData != undefined) {
@@ -559,9 +569,23 @@ function HeatMapData(heatMapName, level, jsonData, lowerLevel, tileCache, getTil
     	
     	for (var i = startRowTile; i <= endRowTile; i++) {
     		for (var j = startColTile; j <= endColTile; j++) {
-    			if (tileCache[level+"."+i+"."+j] === undefined)
-    				getTile(level, i, j);
+    			if (tileCache[currentDl+"."+level+"."+i+"."+j] === undefined)  
+    				getTile(currentDl, level, i, j);    
     		}
+    	}
+    }
+
+	// External user of the matix data lets us know where they plan to read.
+	// Pull tiles for that area if we don't already have them.
+    this.loadTiles = function(rowTiles, colTiles) {
+    	for (var key in datalayers){
+        	var layer = key;
+        	for (var i = 1; i <= rowTiles; i++) {
+        		for (var j = 1; j <= colTiles; j++) {
+        			if (tileCache[key+"."+level+"."+i+"."+j] === undefined)  
+        				getTile(key, level, i, j);    
+        		}
+        	}
     	}
     }
 

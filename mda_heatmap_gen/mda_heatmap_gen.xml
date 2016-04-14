@@ -39,7 +39,7 @@
 		<option value="average">Average Linkage</option>
 		<option value="complete">Complete Linkage</option>
 		<option value="single">Single Linkage</option>
-		<option value="ward">Ward</option>
+		<option value="ward" selected="true">Ward</option>
 		<option value="mcquitty">Mcquitty</option>	    
 		<option value="median">Median</option>	    
 		<option value="centroid">Centroid</option>	    
@@ -62,7 +62,7 @@
 		<option value="average">Average Linkage</option>
 		<option value="complete">Complete Linkage</option>
 		<option value="single">Single Linkage</option>
-		<option value="ward">Ward</option>
+		<option value="ward" selected="true">Ward</option>
 		<option value="mcquitty">Mcquitty</option>	    
 		<option value="median">Median</option>	    
 		<option value="centroid">Centroid</option>	    

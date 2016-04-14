@@ -206,41 +206,32 @@ function ColorMap(colorMapObj){
 }
 		
 // All color maps and current color maps are stored here.
-function ColorMapManager(colorMaps){
+function ColorMapManager(mapConfig){
 	
-	var colorMapCollection = colorMaps.colormaps;
+	var colorMapCollection = [mapConfig.data_configuration.map_information.data_layer,mapConfig.row_configuration.classifications,mapConfig.col_configuration.classifications];
 	
-	var mainColorMap;
-	var flickColorMap;
-	
-	this.getMainColorMap = function(){
-		return mainColorMap;
-	}
-	
-	this.setMainColorMap = function(colorMapName){
-		mainColorMap = new ColorMap(colorMapCollection[colorMapName]);
-		return mainColorMap;
-	}
-	
-	
-	this.getFlickColorMap = function(){
-		return flickColorMap;
-	}
-	
-	this.setFlickColorMap = function(colorMapName){
-		flickColorMap = new ColorMap(colorMapCollection[colorMapName]);
-		return flickColorMap;
-	}
-	
-	this.getColorMap = function(colorMapName){
-		var colorMap = new ColorMap(colorMapCollection[colorMapName]);
+	this.getColorMap = function(type, colorMapName){
+		if (type === "data") {
+			var colorMap = new ColorMap(colorMapCollection[0][colorMapName].color_map);
+		} else if (type === "row") {
+			var colorMap = new ColorMap(colorMapCollection[1][colorMapName].color_map);
+		} else {
+			var colorMap = new ColorMap(colorMapCollection[2][colorMapName].color_map);
+		}
 		return colorMap;
 	}
 	
 	this.setColorMap = function(colorMapName, colorMap){
-		colorMapCollection[colorMapName].colors = colorMap.getColors();
-		colorMapCollection[colorMapName].thresholds = colorMap.getThresholds();
-		colorMapCollection[colorMapName].missing = colorMap.getMissingColor();
+		for (var i=0;i<colorMapCollection.length;i++) {
+			var colorMaps = colorMapCollection[i];
+			for (var key in colorMaps){
+				if (key === colorMapName) {
+					colorMapCollection[i][colorMapName].color_map.colors = colorMap.getColors();
+					colorMapCollection[i][colorMapName].color_map.thresholds = colorMap.getThresholds();
+					colorMapCollection[i][colorMapName].color_map.missing = colorMap.getMissingColor();
+				}
+			}
+		}
 	}
 	
 }

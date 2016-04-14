@@ -6,8 +6,8 @@ var textureParams;
 
 //Size of heat map components
 var dendroPaddingHeight = 1;
-var rowDendroHeight = 102; // this is the height of the row dendro in canvas coords (this value may be adjusted eventually by the user)
-var columnDendroHeight = 102; // this is the height of the col dendro in canvas coords (this value may be adjusted eventually by the user)
+var rowDendroHeight;      // this is the height of the row dendro in canvas coords (this value may be adjusted eventually by the user)
+var columnDendroHeight;   // this is the height of the col dendro in canvas coords (this value may be adjusted eventually by the user)
 var normDendroMatrixHeight = 500; // this is the height of the dendro matrices created in buildDendroMatrix
 var paddingHeight = 2;          // space between classification bars
 var rowClassBarWidth;
@@ -15,8 +15,6 @@ var colClassBarHeight;
 var summaryViewBorderWidth = 2; // black edge around map
 var summaryMatrixWidth;
 var summaryMatrixHeight;
-var colEmptySpace = 0;          // padding for asymmetric maps
-var rowEmptySpace = 0;
 var summaryTotalHeight;
 var summaryTotalWidth;
 
@@ -66,6 +64,7 @@ function initSummaryDisplay() {
 function processSummaryMapUpdate (event, level) {   
 
 	if (event == MatrixManager.Event_INITIALIZED) {
+		heatMap.configureFlick();
 		summaryInit();
 	} else if (event == MatrixManager.Event_NEWDATA && level == MatrixManager.SUMMARY_LEVEL){
 		//Summary tile - wait a bit to see if we get another tile quickly, then draw
@@ -80,54 +79,89 @@ function processSummaryMapUpdate (event, level) {
 
 // Perform all initialization functions for Summary heat map
 function summaryInit() {
-	var dendroGram = heatMap.getDendrogram();
-	rowDendroHeight = parseInt(dendroGram['row_dendro_height'])+2;
-	columnDendroHeight = parseInt(dendroGram['col_dendro_height'])+2;
+	var rowDendroConfig = heatMap.getRowDendroConfig();
+	var colDendroConfig = heatMap.getColDendroConfig();
+	rowDendroHeight = parseInt(rowDendroConfig.height)+2;
+	columnDendroHeight = parseInt(colDendroConfig.height)+2;
 	if (heatMap.showRowDendrogram("SUMMARY")) {
-		rowDendroMatrix = buildDendroMatrix(dendroGram,'Row'); // create array with the bars
+		rowDendroMatrix = buildDendroMatrix('row'); // create array with the bars
 	}
 	if (heatMap.showColDendrogram("SUMMARY")) {
-		colDendroMatrix = buildDendroMatrix(dendroGram,'Column'); // create array with the bars
+		colDendroMatrix = buildDendroMatrix('col'); // create array with the bars
 	}
 	rowClassBarWidth = calculateTotalClassBarHeight("row");
 	colClassBarHeight = calculateTotalClassBarHeight("column");
 	summaryMatrixWidth = heatMap.getNumColumns(MatrixManager.SUMMARY_LEVEL);
 	summaryMatrixHeight = heatMap.getNumRows(MatrixManager.SUMMARY_LEVEL);
 	
-	//If the matrix is skewed (height vs. width) by more than a 2:1 ratio, add padding to keep the summary from stretching too much.
-	if (summaryMatrixWidth > summaryMatrixHeight && summaryMatrixWidth/summaryMatrixHeight > 2)
-		rowEmptySpace = summaryMatrixWidth/2 - summaryMatrixHeight;
-	else if (summaryMatrixHeight > summaryMatrixWidth && summaryMatrixHeight/summaryMatrixWidth > 2)
-		colEmptySpace = summaryMatrixHeight/2 - summaryMatrixWidth;
-	
+	//Resize summary area for small or skewed maps.
+	setSummarySize();
+		
 	calcTotalSize();
-
+	var nameDiv = document.getElementById("mapName");
+	nameDiv.innerHTML = heatMap.getMapInformation().name.length > 25 ? heatMap.getMapInformation().name.substring(0,25) + "..." :heatMap.getMapInformation().name;
 	canvas.width =  summaryTotalWidth;
 	canvas.height = summaryTotalHeight;
 	setupGl();
 	initGl();
 	buildSummaryTexture();
-	leftCanvasBoxVertThick = .002;//(1+Math.floor(summaryMatrixWidth/250))/1000;
-	leftCanvasBoxHorThick = .002;//(1+Math.floor(summaryMatrixHeight/250))/1000;
+	leftCanvasBoxVertThick = 1/canvas.width;
+	leftCanvasBoxHorThick = 1/canvas.height;
+}
+
+//Small or asymetric maps can get stretched and blurry in the summary panel so alter the display size 
+//of the associated div to prevent skewing (alter from typical 50-50 starting position of the divider).
+function setSummarySize() {
+	if ((summaryMatrixWidth <= 10) && (summaryMatrixHeight <= 10)) {
+		//hide summary all together
+	} else if (summaryMatrixWidth < 250) {
+		var width = Math.max(Math.round(summaryMatrixWidth/250 * 48), 3);
+		document.getElementById('summary_chm').style.width=''+width+'%';
+		width = 96 - width;
+		document.getElementById('detail_chm').style.width=''+width+'%';		
+	}
+	
+	if (summaryMatrixHeight < 250) {
+		var height = Math.max(Math.round(summaryMatrixHeight/250 * 100), 3);
+		document.getElementById('summary_chm').style.height=''+height+'%';		
+	}
+}
+
+//Very small heat maps look bad in the summary view because the dendro looks disproportionately large. Scale it 
+//down on the fly for small matricies. 
+function getScaledSummaryDendroSize(axis) {
+	var dendroGram = heatMap.getDendrogram();
+	
+	if (axis=='row') {
+		var numRow = heatMap.getNumRows(MatrixManager.SUMMARY_LEVEL);
+		if (numRow < 75) 
+			return (Math.floor(parseInt(dendroGram['row_dendro_height']) / 2));
+		else
+			return parseInt(dendroGram['row_dendro_height']);
+	} else {
+		var numCol = heatMap.getNumColumns(MatrixManager.SUMMARY_LEVEL);
+		if (numCol < 75) 
+			return (Math.floor(parseInt(dendroGram['col_dendro_height']) / 2));
+		else
+			return parseInt(dendroGram['col_dendro_height']);
+		
+	}
 }
 
 //Set the variables for the total size of the summary heat map - used to set canvas, WebGL texture, and viewport size.
 function calcTotalSize() {
-	summaryTotalHeight = summaryMatrixHeight + rowEmptySpace + summaryViewBorderWidth + colClassBarHeight + columnDendroHeight + dendroPaddingHeight;
-	summaryTotalWidth = summaryMatrixWidth + colEmptySpace + summaryViewBorderWidth + rowClassBarWidth + rowDendroHeight + dendroPaddingHeight;
+	summaryTotalHeight = summaryMatrixHeight + summaryViewBorderWidth + colClassBarHeight + columnDendroHeight + dendroPaddingHeight;
+	summaryTotalWidth = summaryMatrixWidth + summaryViewBorderWidth + rowClassBarWidth + rowDendroHeight + dendroPaddingHeight;
 }
 
 function buildSummaryTexture() {
 	eventTimer = 0;
 
-	var colorMap = heatMap.getColorMapManager().getColorMap("dl1");
+	var colorMap = heatMap.getColorMapManager().getColorMap("data",currentDl);
 	var colors = colorMap.getColors();
 	var missing = colorMap.getMissingColor();
 	
 	var pos = 0;
-	//If the matrix is skewed, need to pad with space
-	if (rowEmptySpace > 0) 
-		pos = rowEmptySpace * summaryTotalWidth * BYTE_PER_RGBA;
 	
 	//Setup texture to draw on canvas.
 	//Needs to go backward because WebGL draws bottom up.
@@ -139,7 +173,7 @@ function buildSummaryTexture() {
 		TexPixels[pos + 3] = 255;
 		pos+=BYTE_PER_RGBA;
 	}
-	pos+=(colEmptySpace*BYTE_PER_RGBA);
+
 	for (var i = heatMap.getNumRows(MatrixManager.SUMMARY_LEVEL); i > 0; i--) {
 		pos += (rowDendroHeight+rowClassBarWidth+ dendroPaddingHeight)*BYTE_PER_RGBA; // SKIP SPACE RESERVED FOR ROW CLASSBARS + ROW DENDRO
 		TexPixels[pos] = 1; // left border
@@ -162,7 +196,6 @@ function buildSummaryTexture() {
 		TexPixels[pos + 2] = 1;
 		TexPixels[pos + 3] = 255;
 		pos+=BYTE_PER_RGBA;	
-		pos+=(colEmptySpace*BYTE_PER_RGBA);
 	}
 	pos += (rowDendroHeight+rowClassBarWidth + dendroPaddingHeight)*BYTE_PER_RGBA;
 	for (var i = 0; i < heatMap.getNumColumns(MatrixManager.SUMMARY_LEVEL)+summaryViewBorderWidth; i++){
@@ -174,16 +207,10 @@ function buildSummaryTexture() {
 	}
 	
 	// draw column classifications after the map
-	var colClassInfo = getClassBarsToDraw("column");
-	var colClassToDraw = colClassInfo["bars"];
-	var colClassColors = colClassInfo["colors"];
-	drawColClassBars(colClassToDraw,colClassColors,TexPixels);
+	drawColClassBars(TexPixels);
 	
 	// draw row classifications after that
-	var rowClassInfo = getClassBarsToDraw("row");
-	var rowClassToDraw = rowClassInfo["bars"];
-	var rowClassColors = rowClassInfo["colors"];
-	drawRowClassBars(rowClassToDraw, rowClassColors, TexPixels);
+	drawRowClassBars(TexPixels);
 	
 	
 	// draw the dendrograms at the end of it all
@@ -342,11 +369,6 @@ function drawLeftCanvasBox() {
 	leftCanvasBoxRightBottomArray = new Float32Array([textureX + boxWidth, textureY]);
 	
 	drawSummaryHeatMap();
-	
-	//Add selection marks
-	clearSelectionMarks();
-	drawRowSelectionMarks();
-	drawColSelectionMarks();
 }
 
 //WebGL stuff
@@ -518,19 +540,22 @@ function getClassBarsToDraw(axis){
 }
 
 // draws row classification bars into the texture array ("dataBuffer"). "names"/"colorSchemes" should be array of strings.
-function drawColClassBars(names,colorSchemes,dataBuffer){
-	var classBars = heatMap.getClassifications(); 
+function drawColClassBars(dataBuffer){
+	if (document.getElementById("missingColClassBars"))document.getElementById("missingColClassBars").remove();
+	var classBarsConfig = heatMap.getColClassificationConfig(); 
+	var classBarsData = heatMap.getColClassificationData(); 
 	var colorMapMgr = heatMap.getColorMapManager();
-	var pos = (summaryTotalWidth)*(rowEmptySpace+summaryMatrixHeight+summaryViewBorderWidth)*BYTE_PER_RGBA;
-	for (var i = 0; i < names.length; i++){	//for each column class bar we draw...
-		var currentClassBar = classBars[names[i]];
+	var pos = (summaryTotalWidth)*(summaryMatrixHeight+summaryViewBorderWidth)*BYTE_PER_RGBA;
+	
+	for (var key in classBarsConfig){
+		var currentClassBar = classBarsConfig[key];
 		if (currentClassBar.show === 'Y') {
-			var colorMap = colorMapMgr.getColorMap(colorSchemes[i]); // assign the proper color scheme...
-			var classBarValues = currentClassBar.values;
-			var classBarLength = currentClassBar.values.length;
-			if (typeof currentClassBar.svalues != 'undefined') {
-				classBarValues = currentClassBar.svalues;
-				classBarLength = currentClassBar.svalues.length;
+			var colorMap = colorMapMgr.getColorMap("col",key); // assign the proper color scheme...
+			var classBarValues = classBarsData[key].values;
+			var classBarLength = classBarValues.length;
+			if (typeof classBarsData[key].svalues != 'undefined') {
+				classBarValues = classBarsData[key].svalues;
+				classBarLength = classBarValues.length;
 			}
 			pos += (summaryTotalWidth)*paddingHeight*BYTE_PER_RGBA; // draw padding between class bars
 			var line = new Uint8Array(new ArrayBuffer(classBarLength * BYTE_PER_RGBA)); // save a copy of the class bar
@@ -555,27 +580,34 @@ function drawColClassBars(names,colorSchemes,dataBuffer){
 					pos++;
 				}
 				pos += (summaryViewBorderWidth/2)*BYTE_PER_RGBA;
-				pos += (colEmptySpace*BYTE_PER_RGBA);
-			}
+			}		
+		} else {
+			if (!document.getElementById("missingColClassBars")){
+				var x =  canvas.clientWidth + 2;
+				var y = columnDendroHeight*canvas.clientHeight/summaryTotalHeight - 10;
+				addLabelDiv(document.getElementById('sumlabelDiv'), "missingColClassBars", "ClassBar", "...", x, y, 10, "F", null,"Column")
+			}		
 		}
 	}
 }
 
-// draws row classification bars into the texture array ("dataBuffer"). "names"/"colorSchemes" should be array of strings.
-function drawRowClassBars(names,colorSchemes,dataBuffer){
-	var offset = ((rowEmptySpace*summaryTotalWidth)+(summaryTotalWidth+rowDendroHeight))*BYTE_PER_RGBA;
+function drawRowClassBars(dataBuffer){
+	var classBarsConfig = heatMap.getRowClassificationConfig(); 
+	var classBarsData = heatMap.getRowClassificationData(); 
 	var colorMapMgr = heatMap.getColorMapManager();
-	var classBars = heatMap.getClassifications();
-	for (var i = 0; i < names.length; i++){
+	if (document.getElementById("missingRowClassBars"))document.getElementById("missingRowClassBars").remove();
+	var offset = (summaryTotalWidth+rowDendroHeight)*BYTE_PER_RGBA;
+
+	for (var key in classBarsConfig){
 		var pos = 0 + offset;
-		var colorMap = colorMapMgr.getColorMap(colorSchemes[i]);
-		var currentClassBar = classBars[names[i]];
+		var currentClassBar = classBarsConfig[key];
 		if (currentClassBar.show === 'Y') {
-			var classBarValues = currentClassBar.values;
-			var classBarLength = currentClassBar.values.length;
-			if (typeof currentClassBar.svalues != 'undefined') {
-				classBarValues = currentClassBar.svalues;
-				classBarLength = currentClassBar.svalues.length;
+			var colorMap = colorMapMgr.getColorMap("row",key); // assign the proper color scheme...
+			var classBarValues = classBarsData[key].values;
+			var classBarLength = classBarValues.length;
+			if (typeof classBarsData[key].svalues != 'undefined') {
+				classBarValues = classBarsData[key].svalues;
+				classBarLength = classBarValues.length;
 			}
 			for (var j = classBarLength; j > 0; j--){
 				var val = classBarValues[j-1];
@@ -592,13 +624,20 @@ function drawRowClassBars(names,colorSchemes,dataBuffer){
 				}
 				// padding between class bars
 				pos+=paddingHeight*BYTE_PER_RGBA;
-				pos+=(summaryTotalWidth - rowClassBarWidth)*BYTE_PER_RGBA;
+				// go total width of the summary canvas and back up the width of a single class bar to return to starting point for next row 
+				pos+=(summaryTotalWidth - currentClassBar.height)*BYTE_PER_RGBA; 
 			}
-			offset+= currentClassBar.height;
+			//offset starting point of one bar to the next by the width of one bar multiplied by BPR (e.g. 15 becomes 60)
+			offset+= currentClassBar.height*BYTE_PER_RGBA; 
+		} else {
+			if (!document.getElementById("missingRowClassBars")){
+				var x = rowDendroHeight*canvas.clientWidth/summaryTotalWidth + 10;
+				var y = canvas.clientHeight + 2;
+				addLabelDiv(document.getElementById('sumlabelDiv'), "missingRowClassBars", "ClassBar", "...", x, y, 10, "T", null,"Row");
+			}
 		}
 	}
 }
-
 
 // increase the height/width of a classbar and resize the map texture as well. redraws when done.
 function increaseClassBarHeight(name){
@@ -644,12 +683,14 @@ function decreaseClassBarHeight(name){
 
 function calculateTotalClassBarHeight(axis){
 	var totalHeight = 0;
-	var classBars = heatMap.getClassifications();
+	if (axis === "row") {
+		var classBars = heatMap.getRowClassificationConfig();
+	} else {
+		var classBars = heatMap.getColClassificationConfig();
+	}
 	for (var key in classBars){
-		if (classBars[key].position == axis){
-			if (classBars[key].show === 'Y') {
-				totalHeight += classBars[key].height;
-			}
+		if (classBars[key].show === 'Y') {
+			totalHeight += parseInt(classBars[key].height);
 		}
 	}
 	return totalHeight;
@@ -667,7 +708,7 @@ function colDendroMatrixCoordToTexturePos(matrixRow,matrixCol){ // convert the m
 	var summaryRatio = heatMap.getRowSummaryRatio(MatrixManager.SUMMARY_LEVEL);
 	var mapx = Math.round(matrixCol/pointsPerLeaf/summaryRatio);
 	var mapy = Math.round(matrixRow/normDendroMatrixHeight * columnDendroHeight);
-	var pos = (summaryTotalWidth) *(mapy+rowEmptySpace+summaryViewBorderWidth+summaryMatrixHeight+colClassBarHeight)*BYTE_PER_RGBA; // go to proper height
+	var pos = (summaryTotalWidth) *(mapy+summaryViewBorderWidth+summaryMatrixHeight+colClassBarHeight)*BYTE_PER_RGBA; // go to proper height
 	pos += (rowDendroHeight + dendroPaddingHeight+ rowClassBarWidth + summaryViewBorderWidth/2 + mapx)*BYTE_PER_RGBA;
 	return pos;
 }
@@ -676,7 +717,7 @@ function rowDendroMatrixCoordToTexturePos(matrixRow,matrixCol){ // convert matri
 	var summaryRatio = heatMap.getRowSummaryRatio(MatrixManager.SUMMARY_LEVEL);
 	var mapx = rowDendroHeight - Math.round(matrixRow/normDendroMatrixHeight * rowDendroHeight); // bottom most row of matrix is at the far-right of the map dendrogram
 	var mapy = summaryMatrixHeight - Math.round(matrixCol/pointsPerLeaf/summaryRatio); // matrix column 1 is the top row of the map
-	var pos = (summaryTotalWidth)*(mapy+rowEmptySpace)*BYTE_PER_RGBA; // pass the empty space (if any) and the border width, to get to the height on the map
+	var pos = (summaryTotalWidth)*(mapy)*BYTE_PER_RGBA; // pass the border width, to get to the height on the map
 	pos += mapx*BYTE_PER_RGBA;
 	return pos;
 }
@@ -751,17 +792,22 @@ function getTranslatedLocation(location){
 }
 
 //creates an array of bar objects from the dendrogram info
-function buildDendroMatrix(dendroData,axis){
-	var numNodes = dendroData[axis].length;
+function buildDendroMatrix(axis){
+	if (axis === 'row') {
+		dendroData = heatMap.getRowDendroData();
+	} else {
+		dendroData = heatMap.getColDendroData();
+	}
+	var numNodes = dendroData.length;
 	var bars = [];
-	var lastRow = dendroData[axis][numNodes-1];
+	var lastRow = dendroData[numNodes-1];
 	var maxHeight = Number(lastRow.split(",")[2]); // this assumes the heightData is ordered from lowest height to highest
 	var matrix = new Array(normDendroMatrixHeight+1);
 	for (var i = 0; i < normDendroMatrixHeight+1; i++){ // 500rows * (3xWidth)cols matrix
 		matrix[i] = new Array(pointsPerLeaf*heatMap.getNumColumns('d'));
 	}
 	for (var i = 0; i < numNodes; i++){
-		var tokes = dendroData[axis][i].split(",");
+		var tokes = dendroData[i].split(",");
 		var leftIndex = Number(tokes[0]); // index is the location of the bar in the clustered data
 		var rightIndex = Number(tokes[1]);
 		var height = Number(tokes[2]);
@@ -784,7 +830,7 @@ function buildDendroMatrix(dendroData,axis){
 		}
 	}
 	
-	if (axis == 'Column'){
+	if (axis == 'col'){
 		colDendroBars = bars;
 	} else {
 		rowDendroBars = bars;
@@ -827,8 +873,8 @@ function highlightRowDendrogramMatrix(i, j){ // i-th row, j-th column of dendro 
 	rightExtreme = getTranslatedLocation(rightExtreme);
 
 	// Draw green dendrogram box over summary heatmap
-	var matrixBottom = rowEmptySpace / canvas.height + leftCanvasBoxHorThick;
-	var matrixRight = colEmptySpace / canvas.width + leftCanvasBoxVertThick;
+	var matrixBottom = leftCanvasBoxHorThick;
+	var matrixRight = leftCanvasBoxVertThick;
 	var leftMin = leftCanvasBoxVertThick + ((rowClassBarWidth+rowDendroHeight)/canvas.width);
 	var topMin = leftCanvasBoxHorThick + ((colClassBarHeight+columnDendroHeight)/canvas.height);
 	dendroBoxLeftTopArray = new Float32Array([leftMin, 1-rightExtreme/canvas.height-topMin]);
@@ -854,8 +900,8 @@ function highlightColumnDendrogramMatrix(i,j){
 	rightExtreme = getTranslatedLocation(rightExtreme);
 	
 	// Draw green dendrogram box over summary heatmap
-	var matrixBottom = rowEmptySpace / canvas.height + leftCanvasBoxHorThick;
-	var matrixRight = colEmptySpace / canvas.width + leftCanvasBoxVertThick;
+	var matrixBottom = leftCanvasBoxHorThick;
+	var matrixRight = leftCanvasBoxVertThick;
 	var leftMin = leftCanvasBoxVertThick + ((rowClassBarWidth+rowDendroHeight)/canvas.width);
 	var topMin = leftCanvasBoxHorThick + ((colClassBarHeight+columnDendroHeight)/canvas.height);
 	dendroBoxLeftTopArray = new Float32Array([leftExtreme/canvas.width+leftMin, matrixBottom]); 
@@ -928,11 +974,11 @@ function clearDendroSelection(){
 		dendroBoxLeftTopArray = new Float32Array([0, 0]);
 		dendroBoxRightBottomArray = new Float32Array([0, 0]);
 		if (heatMap.showColDendrogram("summary")) {
-			colDendroMatrix = buildDendroMatrix(heatMap.getDendrogram(),'Column');
+			colDendroMatrix = buildDendroMatrix('col');
 			drawColumnDendrogram(TexPixels);
 		}
 		if (heatMap.showRowDendrogram("summary")) {
-			rowDendroMatrix = buildDendroMatrix(heatMap.getDendrogram(),"Row");
+			rowDendroMatrix = buildDendroMatrix('row');
 			drawRowDendrogram(TexPixels);
 		}
 		drawSummaryHeatMap();
@@ -956,13 +1002,14 @@ function drawRowSelectionMarks() {
 
 	var fontSize = 10;
 	var selectedRows = getSearchRows();
-	
+	var rowSumRatio = heatMap.getRowSummaryRatio(MatrixManager.SUMMARY_LEVEL);
+	var xPos = canvas.clientWidth + 3;
+	var posScaleFactor = canvas.clientHeight/summaryTotalHeight;
 	
 	for (var i = 0; i < selectedRows.length; i++) {
-		var xPos = (1-colEmptySpace/canvas.width)*canvas.clientWidth + 3;
-		var position = headerSize + (selectedRows[i]/heatMap.getRowSummaryRatio(MatrixManager.SUMMARY_LEVEL));
-		var yPos = ((position /summaryTotalHeight-(rowEmptySpace/canvas.height))* canvas.clientHeight) - fontSize;
-		addLabelDiv(markElement, 'sum_row' + i, 'MarkLabel', '<', xPos, yPos, fontSize, 'F');
+		var position = headerSize + (selectedRows[i]/rowSumRatio);
+		var yPos = position*posScaleFactor - fontSize;
+		addLabelDiv(markElement, 'sum_row' + i, 'MarkLabel', '<', xPos, yPos, fontSize, 'F', i, "Row");
 	}
 }
 
@@ -972,13 +1019,14 @@ function drawColSelectionMarks() {
 
 	var fontSize = 10;
 	var selectedCols = getSearchCols();
-	
+	var colSumRatio = heatMap.getColSummaryRatio(MatrixManager.SUMMARY_LEVEL)
+	var yPos = canvas.clientHeight + 4;
+	var posScaleFactor = canvas.clientWidth/summaryTotalWidth;
 	
 	for (var i = 0; i < selectedCols.length; i++) {
-		var position = headerSize + (selectedCols[i]/heatMap.getColSummaryRatio(MatrixManager.SUMMARY_LEVEL));
-		var xPos = ((position / summaryTotalWidth-(colEmptySpace/canvas.width))*(canvas.clientWidth)) + fontSize/2;
-		var yPos = (1-rowEmptySpace/canvas.height)*canvas.clientHeight + 4;
-		addLabelDiv(markElement, 'sum_row' + i, 'MarkLabel', '<', xPos, yPos, fontSize, 'T');
+		var position = headerSize + (selectedCols[i]/colSumRatio);
+		var xPos = position*posScaleFactor + fontSize/2;
+		addLabelDiv(markElement, 'sum_row' + i, 'MarkLabel', '<', xPos, yPos, fontSize, 'T', i, "Column");
 	}
 }
 
@@ -1009,10 +1057,18 @@ function dividerMove(e){
 	var Xmove = e.touches ? divider.offsetLeft - e.touches[0].pageX : divider.offsetLeft - e.pageX;
 	var summary = document.getElementById('summary_chm');
 	var summaryX = summary.offsetWidth - Xmove;
-	summary.setAttribute("style","position: relative; width:" + summaryX + "px");
+	var sumScale = summaryX/summary.clientWidth;
+	summary.style.width=summaryX+'px';
+	var container = document.getElementById("container");
+	var originalW = Math.max(Math.max(Math.round(summaryMatrixWidth/250 * 48), 3))*container.clientWidth;
+	var originalH = Math.max(Math.max(Math.round(summaryMatrixHeight/250 * 48), 3))*container.clientHeight;
+	var originalAR = originalW/originalH;
+	if ((summaryMatrixWidth < 250 && summaryMatrixHeight < 250) && summary.clientWidth/summary.clientHeight <= originalAR){
+		summary.style.height = summary.clientWidth*originalAR;
+	}
 	var detail = document.getElementById('detail_chm');
 	var detailX = detail.offsetWidth + Xmove;
-	detail.setAttribute("style","position: relative; width:" + detailX + "px");
+	detail.style.width=detailX+'px';
 	clearLabels();
 	clearSelectionMarks();
 }

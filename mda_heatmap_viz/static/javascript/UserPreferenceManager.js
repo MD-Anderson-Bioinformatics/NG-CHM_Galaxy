@@ -6,7 +6,7 @@
 //Global variables for preference processing
 var maxRows = 0;
 var helpRowSize = 0;
-var bkpColorMap = null;
+var bkpColorMaps = null;
 var filterVal;
 var searchPerformed = false;
 
@@ -53,9 +53,13 @@ function editPreferences(e,errorMsg){
 
 	//If first time thru, save the dataLayer colorMap
 	//This is done because the colorMap must be edited to add/delete breakpoints while retaining their state
-	var colorMap = heatMap.getColorMapManager().getColorMap("dl1"); //TODO - Modify when multiple data layers (flick) are added
-	if (bkpColorMap === null) {
-		bkpColorMap = colorMap;
+	//var colorMap = heatMap.getColorMapManager().getColorMap("data","dl1"); //TODO - Modify when multiple data layers (flick) are added
+	if (bkpColorMaps === null) {
+		bkpColorMaps = new Array();
+		var dataLayers = heatMap.getDataLayers();
+		for (var key in dataLayers){
+			bkpColorMaps.push(heatMap.getColorMapManager().getColorMap("data",key));
+		}
 	} 
 
 	//Create a "master" DIV for displaying edit preferences
@@ -139,11 +143,13 @@ function editPreferences(e,errorMsg){
 		showClassBreak(errorMsg[0]);
 		showClassPrefs();
 	} else if ((errorMsg != null) && (errorMsg[1] === "layerPrefs")){ 
+		showLayerBreak(errorMsg[0]);
 		showLayerPrefs();
 	} else if (searchPerformed){ 
 		searchPerformed = false;
 		showClassPrefs();
 	} else {
+		showLayerBreak();
 		showRowsColsPrefs();
 	}
 
@@ -197,6 +203,7 @@ function showLayerPrefs() {
 	layerBtn.setAttribute('src', staticPath + 'images/dataLayersOn.png');
 	var layerDiv = document.getElementById("layerPrefs");
 	layerDiv.style.display="block";
+	showLayerBreak();
 }
 
 /**********************************************************************************
@@ -242,9 +249,14 @@ function hideAllPrefs() {
  * applied to the colorMapManager.  Then the preferences DIV is retrieved and removed.
  **********************************************************************************/
 function prefsCancelButton() {
-	if (bkpColorMap !== null) {
+	if (bkpColorMaps !== null) {
 		var colorMapMgr = heatMap.getColorMapManager();
-		colorMapMgr.setColorMap("dl1", bkpColorMap);
+		var dataLayers = heatMap.getDataLayers();
+		var i = 0;
+		for (var key in dataLayers){
+			colorMapMgr.setColorMap(key, bkpColorMaps[i]);		
+			i++;
+		}
 	}
 	var prefspanel = document.getElementById('prefsPanel');
 	if (prefspanel){
@@ -305,7 +317,7 @@ function prefsSuccess() {
 	filterVal = null;
 	//Remove the backup color map (used to reinstate colors if user cancels)
 	//and formally apply all changes to the heat map, re-draw, and exit preferences.
-	bkpColorMap = null;
+	bkpColorMaps = null;
 	summaryInit();
 	detailInit();
 	changeMode('NORMAL');
@@ -333,36 +345,50 @@ function prefsError(errorMsg) {
  **********************************************************************************/
 function prefsApply() {
 	// Apply Row & Column Preferences
-	var dendrogram = heatMap.getDendrogram();
-	var rowLabels = heatMap.getRowLabels();
-	var rowOrder = rowLabels['order_method'];
+	var rowDendroConfig = heatMap.getRowDendroConfig();
+	var rowOrganization = heatMap.getRowOrganization();
+	var rowOrder = rowOrganization['order_method'];
 	if (rowOrder === "Hierarchical") {
 		var rowDendroShowVal = document.getElementById("rowDendroShowPref").value;
-		dendrogram['row_dendro_show'] = rowDendroShowVal;
-		dendrogram['row_dendro_height'] = document.getElementById("rowDendroHeightPref").value;
+		rowDendroConfig.show = rowDendroShowVal;
+		rowDendroConfig.height = document.getElementById("rowDendroHeightPref").value;
 	}	
-	var colLabels = heatMap.getColLabels();
-	var colOrder = colLabels['order_method'];
+	var colDendroConfig = heatMap.getColDendroConfig();
+	var colOrganization = heatMap.getColOrganization();
+	var colOrder = colOrganization['order_method'];
 	if (colOrder === "Hierarchical") {
 		var colDendroShowVal = document.getElementById("colDendroShowPref").value;
-		dendrogram['col_dendro_show'] = colDendroShowVal;
-		dendrogram['col_dendro_height'] = document.getElementById("colDendroHeightPref").value;
+		colDendroConfig.show = colDendroShowVal;
+		colDendroConfig.height = document.getElementById("colDendroHeightPref").value;
 	}	
 	// Apply Covariate Bar Preferences
-	var classBars = heatMap.getClassifications();
-	for (var key in classBars){
+	var rowClassBars = heatMap.getRowClassificationConfig();
+	for (var key in rowClassBars){
 		var showElement = document.getElementById(key+"_showPref");
 		var heightElement = document.getElementById(key+"_heightPref");
 		if (filterShow(key)) {
-			heatMap.setClassificationPrefs(key,showElement.checked,heightElement.value);
+			heatMap.setClassificationPrefs(key,"row",showElement.checked,heightElement.value);
 		} else {
-			heatMap.setClassificationPrefs(key,false,15);
+			heatMap.setClassificationPrefs(key,"row",false,15);
 		}
-		prefsApplyBreaks(classBars[key].colorScheme,"covariate",filterShow(key));
+		prefsApplyBreaks(key,"row",filterShow(key));
+	}
+	var colClassBars = heatMap.getColClassificationConfig();
+	for (var key in colClassBars){
+		var showElement = document.getElementById(key+"_showPref");
+		var heightElement = document.getElementById(key+"_heightPref");
+		if (filterShow(key)) {
+			heatMap.setClassificationPrefs(key,"col",showElement.checked,heightElement.value);
+		} else {
+			heatMap.setClassificationPrefs(key,"col",false,15);
+		}
+		prefsApplyBreaks(key,"col",filterShow(key));
 	}
 	// Apply Data Layer Preferences
-	//TODO - Future loop for data layers
-	prefsApplyBreaks("dl1","datalayer",true);
+	var dataLayers = heatMap.getDataLayers();
+	for (var key in dataLayers){
+		prefsApplyBreaks(key,"data",true);
+	}
 }
 
 /**********************************************************************************
@@ -372,24 +398,40 @@ function prefsApply() {
  * the prefsApply function. 
  **********************************************************************************/
 function prefsValidate() {
-	var classBars = heatMap.getClassifications();
 	var errorMsg = null;
 	//Loop thru all covariate classfication bars validating all break colors
-	for (var key in classBars){
+	var rowClassBars = heatMap.getRowClassificationConfig();
+	for (var key in rowClassBars){
 		if (filterShow(key)) {
+			var currClassBar = rowClassBars[key];
 			var showElement = document.getElementById(key+"_showPref");
 			var heightElement = document.getElementById(key+"_heightPref");
-			errorMsg = prefsValidateBreakColors(classBars[key].colorScheme,"classPrefs");
+			errorMsg = prefsValidateBreakColors(key,"row","classPrefs");
+			if (errorMsg !== null) break;
+		}
+	}
+	var colClassBars = heatMap.getColClassificationConfig();
+	for (var key in colClassBars){
+		if (filterShow(key)) {
+			var currClassBar = rowClassBars[key];
+			var showElement = document.getElementById(key+"_showPref");
+			var heightElement = document.getElementById(key+"_heightPref");
+			errorMsg = prefsValidateBreakColors(key,"col","classPrefs");
 			if (errorMsg !== null) break;
 		}
 	}
 	//Validate all breakpoints and colors for the main data layer
 	if (errorMsg === null) {
-		//TODO: currently only processing for data layer 1. This will require modification
-		// when new data layers (e.g. flicks) are added to the heatmap.
-		errorMsg = prefsValidateBreakPoints("dl1","layerPrefs");
+		var dataLayers = heatMap.getDataLayers();
+		for (var key in dataLayers){
+			errorMsg = prefsValidateBreakPoints(key,"layerPrefs");
+			if (errorMsg != null) break;
+		}
 		if (errorMsg === null) {
-			errorMsg = prefsValidateBreakColors("dl1","layerPrefs");
+			for (var key in dataLayers){
+				errorMsg = prefsValidateBreakColors(key,"data","layerPrefs");
+				if (errorMsg != null) break;
+			}
 		}
 	}
 	return errorMsg;
@@ -402,7 +444,7 @@ function prefsValidate() {
  * is created and returned to the prefsApply function. 
  **********************************************************************************/
 function prefsValidateBreakPoints(colorMapName,prefPanel) {
-	var colorMap = heatMap.getColorMapManager().getColorMap(colorMapName);
+	var colorMap = heatMap.getColorMapManager().getColorMap("data",colorMapName);
 	var thresholds = colorMap.getThresholds();
 	var colors = colorMap.getColors();
 	var dupeBreak = false;
@@ -444,8 +486,8 @@ function prefsValidateBreakPoints(colorMapName,prefPanel) {
  * first error is found, an error  message (string array containing error information) 
  * is created and returned to the prefsApply function. 
  **********************************************************************************/
-function prefsValidateBreakColors(colorMapName,prefPanel) {
-	var colorMap = heatMap.getColorMapManager().getColorMap(colorMapName);
+function prefsValidateBreakColors(colorMapName,type, prefPanel) {
+	var colorMap = heatMap.getColorMapManager().getColorMap(type,colorMapName);
 	var thresholds = colorMap.getThresholds();
 	var colors = colorMap.getColors();
 	var dupeColor = false;
@@ -471,14 +513,14 @@ function prefsValidateBreakColors(colorMapName,prefPanel) {
  * FUNCTION - prefsApplyBreaks: The purpose of this function is to apply all 
  * user entered changes to colors and breakpoints. 
  **********************************************************************************/
-function prefsApplyBreaks(colorMapName, colorMapType, show) {
-	var colorMap = heatMap.getColorMapManager().getColorMap(colorMapName);
+function prefsApplyBreaks(colorMapName, type, show) {
+	var colorMap = heatMap.getColorMapManager().getColorMap(type,colorMapName);
 	if (show) {
 		var thresholds = colorMap.getThresholds();
 		var colors = colorMap.getColors();
-		var newColors = getNewBreakColors(colorMapName);
+		var newColors = getNewBreakColors(colorMapName, type);
 		colorMap.setColors(newColors);
-		if (colorMapType === "datalayer") {
+		if (type === "data") {
 			var newThresholds = getNewBreakThresholds(colorMapName);
 			colorMap.setThresholds(newThresholds);
 		}
@@ -498,8 +540,8 @@ function prefsApplyBreaks(colorMapName, colorMapType, show) {
  * addLayerBreak and deleteLayerBreak functions with parameters passed in for 
  * the position to add/delete and the action to be performed (add/delete).
  **********************************************************************************/
-function getNewBreakColors(colorMapName, pos, action) {
-	var colorMap = heatMap.getColorMapManager().getColorMap(colorMapName);
+function getNewBreakColors(colorMapName, type, pos, action) {
+	var colorMap = heatMap.getColorMapManager().getColorMap(type,colorMapName);
 	var thresholds = colorMap.getThresholds();
 	var newColors = [];
 	for (var j = 0; j < thresholds.length; j++) {
@@ -533,7 +575,7 @@ function getNewBreakColors(colorMapName, pos, action) {
  * passed in for the position to add/delete and the action to be performed (add/delete).
  **********************************************************************************/
 function getNewBreakThresholds(colorMapName, pos, action) {
-	var colorMap = heatMap.getColorMapManager().getColorMap(colorMapName);
+	var colorMap = heatMap.getColorMapManager().getColorMap("data",colorMapName);
 	var thresholds = colorMap.getThresholds();
 	var newThresholds = [];
 	for (var j = 0; j < thresholds.length; j++) {
@@ -578,21 +620,28 @@ function getNewBreakThresholds(colorMapName, pos, action) {
 function setupLayerPrefs(e, prefprefs){
 	var layerprefs = getDivElement("layerPrefs");
 	var prefContents = document.createElement("TABLE");
+	var dataLayers = heatMap.getDataLayers();
 	var colorMapName = "dl1";
-	var colorMap = heatMap.getColorMapManager().getColorMap(colorMapName);
 	prefContents.insertRow().innerHTML = formatBlankRow();
-	// TODO Future: primary and flick data layers in dropdown
-	var dlSelect = "<select name='dlPref_list' id='dlPref_list' onchange='showDlBreak();'><option value='dl1'>Data Layer 1</option></select>"
-	setTableRow(prefContents,["Data Layer: ", dlSelect]);
+	var dlSelect = "<select name='dlPref_list' id='dlPref_list' onchange='showLayerBreak();'>"
+	for (var key in dataLayers){
+		var dl = dataLayers[key];
+		dlSelect = dlSelect+"<option value='"+key+"'>"+dl.name+"</option>";
+	}
+	dlSelect = dlSelect+"</select>"
+	setTableRow(prefContents,["&nbsp;Data Layer: ", dlSelect]);
 	prefContents.insertRow().innerHTML = formatBlankRow();
 	prefContents.insertRow().innerHTML = formatBlankRow();
 	layerprefs.appendChild(prefContents);
-	var breakprefs = setupLayerBreaks(e, colorMapName, colorMapName);
-	breakprefs.style.display="block";
-	breakprefs.style.width = 300;
-	layerprefs.appendChild(breakprefs);
+	prefContents.insertRow().innerHTML = formatBlankRow();
+	// Loop data layers, setting up a panel div for each layer
+	for (var key in dataLayers){
+		var breakprefs = setupLayerBreaks(e, key);
+		breakprefs.style.display="none";
+		breakprefs.style.width = 300;
+		layerprefs.appendChild(breakprefs);
+	}
 	maxRows = maxRows+3;
-	// TODO Future: loop for primary and flick data layers
 	return layerprefs;
 }
 
@@ -600,9 +649,8 @@ function setupLayerPrefs(e, prefprefs){
  * FUNCTION - setupLayerBreaks: The purpose of this function is to construct a DIV 
  * containing a list of breakpoints/colors for a given matrix data layer.
  **********************************************************************************/
-function setupLayerBreaks(e, mapName, barName, barType){
-	var classBars = heatMap.getClassifications();
-	var colorMap = heatMap.getColorMapManager().getColorMap(mapName);
+function setupLayerBreaks(e, mapName){
+	var colorMap = heatMap.getColorMapManager().getColorMap("data",mapName);
 	var thresholds = colorMap.getThresholds();
 	var colors = colorMap.getColors();
 	var helpprefs = getDivElement("breakPrefs_"+mapName);
@@ -611,14 +659,14 @@ function setupLayerBreaks(e, mapName, barName, barType){
 	prefContents.insertRow().innerHTML = formatBlankRow();
 	prefContents.insertRow().innerHTML = formatBlankRow();
 	rowCtr++;
-	setTableRow(prefContents, ["<u>Breakpoint</u>", "<b><u>"+"Color"+"</u></b>","&nbsp;"]); 
+	setTableRow(prefContents, ["&nbsp;<u>Breakpoint</u>", "<b><u>"+"Color"+"</u></b>","&nbsp;"]); 
 	rowCtr++;
 	for (var j = 0; j < thresholds.length; j++) {
 		var threshold = thresholds[j];
 		var color = colors[j];
 		var threshId = mapName+"_breakPt"+j;
 		var colorId = mapName+"_color"+j;
-		var breakPtInput = "<input name='"+threshId+"_breakPref' id='"+threshId+"_breakPref' value='"+threshold+"' maxlength='4' size='4'>";
+		var breakPtInput = "&nbsp;&nbsp;<input name='"+threshId+"_breakPref' id='"+threshId+"_breakPref' value='"+threshold+"' maxlength='4' size='4'>";
 		var colorInput = "<input class='spectrumColor' type='color' name='"+colorId+"_colorPref' id='"+colorId+"_colorPref' value='"+color+"'>"; 
 		var addButton = "<img id='"+threshId+"_breakAdd' src='" + staticPath + "images/plusButton.png' alt='Add Breakpoint' onclick='addLayerBreak("+j+",\""+mapName+"\");' align='top'/>"
 		var delButton = "<img id='"+threshId+"_breakDel' src='" + staticPath + "images/minusButton.png' alt='Remove Breakpoint' onclick='deleteLayerBreak("+j+",\""+mapName+"\");' align='top'/>"
@@ -631,7 +679,7 @@ function setupLayerBreaks(e, mapName, barName, barType){
 	} 
 	prefContents.insertRow().innerHTML = formatBlankRow();
 	rowCtr++;
-	setTableRow(prefContents, ["Missing Color:",  "<input class='spectrumColor' type='color' name='"+mapName+"_missing_colorPref' id='"+mapName+"_missing_colorPref' value='"+colorMap.getMissingColor()+"'>"]);
+	setTableRow(prefContents, ["&nbsp;Missing Color:",  "<input class='spectrumColor' type='color' name='"+mapName+"_missing_colorPref' id='"+mapName+"_missing_colorPref' value='"+colorMap.getMissingColor()+"'>"]);
 	rowCtr++;
 	if (rowCtr > maxRows) {
 		maxRows = rowCtr;
@@ -643,15 +691,39 @@ function setupLayerBreaks(e, mapName, barName, barType){
 }	
 
 /**********************************************************************************
+ * FUNCTION - showLayerBreak: The purpose of this function is to show the 
+ * appropriate data layer panel based upon the user selection of the 
+ * data layer dropdown on the data layer tab of the preferences screen.  This 
+ * function is also called when an error is trappped, opening the data layer DIV
+ * that contains the erroneous data entry.
+ **********************************************************************************/
+function showLayerBreak(selLayer) {
+	var layerBtn = document.getElementById('dlPref_list');
+	if (typeof selLayer != 'undefined') {
+		layerBtn.value = selLayer;
+	} 
+	for (var i=0; i<layerBtn.length; i++){
+		var layerVal = layerBtn.options[i].value;
+		var layerDiv = document.getElementById("breakPrefs_"+layerVal);
+		var layerSel = layerBtn.options[i].selected;
+		if (layerSel) {
+			layerDiv.style.display="block";
+		} else {
+			layerDiv.style.display="none";
+		}
+	}
+}
+
+/**********************************************************************************
  * FUNCTION - addLayerBreak: The purpose of this function is to add a breakpoint
  * row to a data layer colormap. A new row is created using the preceding row as a 
  * template (i.e. breakpt value and color same as row clicked on).  
  **********************************************************************************/
 function addLayerBreak(pos,colorMapName) {
 	//Retrieve colormap for data layer
-	var colorMap = heatMap.getColorMapManager().getColorMap(colorMapName);
-	var newThresholds = getNewBreakThresholds(colorMapName, pos,"add");
-	var newColors = getNewBreakColors(colorMapName, pos,"add");
+	var colorMap = heatMap.getColorMapManager().getColorMap("data",colorMapName);
+	var newThresholds = getNewBreakThresholds(colorMapName, pos, "add");
+	var newColors = getNewBreakColors(colorMapName, "data", pos, "add");
 	//Calculate new size of data layers panel and reset size of the 
 	// entire preferences dialog (if necessary)
 	var layerRows = newThresholds.length+helpRowSize;
@@ -669,11 +741,11 @@ function addLayerBreak(pos,colorMapName) {
  * row from a data layer colormap.   
  **********************************************************************************/
 function deleteLayerBreak(pos,colorMapName) {
-	var colorMap = heatMap.getColorMapManager().getColorMap(colorMapName);
+	var colorMap = heatMap.getColorMapManager().getColorMap("data",colorMapName);
 	var thresholds = colorMap.getThresholds();
 	var colors = colorMap.getColors();
-	var newThresholds = getNewBreakThresholds(colorMapName, pos,"delete");
-	var newColors = getNewBreakColors(colorMapName, pos,"delete");
+	var newThresholds = getNewBreakThresholds(colorMapName, pos, "delete");
+	var newColors = getNewBreakColors(colorMapName, "data", pos, "delete");
 	//Apply new arrays for thresholds and colors to the datalayer
 	//and reload the colormap.
 	colorMap.setThresholds(newThresholds);
@@ -723,7 +795,8 @@ function reloadLayerBreaksColorMap(colorMapName, colorMap) {
  * to all of the individual bars.
  **********************************************************************************/
 function setupClassPrefs(e, prefprefs){
-	var classBars = heatMap.getClassifications();
+	var rowClassBars = heatMap.getRowClassificationConfig();
+	var colClassBars = heatMap.getColClassificationConfig();
 	var classprefs = getDivElement("classPrefs");
 	var prefContents = document.createElement("TABLE");
 	prefContents.insertRow().innerHTML = formatBlankRow();
@@ -739,19 +812,35 @@ function setupClassPrefs(e, prefprefs){
 	prefContents.insertRow().innerHTML = formatBlankRow();
 	var classSelect = "<select name='classPref_list' id='classPref_list' onchange='showClassBreak();'>"
     classSelect = classSelect+"<option value='ALL'>ALL</option>";
-	for (var key in classBars){
+	for (var key in rowClassBars) {
 		if (filterShow(key)) {
-			classSelect = classSelect+"<option value='"+classBars[key].colorScheme+"'>"+key+"</option>";
+			classSelect = classSelect+"<option value='"+key+"'>"+key+"</option>";
+		}
+	}
+	for (var key in colClassBars){
+		if (filterShow(key)) {
+			classSelect = classSelect+"<option value='"+key+"'>"+key+"</option>";
 		}
 	}
 	classSelect = classSelect+"</select>"
-	setTableRow(prefContents,["Covariate Bar: ", classSelect]);
+	setTableRow(prefContents,["&nbsp;Covariate Bar: ", classSelect]);
 	prefContents.insertRow().innerHTML = formatBlankRow();
 	classprefs.appendChild(prefContents);
 	var i = 0;
-	for (var key in classBars){
+	for (var key in rowClassBars){
+		var currentClassBar = rowClassBars[key];
 		if (filterShow(key)) {
-			var breakprefs = setupClassBreaks(e, classBars[key].colorScheme, key);
+			var breakprefs = setupClassBreaks(e, key, "row", currentClassBar);
+			breakprefs.style.display="none";
+			breakprefs.style.width = 300;
+			classprefs.appendChild(breakprefs);
+		}
+		i++;
+	}
+	for (var key in colClassBars){
+		var currentClassBar = colClassBars[key];
+		if (filterShow(key)) {
+			var breakprefs = setupClassBreaks(e, key, "col", currentClassBar);
 			breakprefs.style.display="none";
 			breakprefs.style.width = 300;
 			classprefs.appendChild(breakprefs);
@@ -776,19 +865,34 @@ function setupAllClassesPrefs(e){
 	var rowCtr = 0;
 	prefContents.insertRow().innerHTML = formatBlankRow();  
 	var colShowAll = "<input name='all_showPref' id='all_showPref' type='checkbox' onchange='showAllBars();'> ";
-	setTableRow(prefContents,["<u>"+"Classification"+"</u>", "<b><u>"+"Position"+"</u></b>", colShowAll+"<b><u>"+"Show"+"</u></b>", "<b><u>"+"Height"+"</u></b>"]);
+	setTableRow(prefContents,["&nbsp;<u>"+"Classification"+"</u>", "<b><u>"+"Position"+"</u></b>", colShowAll+"<b><u>"+"Show"+"</u></b>", "<b><u>"+"Height"+"</u></b>"]);
 	rowCtr=2;
-	var classBars = heatMap.getClassifications();
 	var checkState = true;
-	for (var key in classBars){
+	var rowClassBars = heatMap.getRowClassificationConfig();
+	for (var key in rowClassBars){
+		var currentClassBar = rowClassBars[key];
 		if (filterShow(key)) {
 			var colShow = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input name='"+key+"_showPref' id='"+key+"_showPref' type='checkbox' onchange='setShowAll();'";
-			if (classBars[key].show == 'Y') {
+			if (currentClassBar.show == 'Y') {
 				colShow = colShow+"checked"
 			}
 			colShow = colShow+ " >";
-			var colHeight = "<input name='"+key+"_heightPref' id='"+key+"_heightPref' value='"+classBars[key].height+"' maxlength='2' size='2'>";
-			setTableRow(prefContents,[key,toTitleCase(classBars[key].position),colShow,colHeight]); 
+			var colHeight = "<input name='"+key+"_heightPref' id='"+key+"_heightPref' value='"+currentClassBar.height+"' maxlength='2' size='2'>";
+			setTableRow(prefContents,["&nbsp;&nbsp;"+key,"Row",colShow,colHeight]); 
+			rowCtr++;
+		}
+	}
+	var colClassBars = heatMap.getColClassificationConfig();
+	for (var key in colClassBars){
+		var currentClassBar = colClassBars[key];
+		if (filterShow(key)) {
+			var colShow = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input name='"+key+"_showPref' id='"+key+"_showPref' type='checkbox' onchange='setShowAll();'";
+			if (currentClassBar.show == 'Y') {
+				colShow = colShow+"checked"
+			}
+			colShow = colShow+ " >";
+			var colHeight = "<input name='"+key+"_heightPref' id='"+key+"_heightPref' value='"+currentClassBar.height+"' maxlength='2' size='2'>";
+			setTableRow(prefContents,["&nbsp;&nbsp;"+key,"Col",colShow,colHeight]); 
 			rowCtr++;
 		}
 	}
@@ -804,47 +908,43 @@ function setupAllClassesPrefs(e){
  * containing a set informational data and a list of categories/colors for a given
  * covariate classfication bar.  
  **********************************************************************************/
-function setupClassBreaks(e, mapName, barName){
-	var classBars = heatMap.getClassifications();
-	var colorMap = heatMap.getColorMapManager().getColorMap(mapName);
+function setupClassBreaks(e, key, barType, classBar){
+	var colorMap = heatMap.getColorMapManager().getColorMap(barType, key);
 	var thresholds = colorMap.getThresholds();
 	var colors = colorMap.getColors();
-	var helpprefs = getDivElement("breakPrefs_"+mapName);
+	var helpprefs = getDivElement("breakPrefs_"+key);
 	var prefContents = document.createElement("TABLE"); 
 	var rowCtr = 0;
 	prefContents.insertRow().innerHTML = formatBlankRow();
-	var colShow = "<input name='"+barName+"_showPref' id='"+barName+"_showPref' type='checkbox' ";
-	if (classBars[barName].show == 'Y') {
+	var colShow = "<input name='"+key+"_showPref' id='"+key+"_showPref' type='checkbox' ";
+	if (classBar.show == 'Y') {
 		colShow = colShow+"checked"
 	}
 	colShow = colShow+ " >";
-	var colHeight = "<input name='"+barName+"_heightPref' id='"+barName+"_heightPref' value='"+classBars[barName].height+"' maxlength='2' size='2'>";
-	var pos = toTitleCase(classBars[barName].position);
+	var colHeight = "<input name='"+key+"_heightPref' id='"+key+"_heightPref' value='"+classBar.height+"' maxlength='2' size='2'>";
+	var pos = toTitleCase(barType);
 	var typ = toTitleCase(colorMap.getType());
-	if (classBars[barName].position == "row") {
-		pos = "Row";
-	}
-	setTableRow(prefContents,["Bar Position: ","<b>"+pos+"</b>"]);
-	setTableRow(prefContents,["Bar Type: ","<b>"+typ+"</b>"]);
+	setTableRow(prefContents,["&nbsp;Bar Position: ","<b>"+pos+"</b>"]);
+	setTableRow(prefContents,["&nbsp;Bar Type: ","<b>"+typ+"</b>"]);
 	prefContents.insertRow().innerHTML = formatBlankRow();
 	prefContents.insertRow().innerHTML = formatBlankRow();
 	rowCtr = rowCtr+4;
 	prefContents.insertRow().innerHTML = formatBlankRow();
 	rowCtr++;
-	setTableRow(prefContents, ["<u>Category</u>", "<b><u>"+"Color"+"</u></b>"]); 
+	setTableRow(prefContents, ["&nbsp;<u>Category</u>", "<b><u>"+"Color"+"</u></b>"]); 
 	rowCtr++;
 	for (var j = 0; j < thresholds.length; j++) {
 		var threshold = thresholds[j];
 		var color = colors[j];
-		var threshId = mapName+"_breakPt"+j;
-		var colorId = mapName+"_color"+j;
+		var threshId = key+"_breakPt"+j;
+		var colorId = key+"_color"+j;
 		var colorInput = "<input class='spectrumColor' type='color' name='"+colorId+"_colorPref' id='"+colorId+"_colorPref' value='"+color+"'>"; 
-		setTableRow(prefContents, [threshold, colorInput]);
+		setTableRow(prefContents, ["&nbsp;&nbsp;"+threshold, colorInput]);
 		rowCtr++;
 	} 
 	prefContents.insertRow().innerHTML = formatBlankRow();
 	rowCtr++;
-	setTableRow(prefContents, ["Missing Color:",  "<input class='spectrumColor' type='color' name='"+mapName+"_missing_colorPref' id='"+mapName+"_missing_colorPref' value='"+colorMap.getMissingColor()+"'>"]);
+	setTableRow(prefContents, ["&nbsp;Missing Color:",  "<input class='spectrumColor' type='color' name='"+key+"_missing_colorPref' id='"+key+"_missing_colorPref' value='"+colorMap.getMissingColor()+"'>"]);
 	rowCtr++;
 	if (rowCtr > maxRows) {
 		maxRows = rowCtr;
@@ -863,17 +963,20 @@ function setupClassBreaks(e, mapName, barName){
  * show all box, all other boxes are checked.  
  **********************************************************************************/
 function showAllBars(){
-	var classBars = heatMap.getClassifications();
 	var showAllBox = document.getElementById('all_showPref');
 	var checkState = false;
 	if (showAllBox.checked) {
 		checkState = true;
 	}
-	for (var key in classBars){
-		if (filterShow(key)) {
-			var colShow = document.getElementById(key+'_showPref');
-			colShow.checked = checkState;
-		}
+	var rowClassBars = heatMap.getRowClassificationConfig();
+	for (var key in rowClassBars){
+		var colShow = document.getElementById(key+'_showPref');
+		colShow.checked = checkState;
+	}
+	var colClassBars = heatMap.getColClassificationConfig();
+	for (var key in colClassBars){
+		var colShow = document.getElementById(key+'_showPref');
+		colShow.checked = checkState;
 	}
 	return;
 }	
@@ -887,9 +990,19 @@ function showAllBars(){
  * resulting in all of the boxes being selected, the show all box will be checked.
  **********************************************************************************/
 function setShowAll(){
-	var classBars = heatMap.getClassifications();
 	var checkState = true;
-	for (var key in classBars){
+	var rowClassBars = heatMap.getRowClassificationConfig();
+	for (var key in rowClassBars){
+		var colShow = document.getElementById(key+'_showPref');
+		if (filterShow(key)) {
+			if (!colShow.checked) {
+				checkState = false;
+				break;
+			}
+		}
+	}
+	var colClassBars = heatMap.getColClassificationConfig();
+	for (var key in colClassBars){
 		var colShow = document.getElementById(key+'_showPref');
 		if (filterShow(key)) {
 			if (!colShow.checked) {
@@ -921,9 +1034,9 @@ function showClassBreak(selClass) {
 		var classDiv = document.getElementById(classVal);
 		var classSel = classBtn.options[i].selected;
 		if (classSel) {
-			classDiv.style.display = "block";
+			classDiv.style.display="block";
 		} else {
-			classDiv.style.display = "none";
+			classDiv.style.display="none";
 		}
 	}
 }
@@ -999,17 +1112,17 @@ function setupRowColPrefs(e, prefprefs){
 	setTableRow(prefContents,["ROW INFORMATION:"], 2);
 	prefContents.insertRow().innerHTML = formatBlankRow();
 	var rowLabels = heatMap.getRowLabels();
-	var dendrogram = heatMap.getDendrogram();
-	var rowOrder = rowLabels['order_method'];
+	var rowOrganization = heatMap.getRowOrganization();
+	var rowOrder = rowOrganization['order_method'];
 	setTableRow(prefContents,["&nbsp;&nbsp;Labels Type:",rowLabels['label_type']]);
 	setTableRow(prefContents,["&nbsp;&nbsp;Ordering Method:",rowOrder]);
 	var rowCtr = 5;
 	var dendroShowOptions = "<option value='ALL'>Summary and Detail</option><option value='SUMMARY'>Summary Only</option><option value='NONE'>Hide</option></select>";
 	var dendroHeightOptions = "<option value='50'>50%</option><option value='75'>75%</option><option value='100'>100%</option><option value='125'>125%</option><option value='150'>150%</option><option value='200'>200%</option><option value='300'>300%</option></select>";
 	if (rowOrder === "Hierarchical") {
-		setTableRow(prefContents,["&nbsp;&nbsp;Agglomeration Method:",rowLabels['agglomeration_method']]);
+		setTableRow(prefContents,["&nbsp;&nbsp;Agglomeration Method:",rowOrganization['agglomeration_method']]);
 		rowCtr++;
-		setTableRow(prefContents,["&nbsp;&nbsp;Distance Metric:",rowLabels['distance_metric']]);
+		setTableRow(prefContents,["&nbsp;&nbsp;Distance Metric:",rowOrganization['distance_metric']]);
 		rowCtr++;
 		var rowDendroSelect = "<select name='rowDendroShowPref' id='rowDendroShowPref' onchange='dendroRowShowChange()'>"
 		rowDendroSelect = rowDendroSelect+dendroShowOptions;
@@ -1029,15 +1142,16 @@ function setupRowColPrefs(e, prefprefs){
 	prefContents.insertRow().innerHTML = formatBlankRow();
 	
 	var colLabels = heatMap.getColLabels();
-	var colOrder = colLabels['order_method'];
+	var colOrganization = heatMap.getColOrganization();
+	var colOrder = colOrganization['order_method'];
 	setTableRow(prefContents,["&nbsp;&nbsp;Labels Type:",colLabels['label_type']]);
 	rowCtr++;
 	setTableRow(prefContents,["&nbsp;&nbsp;Ordering Method:",colOrder]);
 	rowCtr++;
 	if (colOrder === "Hierarchical") {
-		setTableRow(prefContents,["&nbsp;&nbsp;Agglomeration Method:",colLabels['agglomeration_method']]);
+		setTableRow(prefContents,["&nbsp;&nbsp;Agglomeration Method:",colOrganization['agglomeration_method']]);
 		rowCtr++;
-		setTableRow(prefContents,["&nbsp;&nbsp;Distance Metric:",colLabels['distance_metric']]);
+		setTableRow(prefContents,["&nbsp;&nbsp;Distance Metric:",colOrganization['distance_metric']]);
 		rowCtr++;
 		var colDendroShowSelect = "<select name='colDendroShowPref' id='colDendroShowPref' onchange='dendroColShowChange()'>"
 		colDendroShowSelect = colDendroShowSelect+dendroShowOptions;
@@ -1060,11 +1174,11 @@ function setupRowColPrefs(e, prefprefs){
  * states of the row/column dendrogram show and height preferences.
  **********************************************************************************/
 function showDendroSelections() {
-	var dendrogram = heatMap.getDendrogram();
-	var rowLabels = heatMap.getRowLabels();
-	var rowOrder = rowLabels['order_method'];
+	var rowDendroConfig = heatMap.getRowDendroConfig();
+	var rowOrganization = heatMap.getRowOrganization();
+	var rowOrder = rowOrganization['order_method'];
 	if (rowOrder === "Hierarchical") {
-		var dendroShowVal = dendrogram['row_dendro_show'];
+		var dendroShowVal = rowDendroConfig.show;
 		document.getElementById("rowDendroShowPref").value = dendroShowVal;
 		var rowHeightPref = document.getElementById("rowDendroHeightPref");
 		if (dendroShowVal === 'NONE') {
@@ -1078,12 +1192,13 @@ function showDendroSelections() {
 			rowHeightPref.add(option);
 			rowHeightPref.disabled = true;
 		}
-		rowHeightPref.value = dendrogram['row_dendro_height'];
+		rowHeightPref.value = rowDendroConfig.height;
 	}
-	var colLabels = heatMap.getColLabels();
-	var colOrder = colLabels['order_method'];
+	var colOrganization = heatMap.getColOrganization();
+	var colOrder = colOrganization['order_method'];
+	var colDendroConfig = heatMap.getColDendroConfig();
 	if (colOrder === "Hierarchical") {
-		var dendroShowVal = dendrogram['col_dendro_show'];
+		var dendroShowVal = colDendroConfig.show;
 		document.getElementById("colDendroShowPref").value = dendroShowVal;
 		var colHeightPref = document.getElementById("colDendroHeightPref");
 		if (dendroShowVal === 'NONE') {
@@ -1097,7 +1212,7 @@ function showDendroSelections() {
 			colHeightPref.add(option);
 			colHeightPref.disabled = true;
 		}
-		colHeightPref.value = dendrogram['col_dendro_height'];
+		colHeightPref.value = colDendroConfig.height;
 	}
 }
 

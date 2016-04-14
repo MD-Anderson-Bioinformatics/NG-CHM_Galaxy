@@ -12,6 +12,8 @@
       <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/UserHelpManager.js"></script>
       <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/UserPreferenceManager.js"></script>
       <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/PdfGenerator.js"></script>
+ 	 <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/Linkout.js"></script>
+
       <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/lib/jspdf.debug.js"></script>
  	 <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/custom.js"></script>
 
@@ -68,7 +70,7 @@
         <div class="mdaServiceHeaderLogo">
             <img src="/plugins/visualizations/mda_heatmap_viz/static/images/mdandersonlogo260x85.png" alt="">
         </div>
-      
+        <div id="mapName" onmouseover='detailDataToolHelp(this,heatMap.getMapInformation().description)'></div>
 	   <div id='detail_buttons' align="center" style="display:none">
  		    <img id='zoomOut_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/zoom-out.png' alt='Zoom Out' onmouseover='detailDataToolHelp(this,"Zoom Out")' onclick='detailDataZoomOut();'   align="top"   />
 		    <img id='zoomIn_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/zoom-in.png' alt='Zoom In' onmouseover='detailDataToolHelp(this,"Zoom In")' onclick='detailDataZoomIn();' align="top"   />
@@ -81,9 +83,11 @@
 		    <img id='prev_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/prev.png' alt='Previous' onmouseover='userHelpClose();' style="display:none;" onclick='searchPrev();'  align="top"  />
 		    <img id='next_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/next.png' alt='Next' onmouseover='userHelpClose();' style="display:none;" onclick='searchNext();'  align="top"  />
 		    <img id='cancel_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/cancel.png' alt='Cancel' onmouseover='detailDataToolHelp(this,"Clear current search")' style="display:none;" onclick='clearSearch();'  align="top"  />
-		    <img id='pdf_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/pdf.png' alt='go' onmouseover='detailDataToolHelp(this,"Save as PDF")' onclick='openPdfPrefs(this,null);'  align="top" style="position: absolute; right: 60;"  />
- 	    	    <img id='gear_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/gear.png' alt='Modify Map' onmouseover='detailDataToolHelp(this,"Modify Map Preferences")' onclick='editPreferences(this,null);' align="top" style="position: absolute; right: 30;"  />
        </div>
+	 <div id='buttons'>
+		    <img id='pdf_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/pdf.png' alt='go' onmouseover='detailDataToolHelp(this,"Save as PDF")' onclick='openPdfPrefs(this,null);'  align="top" />
+ 	    	    <img id='gear_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/gear.png' alt='Modify Map' onmouseover='detailDataToolHelp(this,"Modify Map Preferences")' onclick='editPreferences(this,null);'/>
+	 </div>
     </div>
 
     <div id="container">
