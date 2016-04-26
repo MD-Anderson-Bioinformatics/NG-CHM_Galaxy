@@ -68,14 +68,23 @@
 		<option value="centroid">Centroid</option>	    
 	</param>
     <repeat name="operations" title="Covariate Bars">
-        <param name="class_name" size="20" type="text" value="" label="Axis Covariate Name"/>
-        <param name="repeatinput" type="data" format="text" label="Axis Covariate File"/>        
-		<param name="cat" type="select" label="Axis Covariate Type">
-		  <option value="row_categorical" >row categorical</option>
-		  <option value="row_continuous" >row continuous</option>
-		  <option value="column_categorical" >column categorical</option>
-		  <option value="column_continuous" >column continuous</option>
-		</param>
+        <param name="class_name" size="20" type="text" value="" label="Axis Covariate Name">
+           <sanitizer invalid_char="_">
+              <valid initial="none">
+                <add preset="string.letters"/>
+                <add preset="string.digits"/>
+              </valid>
+              <mapping initial="none">
+              </mapping>
+           </sanitizer>
+        </param>
+        <param name="repeatinput" type="data" format="text" label="Axis Covariate File"/>
+	<param name="cat" type="select" label="Axis Covariate Type">
+	  <option value="row_categorical" >row categorical</option>
+	  <option value="row_continuous" >row continuous</option>
+	  <option value="column_categorical" >column categorical</option>
+	  <option value="column_continuous" >column continuous</option>
+	</param>
     </repeat>       
   </inputs>
   <outputs>
