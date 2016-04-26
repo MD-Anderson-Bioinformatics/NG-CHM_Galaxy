@@ -112,9 +112,9 @@ function editPreferences(e,errorMsg){
 	var prefButtons = document.createElement("TABLE");
 	//Add Cancel, Apply, and Save buttons to bottom of prefspanel table
 	var buttons = "<img id='prefCancel_btn' src='" + staticPath + "images/prefCancel.png' alt='Cancel changes' onclick='prefsCancelButton();' align='top'/>&nbsp;<img id='prefApply_btn' src='" + staticPath + "images/prefApply.png' alt='Apply changes' onclick='prefsApplyButton();' align='top'/>";
-	if (heatMap.isSaveAllowed()) {
+//	if (heatMap.isSaveAllowed()) {
 		buttons = buttons + "&nbsp;<img id='prefSave_btn' src='" + staticPath + "images/prefSave.png' alt='Save changes' onclick='prefsSaveButton();' align='top'/>";
-	}
+//	}
 	setTableRow(prefButtons,["<div id='pref_buttons' align='right'>"+buttons+"</div>"]);
 	rowCtr++;
 	prefprefs.appendChild(prefButtons);
@@ -299,7 +299,7 @@ function prefsSaveButton() {
 	if (errorMsg !== null) {
 		prefsError(errorMsg);
 	} else { 
-		var success = heatMap.saveHeatMapProperties();
+		var success = heatMap.saveHeatMapProperties(2);
 		if (success === "false") {
 			prefsError(["dl1", "layerPrefs", "ERROR: Preferences failed to save. Use Apply or Cancel to continue."]);
 		} else {
@@ -387,6 +387,9 @@ function prefsApply() {
 	// Apply Data Layer Preferences
 	var dataLayers = heatMap.getDataLayers();
 	for (var key in dataLayers){
+		var showGrid = document.getElementById(key+'_gridPref');
+		var gridColor = document.getElementById(key+'_gridColorPref');
+		heatMap.setLayerGridPrefs(key, showGrid.checked,gridColor.value)
 		prefsApplyBreaks(key,"data",true);
 	}
 }
@@ -657,12 +660,22 @@ function setupLayerBreaks(e, mapName){
 	var prefContents = document.createElement("TABLE"); 
 	var rowCtr = 0;
 	prefContents.insertRow().innerHTML = formatBlankRow();
+	var dataLayers = heatMap.getDataLayers();
+	var layer = dataLayers[mapName];
+	var gridShow = "<input name='"+mapName+"_gridPref' id='"+mapName+"_gridPref' type='checkbox' ";
+	if (layer.grid_show == 'Y') {
+		gridShow = gridShow+"checked"
+	}
+	gridShow = gridShow+ " >";
+	setTableRow(prefContents, ["&nbsp;Show Map Grid:", gridShow]); 
+	var gridColorInput = "<input class='spectrumColor' type='color' name='"+mapName+"_gridColorPref' id='"+mapName+"_gridColorPref' value='"+layer.grid_color+"'>"; 
+	setTableRow(prefContents, ["&nbsp;Grid Color:", gridColorInput]); 
 	prefContents.insertRow().innerHTML = formatBlankRow();
-	rowCtr++;
+	prefContents.insertRow().innerHTML = formatBlankRow();
 	setTableRow(prefContents, ["&nbsp;<u>Breakpoint</u>", "<b><u>"+"Color"+"</u></b>","&nbsp;"]); 
-	rowCtr++;
+	rowCtr = 5;
 	for (var j = 0; j < thresholds.length; j++) {
-		var threshold = thresholds[j];
+		var threshold = thresholds[j];    
 		var color = colors[j];
 		var threshId = mapName+"_breakPt"+j;
 		var colorId = mapName+"_color"+j;

@@ -86,20 +86,6 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 		return datalevels[level].getValue(row,column);
 	}
 	
-	this.saveHeatMapProperties = function () {
-		var success = saveMapProperties("mapConfig",JSON.stringify(mapConfig));
-		return success;
-	}
-	
-	//This function is used to set a read window for high resolution data layers.
-	//Calling setReadWindow will cause the HeatMap object to retrieve tiles needed
-	//for reading this area if the tiles are not already in the cache.
-    this.setReadWindow = function(level, row, column, numRows, numColumns) {
-  	//Thumb nail and summary level are always kept in the cache.  Don't do fetch for them.
-  	if (level != MatrixManager.THUMBNAIL_LEVEL && level != MatrixManager.SUMMARY_LEVEL)
-  		datalevels[level].setReadWindow(row, column, numRows, numColumns);
-    } 	
-
 	// Retrieve color map Manager for this heat map.
 	this.getColorMapManager = function() {
 		if (initialized != 1)
@@ -143,6 +129,11 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 			mapConfig.col_configuration.classifications[classname].show = showVal ? 'Y' : 'N';
 			mapConfig.col_configuration.classifications[classname].height = parseInt(heightVal);
 		}
+	}
+	
+	this.setLayerGridPrefs = function(key, showVal, colorVal) {
+		mapConfig.data_configuration.map_information.data_layer[key].grid_show = showVal ? 'Y' : 'N';
+		mapConfig.data_configuration.map_information.data_layer[key].grid_color = colorVal;
 	}
 	
 	//Get Row Organization
@@ -226,6 +217,26 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 		return showDendro;
 	}
 
+	this.saveHeatMapProperties = function (whereFrom) {
+		var success = true;
+		if (mode !== "F") {
+			success = webSaveMapProperties("mapConfig",JSON.stringify(mapConfig)); 
+		} else {
+			zipSaveNotification(whereFrom);
+			zipSaveMapProperties();
+		} 
+		return success;
+	}
+	
+	//This function is used to set a read window for high resolution data layers.
+	//Calling setReadWindow will cause the HeatMap object to retrieve tiles needed
+	//for reading this area if the tiles are not already in the cache.
+    this.setReadWindow = function(level, row, column, numRows, numColumns) {
+  	//Thumb nail and summary level are always kept in the cache.  Don't do fetch for them.
+  	if (level != MatrixManager.THUMBNAIL_LEVEL && level != MatrixManager.SUMMARY_LEVEL)
+  		datalevels[level].setReadWindow(row, column, numRows, numColumns);
+    } 	
+
 	
 	//Method used to register another callback function for a user that wants to be notifed
 	//of updates to the status of heat map data.
@@ -285,11 +296,17 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 		zip.createReader(zipBR, function(reader) {
 			// get all entries from the zip
 			reader.getEntries(function(entries) {
+				//Inspect the first entry path to grab the true heatMapName.
+				//The user may have renamed the zip file OR it was downloaded
+				//as a second+ generation of a file by the same name (e.g. with a " (1)" 
+				//in the name).
+				var entryName = entries[0].filename;
+				heatMapName = entryName.substring(0,entryName.indexOf("/"));
 				for (var i = 0; i < entries.length; i++) {
 					zipFiles[entries[i].filename] = entries[i];
 				}
-				zipFetchJson('mapConfig.json', addMapConfig);	 
-				zipFetchJson('mapData.json', addMapData);	 
+				zipFetchJson(zipFiles[heatMapName + "/mapConfig.json"], addMapConfig);	 
+				zipFetchJson(zipFiles[heatMapName + "/mapData.json"], addMapData);	 
 			});
 		}, function(error) {
 			console.log('Zip file read error ' + error);
@@ -297,7 +314,93 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 	}
 	
 	
-	function saveMapProperties(type, jsonData) {
+	function zipSaveMapProperties() {
+
+		  function onProgress(a, b) {
+			  // For debug use - console.log("current", a, "end", b);
+		  }
+
+		  var zipper = (function buildZipFile() {
+		    var zipWriter;
+
+		    return {
+		      addTexts : function addEntriesToZipFile(callback) {
+					// Loop thru all entries in zipFiles, adding them to the new zip file.
+			    	function add(fileIndex) {
+						var zipLen = Object.keys(zipFiles).length;
+						var keyVal = Object.keys(zipFiles)[fileIndex];
+						var entry = zipFiles[keyVal];
+						if (fileIndex < zipLen) {
+							if (keyVal.indexOf('bin') < 0) {
+								// Directly add all text zip entries directly to the new zip file
+								// except for mapConfig.  For this entry, add the modified config data.
+								if (keyVal.indexOf('mapConfig') > -1) {
+									addTextContents(entry.filename, fileIndex, JSON.stringify(mapConfig));
+								} else {
+									zipFetchText(entry, fileIndex, addTextContents);
+								}
+							} else {
+								// Directly add all binary zip entries directly to the new zip file
+								zipFetchBin(entry, fileIndex, addBinContents);
+							}
+						} else {
+						  callback() /* [2] no more files to add: callback is called */;
+						}
+			        }
+					// Get the text data for a given zip entry and execute the 
+					// callback to add that data to the zip file.
+					function zipFetchText(entry, fileIndex, setterFunction) {
+						entry.getData(new zip.TextWriter(), function(text) {
+							// got the json, now call the appropriate setter
+							setterFunction(entry.filename, fileIndex, text);
+						}, function(current, total) {
+							// onprogress callback
+						});
+					}
+					// Get the binary data for a given zip entry and execute the 
+					// callback to add that data to the zip file.
+			    	function zipFetchBin(entry, fileIndex, setterFunction) {
+						entry.getData(new zip.BlobWriter(), function(blob) {
+			    			setterFunction(entry.filename, fileIndex, blob);
+						}, function(current, total) {
+							// onprogress callback
+						});		
+			    	}
+					// Add text contents to the zip file and call the add function 
+					// to process the next zip entry stored in zipFiles.
+			        function addTextContents(name, fileIndex, contents) {
+		                zipWriter.add(name, new zip.TextReader(contents), function() {
+			                add(fileIndex + 1); /* [1] add the next file */
+			              }, onProgress);
+			        }
+					// Add binary contents to the zip file and call the add function 
+					// to process the next zip entry stored in zipFiles.
+			        function addBinContents(name, fileIndex, contents) {
+		                zipWriter.add(name, new zip.BlobReader(contents), function() {
+			                add(fileIndex + 1); /* [1] add the next file */
+			              }, onProgress);
+			        }
+			      // Start the zip file creation process by instantiating a writer
+			      // and calling the add function for the first entry in zipFiles.
+		          zip.createWriter(new zip.BlobWriter(), function(writer) {
+		            zipWriter = writer;
+		            add(0); /* [1] add the first file */
+		          });
+		      },
+		      getBlob : function(callback) {
+		        zipWriter.close(callback);
+		      }
+		    };
+		  })();
+
+		  zipper.addTexts(function addTextsCallback() {
+		    zipper.getBlob(function getBlobCallback(blob) {
+		      saveAs(blob, heatMapName+".zip"); 
+		    });
+		  });  
+		}
+	
+	function webSaveMapProperties(type, jsonData) {
 		var success = "false";
 		var name = "SaveMapProperties?map=" + heatMapName + "&type=" + type;
 		var req = new XMLHttpRequest();
@@ -408,6 +511,7 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 	function addMapConfig(mc) {
 		mapConfig = mc;
 		addDataLayers(mc);
+		CompatibilityManager(mapConfig);
 		sendCallBack(MatrixManager.Event_JSON);
 	}
 	
@@ -474,7 +578,8 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 			req.send();	
 		} else {
 			//File mode - get tile from zip
-			zipFiles[heatMapName + "/" + layer + "/"+ level + "/" + tileName + '.bin'].getData(new zip.BlobWriter(), function(blob) {
+			var entry = zipFiles[heatMapName + "/" + layer + "/"+ level + "/" + tileName + '.bin'];
+			entry.getData(new zip.BlobWriter(), function(blob) {
 				var fr = new FileReader();
 				
 				fr.onload = function(e) {
@@ -509,10 +614,9 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 		req.send();
 	}
 	
-	//Helper function to fetch a json file from zip file.  
-	//Specify which file to get and what funciton to call when it arrives.
-	function zipFetchJson(jsonFile, setterFunction) {
-		zipFiles[heatMapName + "/" + jsonFile].getData(new zip.TextWriter(), function(text) {
+	//Helper function to fetch a json file from zip file using a zip file entry.  
+	function zipFetchJson(entry, setterFunction) {
+		entry.getData(new zip.TextWriter(), function(text) {
 			// got the json, now call the appropriate setter
 			setterFunction(JSON.parse(text));
 		}, function(current, total) {

@@ -1,7 +1,7 @@
 echo $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${14} ${15}
 
 #create temp directory for row and col order and dendro files.
-tdir=${11}/$(date +%s)
+tdir=${11}/$(date +%y%m%d%k%M%S)
 echo $tdir
 mkdir $tdir
 
@@ -24,7 +24,7 @@ for i in "$@"; do
 done
 
 #call java program to generate NGCHM viewer files.
-java -jar ${11}/GalaxyMapGen.jar $1 $2 DataLayer1 $3 linear Row Column $4 $5 $6 $tdir/ROfile.txt $tdir/RDfile.txt $7 $8 $9 $tdir/COfile.txt $tdir/CDfile.txt ${10} $classifications
+java -jar ${11}/GalaxyMapGen.jar "${1}" "${2}" DataLayer1 $3 linear Row Column $4 $5 $6 $tdir/ROfile.txt $tdir/RDfile.txt $7 $8 $9 $tdir/COfile.txt $tdir/CDfile.txt ${10} $classifications
 
 #clean up tempdir
 rm -rf $tdir

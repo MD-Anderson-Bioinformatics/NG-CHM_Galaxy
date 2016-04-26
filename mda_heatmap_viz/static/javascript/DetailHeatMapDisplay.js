@@ -45,7 +45,6 @@ var mouseDown = false;
 var dragOffsetX;
 var dragOffsetY;
 var detailPoint;
-var detailGrid = true;
 
 var mode = 'NORMAL';
 var isDrawn = false;
@@ -558,23 +557,31 @@ function drawDetailHeatMap() {
 		return;
 	}
 	var colorMap = heatMap.getColorMapManager().getColorMap("data",currentDl);
+	var dataLayers = heatMap.getDataLayers();
+	var dataLayer = dataLayers[currentDl];
+	var showGrid = false;
+	if (dataLayer.grid_show === 'Y') {
+		showGrid = true;
+	}
 	var rowClassBarWidth = calculateTotalClassBarHeight("row");
 	var searchRows = getSearchRows();
 	var searchCols = getSearchCols();
 	var searchGridColor = [0,0,0];
-	var regularGridColor = [255,255,255];
+	var dataGridColor = colorMap.getHexToRgba(dataLayer.grid_color);
+	var regularGridColor = [dataGridColor.r, dataGridColor.g, dataGridColor.b];
+	//var regularGridColor = [255,255,255];
 	var detDataPerRow = getCurrentDetDataPerRow();
 	var detDataPerCol = getCurrentDetDataPerCol();
  
 	//Build a horizontal grid line for use between data lines. Tricky because some dots will be selected color if a column is in search results.
 	var gridLine = new Uint8Array(new ArrayBuffer((detailDendroWidth + rowClassBarWidth + detailDataViewWidth) * BYTE_PER_RGBA));
-	if (detailGrid == true) {
+	if (showGrid == true) {
 		var linePos = (detailDendroWidth+rowClassBarWidth)*BYTE_PER_RGBA;
 		gridLine[linePos]=0; gridLine[linePos+1]=0;gridLine[linePos+2]=0;gridLine[linePos+3]=255;linePos+=BYTE_PER_RGBA;
 		for (var j = 0; j < detDataPerRow; j++) {
 			var gridColor = ((searchCols.indexOf(currentCol+j) > -1) || (searchCols.indexOf(currentCol+j+1) > -1)) ? searchGridColor : regularGridColor;
 			for (var k = 0; k < dataBoxWidth; k++) {
-				if (k==dataBoxWidth-1 && detailGrid == true && dataBoxWidth > minLabelSize ){ // should the grid line be drawn?
+				if (k==dataBoxWidth-1 && showGrid == true && dataBoxWidth > minLabelSize ){ // should the grid line be drawn?
 					gridLine[linePos] = gridColor[0]; gridLine[linePos+1] = gridColor[1]; gridLine[linePos+2] = gridColor[2];	gridLine[linePos+3] = 255;
 				} else {
 					gridLine[linePos]=regularGridColor[0]; gridLine[linePos + 1]=regularGridColor[1]; gridLine[linePos + 2]=regularGridColor[2]; gridLine[linePos + 3]=255;
@@ -606,7 +613,7 @@ function drawDetailHeatMap() {
 
 			//For each data point, write it several times to get correct data point width.
 			for (var k = 0; k < dataBoxWidth; k++) {
-				if (k==dataBoxWidth-1 && detailGrid == true && dataBoxWidth > minLabelSize ){ // should the grid line be drawn?
+				if (k==dataBoxWidth-1 && showGrid == true && dataBoxWidth > minLabelSize ){ // should the grid line be drawn?
 					line[linePos] = gridColor[0]; line[linePos+1] = gridColor[1]; line[linePos+2] = gridColor[2];	line[linePos+3] = 255;
 				} else {
 					line[linePos] = color['r'];	line[linePos + 1] = color['g'];	line[linePos + 2] = color['b'];	line[linePos + 3] = color['a'];
@@ -619,7 +626,7 @@ function drawDetailHeatMap() {
 
 		//Write each line several times to get correct data point height.
 		for (dup = 0; dup < dataBoxHeight; dup++) {
-			if (dup == dataBoxHeight-1 && detailGrid == true && dataBoxHeight > minLabelSize){ // do we draw gridlines?
+			if (dup == dataBoxHeight-1 && showGrid == true && dataBoxHeight > minLabelSize){ // do we draw gridlines?
 				if ((searchRows.indexOf(currentRow+i) > -1) || (searchRows.indexOf(currentRow+i-1) > -1)) {
 					pos += (rowClassBarWidth + detailDendroWidth)*BYTE_PER_RGBA;
 					for (var k = 0; k < detailDataViewWidth; k++) {
@@ -1018,6 +1025,10 @@ function addLabelDiv(parent, id, className, text, left, top, fontSize, rotate, i
 	if (text !== "<" && text !== "..."){
 		div.addEventListener('click',labelClick,false);
 		div.addEventListener('contextmenu',labelRightClick,false);
+	} else if (text == "..."){
+		div.addEventListener('mouseover', (function() {
+		    return function(e) {detailDataToolHelp(this, "Some covariate bars are hidden"); };
+		}) (this), false);
 	}
 	div.style.position = "absolute";
 	div.style.left = left;
@@ -1753,10 +1764,13 @@ function detInitGl () {
 	detTextureParams['width'] = texWidth;
 	detTextureParams['height'] = texHeight; 
 }
-
+/*  Disabled until we decide to add a toggle button.
+ *  when we do we will need to use the grid_show
+ *  parameter on the DataLayer
 function toggleGrid(){
 	detailGrid = !detailGrid;
 	drawDetailHeatMap();
 }
+*/
 
 

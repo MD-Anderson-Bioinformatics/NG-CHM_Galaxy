@@ -96,7 +96,7 @@ function getPDF(){
 		var label = allLabels[i];
 		if (label.getAttribute("axis") == "Row"){
 			doc.text(label.offsetLeft/detClient2PdfWRatio+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop+fontSize, label.innerHTML, null);
-		} else if (label.getAttribute("axis") == "ColumnClass"){ // change font for class bars
+		} else if (label.getAttribute("axis") == "ColumnCovar"){ // change font for class bars
 			var scale =  detImgH / (detailDataViewWidth + calculateTotalClassBarHeight("row")+detailDendroWidth);
 			var colClassBarConfig = heatMap.getColClassificationConfig();
 			var classBar0 = colClassBarConfig[Object.keys(colClassBarConfig)[0]];
@@ -122,10 +122,10 @@ function getPDF(){
 		var label = allLabels[i];
 		if (label.getAttribute("axis") == "Column"){
 			doc.text(label.offsetLeft/detClient2PdfWRatio-fontSize+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop, label.innerHTML, null, 270);
-		} else if (label.getAttribute("axis") == "RowClass"){
+		} else if (label.getAttribute("axis") == "RowCovar"){
 			var scale =  detImgW / (detailDataViewWidth + calculateTotalClassBarHeight("row")+detailDendroWidth);
 			var rowClassBarConfig = heatMap.getRowClassificationConfig();
-			var classBar0 = colClassBarConfig[Object.keys(rowClassBarConfig)[0]];
+			var classBar0 = rowClassBarConfig[Object.keys(rowClassBarConfig)[0]];
 			var tempFontSize = fontSize;
 			fontSize = Math.min((classBar0.height - paddingHeight) * scale, 11);
 			doc.setFontSize(fontSize);
@@ -146,14 +146,14 @@ function getPDF(){
 	paddingLeft = 5, paddingTop = headerHeight+classBarHeaderSize + 5; // reset the top and left coordinates
 	
 	// row
-	if (isChecked('pdfInputRow')){
+	var rowClassBarData = heatMap.getRowClassificationData();
+	if (isChecked('pdfInputRow') && getClassBarsToDraw("Row").bars.length > 0){
 		doc.addPage();
 		createHeader();
 		doc.setFontSize(classBarHeaderSize);
 		doc.text(10, paddingTop, "Row Covariate Bar Legends:" , null);
 		var leftOff=10, topOff = paddingTop + classBarTitleSize;
 		var rowClassBarConfig = heatMap.getRowClassificationConfig();
-		var rowClassBarData = heatMap.getRowClassificationData();
 		for (var key in rowClassBarConfig){
 			var currentClassBar = rowClassBarConfig[key];
 			doc.setFontSize(classBarTitleSize);
@@ -169,7 +169,8 @@ function getPDF(){
 	}
 	
 	// column
-	if (isChecked('pdfInputColumn')){
+	var colClassBarData = heatMap.getColClassificationData();
+	if (isChecked('pdfInputColumn') && getClassBarsToDraw("Column").bars.length > 0){
 		doc.addPage();
 		createHeader();
 		doc.setFontSize(classBarHeaderSize);
@@ -204,6 +205,7 @@ function getPDF(){
 	// makes the MDAnderson logo, the HM name, and the red divider line at the top of each page
 	function createHeader() {
 		doc.addImage(headerData, 'PNG',5,5,header.clientWidth,header.clientHeight);
+//		doc.addImage(headerData, 'PNG',5,5,107,35);
 		doc.setFontSize(20);
 		doc.text(pageWidth/2 - doc.getStringUnitWidth(heatMap.getMapInformation().name)*20/2, headerHeight, heatMap.getMapInformation().name, null);
 		doc.setFillColor(255,0,0);

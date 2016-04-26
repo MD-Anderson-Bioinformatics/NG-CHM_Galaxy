@@ -72,7 +72,7 @@ function createLabelMenu(axis){ // creates the divs for the label menu
 	topDiv.classList.add("labelMenuCaption");
 	topDiv.innerHTML = axis.replace("Covar"," Classification") + ' Label Menu:';
 	var closeMenu = document.createElement("IMG");
-	closeMenu.src = staticPath + "images/closeButton.png";
+	closeMenu.src = staticPath +"images/closeButton.png";
 	closeMenu.classList.add('labelMenuClose')
 	closeMenu.addEventListener('click', function(){labelHelpClose(axis)},false);
 	var table = document.createElement("TABLE");

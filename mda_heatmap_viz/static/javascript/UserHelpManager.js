@@ -242,12 +242,14 @@ function detailDataToolHelp(e,text,width) {
 		}
 	    var helptext = getDivElement("helptext");
 	    helptext.style.position = "absolute";
-	    document.getElementsByTagName('body')[0].appendChild(helptext);
-	    if ((text === "Modify Map Preferences") || (text === "Save as PDF")){
+	    e.parentElement.appendChild(helptext);
+//	    document.getElementsByTagName('body')[0].appendChild(helptext);
+//	    if ((text === "Modify Map Preferences") || (text === "Save as PDF")){
+	    if (2*width + e.getBoundingClientRect().right > document.body.offsetWidth-50){ // 2*width and -50 from window width to force elements close to right edge to move
 	    	helptext.style.left = e.offsetLeft - 125;
 	    } else {
 	    	if (e.offsetLeft !== 0) {
-	    		helptext.style.left = e.offsetLeft + 15;
+	    		helptext.style.left = e.offsetLeft ;
 	    	} else {
 	    		var pdfButt = document.getElementById('pdf_btn')
 	    		helptext.style.left = pdfButt.offsetLeft - 150;
@@ -351,4 +353,29 @@ function showSearchError(type){
 		searchError.remove();
 	}, 2000);
 	
+}
+
+/**********************************************************************************
+ * FUNCTION - zipSaveNotification: This function handles all of the tasks necessary 
+ * display a modal window whenever a zip file is being saved. The textId passed in
+ * instructs the code to display either the startup save OR preferences save message.  
+ **********************************************************************************/
+function zipSaveNotification(textId) {
+	var zipopentext = document.getElementById('zipSaveOpen');
+	var zippreftext = document.getElementById('zipSavePref');
+	if (textId === 1) {
+		zipopentext.style.display = '';
+		zippreftext.style.display = 'none';
+	} else {
+		zipopentext.style.display = 'none';
+		zippreftext.style.display = '';
+	}
+	var zippanel = document.getElementById('zipFileSavePanel');
+	zippanel.style.top = 150;
+	zippanel.style.left = 500;
+	zippanel.style.display = 'block';
+}
+function zipCancelButton(){
+	var zippanel = document.getElementById('zipFileSavePanel');
+	zippanel.style.display = 'none';
 }

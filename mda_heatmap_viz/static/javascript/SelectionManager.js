@@ -509,8 +509,8 @@ function setDataPerColFromDet(detDataPerCol) {
  ***********************************************************************************************/ 
 function flickExists() {
 	var flicks = document.getElementById("flicks");
-	if (flicks.style.display === '') {
-		return true;
+	if ((flicks != null) && (flicks.style.display === '')) {
+		 return true;
 	}
 	return false;
 }

@@ -104,6 +104,11 @@ function summaryInit() {
 	canvas.height = summaryTotalHeight;
 	setupGl();
 	initGl();
+	if (flickExists()){
+		document.getElementById('settings_buttons').style.minWidth = '160px';
+	} else {
+		document.getElementById('settings_buttons').style.minWidth = '50px';
+	}
 	buildSummaryTexture();
 	leftCanvasBoxVertThick = 1/canvas.width;
 	leftCanvasBoxHorThick = 1/canvas.height;
@@ -528,12 +533,12 @@ function initGl () {
 
 // returns all the classifications bars for a given axis and their corresponding color schemes in an array.
 function getClassBarsToDraw(axis){
-	var classBars = heatMap.getClassifications();
+	var classBars = axis.toLowerCase() == "row" ? heatMap.getRowClassificationConfig() : heatMap.getColClassificationConfig();
 	var barsAndColors = {"bars":[], "colors":[]};
 	for (var key in classBars){
-		if (classBars[key].position == axis){
+		if (classBars[key].show == "Y"){
 			barsAndColors["bars"].push(key);
-			barsAndColors["colors"].push(classBars[key].colorScheme);
+			barsAndColors["colors"].push(classBars[key].color_map);
 		}
 	}
 	return barsAndColors;
@@ -1057,17 +1062,19 @@ function dividerMove(e){
 	var Xmove = e.touches ? divider.offsetLeft - e.touches[0].pageX : divider.offsetLeft - e.pageX;
 	var summary = document.getElementById('summary_chm');
 	var summaryX = summary.offsetWidth - Xmove;
-	var sumScale = summaryX/summary.clientWidth;
 	summary.style.width=summaryX+'px';
+	var sumScale = summaryX/summary.clientWidth;
 	var container = document.getElementById("container");
 	var originalW = Math.max(Math.max(Math.round(summaryMatrixWidth/250 * 48), 3))*container.clientWidth;
 	var originalH = Math.max(Math.max(Math.round(summaryMatrixHeight/250 * 48), 3))*container.clientHeight;
 	var originalAR = originalW/originalH;
+	// if the summary were small enough to get resized at startup, make the height change accordingly
 	if ((summaryMatrixWidth < 250 && summaryMatrixHeight < 250) && summary.clientWidth/summary.clientHeight <= originalAR){
 		summary.style.height = summary.clientWidth*originalAR;
 	}
 	var detail = document.getElementById('detail_chm');
 	var detailX = detail.offsetWidth + Xmove;
+	if (summary.clientWidth < window.innerWidth*.8)
 	detail.style.width=detailX+'px';
 	clearLabels();
 	clearSelectionMarks();
