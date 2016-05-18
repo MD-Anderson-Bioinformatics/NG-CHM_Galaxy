@@ -88,6 +88,6 @@
     </repeat>       
   </inputs>
   <outputs>
-    <data name="output" label='${hmname}' format="zip"/>
+    <data name="output" label='${hmname}' format="ngchm"/>
   </outputs>
 </tool>

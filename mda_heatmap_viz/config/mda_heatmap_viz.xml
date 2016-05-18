@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE visualization SYSTEM "../../visualization.dtd">
-<visualization name="mda_heatmap_viz">
+<visualization name="NGCHM Heatmap Viewer">
 	<data_sources>
 	   <data_source>
 	      <model_class>HistoryDatasetAssociation</model_class>
-	      <test test_attr="extension">zip</test>
+	      <test test_attr="extension">ngchm</test>
 	      <!-- bb arp06<test test_attr="mda_heatmap_gen">  only if from this tool -->
 	      <to_param param_attr="id">dataset_id</to_param>
 	   </data_source>
