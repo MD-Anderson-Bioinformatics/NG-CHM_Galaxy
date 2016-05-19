@@ -31,23 +31,12 @@ div.mdaServiceHeaderLogo
 	left: 0px;
 	display: inline-block;
 	width: auto;
+    padding: 0px 30px 0px 0px !important;
 }
 
 div.mdaServiceHeaderLogo img
 {
 	height: 54px;
-}
-
-#mapName{
-	float:left;
-	margin:10px 10px 3px 10px;
-	font-size: 16;
-    font-family: Arial;
-    font-weight: normal;
-}
-
-#container{
-	display:flex;
 }
 
 #divider{
@@ -61,7 +50,7 @@ div.mdaServiceHeaderLogo img
 }
 
 #summary_chm {
-    height:100%;
+    height:auto;
     min-height: 50px;
     max-height: 100%;
     width:48%;
@@ -86,7 +75,7 @@ div.mdaServiceHeaderLogo img
 }
 
 #detail_chm {
-    height:100%;
+    height:auto;
     width:48%;
     min-width: 100px;
     max-width: 80%;
@@ -101,10 +90,8 @@ div.mdaServiceHeaderLogo img
 }
 
 #detail_buttons {
-	text-align:center;
 	min-width:300px;
-	margin: 0px auto 0px auto;
-	width:450px;
+	width:550px;
 	display: block;
 }
 
@@ -213,6 +200,15 @@ td {
 	background-color: yellow;
 }
 
+.DynamicLabel{
+	position: absolute;
+	overflow: hidden;
+	text-overflow:ellipsis;
+    height: auto;
+    width: auto;
+    white-space: nowrap;
+}
+
 #searchError{
 	border: 1px solid #1a1a1a;
     border-radius: 10px;
@@ -297,6 +293,18 @@ td.unclickable{
 	cursor: default;
 }
 
+.presetPalette{
+	height:20px;
+	width:90px;
+}
+
+.presetPaletteMissingColor{
+	height:20px;
+	width:10px;
+	margin-right:10px;
+	margin-left: 2px;
+}
+
 table.breakpointContainer {
     border: none;
     border-spacing: 0px;
@@ -312,7 +320,7 @@ th.breakpointContainer {
     border-collapse: collapse;    
 }
 
-#prefsPanel, #pdfPrefsPanel, #zipFileSavePanel {
+#prefsPanel, #pdfPrefsPanel, #zipFileSavePanel, #unappliedChangeSavePanel, #downloadFileModeApp {
     margin: 5px !important;
     padding: 2px 2px 2px 2px !important;
     border: 1px solid #1a1a1a;
@@ -343,4 +351,17 @@ th.breakpointContainer {
     border-top-right-radius: 15px;
     background: #CBD1EA;
 }
+
+.hide{
+
+display: none
+
+}
+
+.show{
+
+display: ''
+
+}
+
 

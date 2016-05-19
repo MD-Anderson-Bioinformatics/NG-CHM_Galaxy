@@ -74,9 +74,9 @@ function editPreferences(e,errorMsg){
 	prefspanel.appendChild(headDiv);
 	headDiv.textContent = 'Heat Map Display Properties';
 	
-	prefContents.insertRow().innerHTML = formatBlankRow();
+	addBlankRow(prefContents)
 	prefContents.insertRow().innerHTML = "<td style='line-height:30px;'>&nbsp;</td>";
-	prefContents.insertRow().innerHTML = "<td style='border-bottom-style:solid;border-bottom-width:2px;position: relative;'><div id='prefTab_buttons' style='position: absolute; bottom: 0;' align='left'><img id='prefRowsCols_btn' src='" + staticPath + "rowsColsOn.png' alt='Edit Rows & Columns' onclick='showRowsColsPrefs();' align='top'/>&nbsp;<img id='prefLayer_btn' src='" + staticPath + "images/dataLayersOff.png' alt='Edit Data Layers' onclick='showLayerPrefs();' align='top'/>&nbsp;<img id='prefClass_btn' src='" + staticPath+ "images/covariateBarsOff.png' alt='Edit Classifications' onclick='showClassPrefs();' align='top'/></div></td>";
+	prefContents.insertRow().innerHTML = "<td style='border-bottom-style:solid;border-bottom-width:2px;position: relative;'><div id='prefTab_buttons' style='position: absolute; bottom: 0;' align='left'><img id='prefRowsCols_btn' src='" + staticPath + "images/rowsColsOn.png' alt='Edit Rows & Columns' onclick='showRowsColsPrefs();' align='top'/>&nbsp;<img id='prefLayer_btn' src='" + staticPath + "images/dataLayersOff.png' alt='Edit Data Layers' onclick='showLayerPrefs();' align='top'/>&nbsp;<img id='prefClass_btn' src='" + staticPath+ "images/covariateBarsOff.png' alt='Edit Classifications' onclick='showClassPrefs();' align='top'/></div></td>";
 	//Initialize rowCtr variable
 	var rowCtr = 3;
 
@@ -112,9 +112,7 @@ function editPreferences(e,errorMsg){
 	var prefButtons = document.createElement("TABLE");
 	//Add Cancel, Apply, and Save buttons to bottom of prefspanel table
 	var buttons = "<img id='prefCancel_btn' src='" + staticPath + "images/prefCancel.png' alt='Cancel changes' onclick='prefsCancelButton();' align='top'/>&nbsp;<img id='prefApply_btn' src='" + staticPath + "images/prefApply.png' alt='Apply changes' onclick='prefsApplyButton();' align='top'/>";
-//	if (heatMap.isSaveAllowed()) {
-		buttons = buttons + "&nbsp;<img id='prefSave_btn' src='" + staticPath + "images/prefSave.png' alt='Save changes' onclick='prefsSaveButton();' align='top'/>";
-//	}
+	buttons = buttons + "&nbsp;<img id='prefSave_btn' src='" + staticPath + "images/prefSave.png' alt='Save changes' onclick='prefsSaveButton();' align='top'/>";
 	setTableRow(prefButtons,["<div id='pref_buttons' align='right'>"+buttons+"</div>"]);
 	rowCtr++;
 	prefprefs.appendChild(prefButtons);
@@ -132,11 +130,12 @@ function editPreferences(e,errorMsg){
 	helpRowSize = parseFloat(getStyle(prefspanel, 'font-size' ), 10)*1.45;
 	//Use the two above numbers to apply sizing to all of the preferences DIVs.
 	setPrefsDivSizing();
-	prefspanel.style.left = e.offsetLeft - parseInt(layerprefs.style.width,10);
+	prefspanel.style.left = document.getElementById("mdaServiceHeader").clientWidth  - (parseInt(layerprefs.style.width,10)+25);
 	
 	//If errors exist and they are NOT on the currently visible DIV (dataLayer1),
 	//hide the dataLayers DIV, set the tab to "Covariates", and open the appropriate
 	//covariate bar DIV.
+	addClassPrefOptions();
 	showDendroSelections();
 	setShowAll();
 	if ((errorMsg != null) && (errorMsg[1] === "classPrefs")) {
@@ -167,7 +166,7 @@ function setPrefsDivSizing() {
 	var classprefs = document.getElementById("classPrefs");
 	var helprefs = document.getElementById("prefsPanel");
 	var prefHeight = maxRows*helpRowSize;
-	var prefWidth = 380;
+	var prefWidth = 400;
 	rowsColsprefs.style.width = prefWidth;
 	rowsColsprefs.style.height = prefHeight;
 	layerprefs.style.width = prefWidth;
@@ -254,11 +253,12 @@ function prefsCancelButton() {
 		var dataLayers = heatMap.getDataLayers();
 		var i = 0;
 		for (var key in dataLayers){
-			colorMapMgr.setColorMap(key, bkpColorMaps[i]);		
+			colorMapMgr.setColorMap(key, bkpColorMaps[i], "data");		
 			i++;
 		}
 	}
 	var prefspanel = document.getElementById('prefsPanel');
+	filterVal = null;
 	if (prefspanel){
 		prefspanel.remove();
 	}
@@ -283,6 +283,7 @@ function prefsApplyButton() {
 	if (errorMsg !== null) {
 		prefsError(errorMsg);
 	} else { 
+		heatMap.setUnAppliedChanges(true);
 		prefsSuccess();
 	}
 }
@@ -300,6 +301,7 @@ function prefsSaveButton() {
 		prefsError(errorMsg);
 	} else { 
 		var success = heatMap.saveHeatMapProperties(2);
+		heatMap.setUnAppliedChanges(false);
 		if (success === "false") {
 			prefsError(["dl1", "layerPrefs", "ERROR: Preferences failed to save. Use Apply or Cancel to continue."]);
 		} else {
@@ -332,6 +334,7 @@ function prefsSuccess() {
 function prefsError(errorMsg) {
 	//If a validation error exists, re-present the user preferences
 	//dialog with the error message displayed in red. 
+	filterVal = null;
 	var prefspanel = document.getElementById('prefsPanel');
 	if (prefspanel){
 		prefspanel.remove();
@@ -364,25 +367,19 @@ function prefsApply() {
 	// Apply Covariate Bar Preferences
 	var rowClassBars = heatMap.getRowClassificationConfig();
 	for (var key in rowClassBars){
-		var showElement = document.getElementById(key+"_showPref");
-		var heightElement = document.getElementById(key+"_heightPref");
-		if (filterShow(key)) {
-			heatMap.setClassificationPrefs(key,"row",showElement.checked,heightElement.value);
-		} else {
-			heatMap.setClassificationPrefs(key,"row",false,15);
-		}
-		prefsApplyBreaks(key,"row",filterShow(key));
+		var keyrow = key+"_row";
+		var showElement = document.getElementById(keyrow+"_showPref");
+		var heightElement = document.getElementById(keyrow+"_heightPref");
+		heatMap.setClassificationPrefs(key,"row",showElement.checked,heightElement.value);
+		prefsApplyBreaks(key,"row");
 	}
 	var colClassBars = heatMap.getColClassificationConfig();
 	for (var key in colClassBars){
-		var showElement = document.getElementById(key+"_showPref");
-		var heightElement = document.getElementById(key+"_heightPref");
-		if (filterShow(key)) {
-			heatMap.setClassificationPrefs(key,"col",showElement.checked,heightElement.value);
-		} else {
-			heatMap.setClassificationPrefs(key,"col",false,15);
-		}
-		prefsApplyBreaks(key,"col",filterShow(key));
+		var keycol = key+"_col";
+		var showElement = document.getElementById(keycol+"_showPref");
+		var heightElement = document.getElementById(keycol+"_heightPref");
+		heatMap.setClassificationPrefs(key,"col",showElement.checked,heightElement.value);
+		prefsApplyBreaks(key,"col");
 	}
 	// Apply Data Layer Preferences
 	var dataLayers = heatMap.getDataLayers();
@@ -390,7 +387,7 @@ function prefsApply() {
 		var showGrid = document.getElementById(key+'_gridPref');
 		var gridColor = document.getElementById(key+'_gridColorPref');
 		heatMap.setLayerGridPrefs(key, showGrid.checked,gridColor.value)
-		prefsApplyBreaks(key,"data",true);
+		prefsApplyBreaks(key,"data");
 	}
 }
 
@@ -405,23 +402,21 @@ function prefsValidate() {
 	//Loop thru all covariate classfication bars validating all break colors
 	var rowClassBars = heatMap.getRowClassificationConfig();
 	for (var key in rowClassBars){
-		if (filterShow(key)) {
-			var currClassBar = rowClassBars[key];
-			var showElement = document.getElementById(key+"_showPref");
-			var heightElement = document.getElementById(key+"_heightPref");
-			errorMsg = prefsValidateBreakColors(key,"row","classPrefs");
-			if (errorMsg !== null) break;
-		}
+		var keyrow = key+"_row";
+		var currClassBar = rowClassBars[key];
+		var showElement = document.getElementById(keyrow+"_showPref");
+		var heightElement = document.getElementById(keyrow+"_heightPref");
+		errorMsg = prefsValidateBreakColors(key,"row","classPrefs");
+		if (errorMsg !== null) return errorMsg;
 	}
 	var colClassBars = heatMap.getColClassificationConfig();
 	for (var key in colClassBars){
-		if (filterShow(key)) {
-			var currClassBar = rowClassBars[key];
-			var showElement = document.getElementById(key+"_showPref");
-			var heightElement = document.getElementById(key+"_heightPref");
-			errorMsg = prefsValidateBreakColors(key,"col","classPrefs");
-			if (errorMsg !== null) break;
-		}
+		var keycol = key+"_col";
+		var currClassBar = rowClassBars[key];
+		var showElement = document.getElementById(keycol+"_showPref");
+		var heightElement = document.getElementById(keycol+"_heightPref");
+		errorMsg = prefsValidateBreakColors(key,"col","classPrefs");
+		if (errorMsg !== null) break;
 	}
 	//Validate all breakpoints and colors for the main data layer
 	if (errorMsg === null) {
@@ -491,13 +486,17 @@ function prefsValidateBreakPoints(colorMapName,prefPanel) {
  **********************************************************************************/
 function prefsValidateBreakColors(colorMapName,type, prefPanel) {
 	var colorMap = heatMap.getColorMapManager().getColorMap(type,colorMapName);
+	var key = colorMapName;
+	if (type !== "data") {
+		key = key+"_"+type;
+	}
 	var thresholds = colorMap.getThresholds();
 	var colors = colorMap.getColors();
 	var dupeColor = false;
 	for (var i = 0; i < colors.length; i++) {
-		var colorElement = document.getElementById(colorMapName+"_color"+i+"_colorPref");
+		var colorElement = document.getElementById(key+"_color"+i+"_colorPref");
 		for (var j = 0; j < thresholds.length; j++) {
-			var ce = document.getElementById(colorMapName+"_color"+j+"_colorPref");
+			var ce = document.getElementById(key+"_color"+j+"_colorPref"); 
 			if (i != j) {
 				if (colorElement.value === ce.value) {
 					dupeColor = true;
@@ -507,7 +506,7 @@ function prefsValidateBreakColors(colorMapName,type, prefPanel) {
 		}
 	}
 	if (dupeColor) {
-		return [colorMapName, prefPanel, "ERROR: Duplicate color setting found above"];
+		return [key, prefPanel, "ERROR: Duplicate color setting found above"];
 	}
 	return null;
 }
@@ -516,22 +515,23 @@ function prefsValidateBreakColors(colorMapName,type, prefPanel) {
  * FUNCTION - prefsApplyBreaks: The purpose of this function is to apply all 
  * user entered changes to colors and breakpoints. 
  **********************************************************************************/
-function prefsApplyBreaks(colorMapName, type, show) {
+function prefsApplyBreaks(colorMapName, type) {
 	var colorMap = heatMap.getColorMapManager().getColorMap(type,colorMapName);
-	if (show) {
-		var thresholds = colorMap.getThresholds();
-		var colors = colorMap.getColors();
-		var newColors = getNewBreakColors(colorMapName, type);
-		colorMap.setColors(newColors);
-		if (type === "data") {
-			var newThresholds = getNewBreakThresholds(colorMapName);
-			colorMap.setThresholds(newThresholds);
-		}
-		var missingElement = document.getElementById(colorMapName+"_missing_colorPref");
-		colorMap.setMissingColor(missingElement.value);
-		var colorMapMgr = heatMap.getColorMapManager();
-		colorMapMgr.setColorMap(colorMapName, colorMap);
+	var thresholds = colorMap.getThresholds();
+	var colors = colorMap.getColors();
+	var newColors = getNewBreakColors(colorMapName, type);
+	colorMap.setColors(newColors);
+	var key = colorMapName;
+	if (type === "data") {
+		var newThresholds = getNewBreakThresholds(colorMapName);
+		colorMap.setThresholds(newThresholds);
+	} else {
+		key = key+"_"+type;
 	}
+	var missingElement = document.getElementById(key+"_missing_colorPref");
+	colorMap.setMissingColor(missingElement.value);
+	var colorMapMgr = heatMap.getColorMapManager();
+	colorMapMgr.setColorMap(colorMapName, colorMap, type);
 }
 
 /**********************************************************************************
@@ -547,8 +547,12 @@ function getNewBreakColors(colorMapName, type, pos, action) {
 	var colorMap = heatMap.getColorMapManager().getColorMap(type,colorMapName);
 	var thresholds = colorMap.getThresholds();
 	var newColors = [];
+	var key = colorMapName;
+	if (type !== "data") {
+		key = key+"_"+type;
+	}
 	for (var j = 0; j < thresholds.length; j++) {
-		var colorElement = document.getElementById(colorMapName+"_color"+j+"_colorPref");
+		var colorElement = document.getElementById(key+"_color"+j+"_colorPref");
 		//If being called from addLayerBreak or deleteLayerBreak
 		if (typeof pos !== 'undefined') {
 			if (action === "add") {
@@ -625,18 +629,29 @@ function setupLayerPrefs(e, prefprefs){
 	var prefContents = document.createElement("TABLE");
 	var dataLayers = heatMap.getDataLayers();
 	var colorMapName = "dl1";
-	prefContents.insertRow().innerHTML = formatBlankRow();
+	addBlankRow(prefContents);
 	var dlSelect = "<select name='dlPref_list' id='dlPref_list' onchange='showLayerBreak();'>"
+	// Re-order options in datalayer order (which is lost on JSON save)
+	var dls = new Array(Object.keys(dataLayers).length);
+	var orderedKeys = new Array(Object.keys(dataLayers).length);
+	var dlOptions = "";
 	for (var key in dataLayers){
-		var dl = dataLayers[key];
-		dlSelect = dlSelect+"<option value='"+key+"'>"+dl.name+"</option>";
+		var dlNext = key.substring(2, key.length);
+		orderedKeys[dlNext-1] = key;
+		var displayName = dataLayers[key].name;
+		if (displayName.length > 20){
+			displayName = displayName.substring(0,20) + "...";
+		}
+		dls[dlNext-1] = '<option value="'+key+'">'+displayName+'</option>';
 	}
-	dlSelect = dlSelect+"</select>"
+	for(var i=0;i<dls.length;i++) {
+		dlOptions += dls[i];
+	}
+	dlSelect += dlOptions+"</select>";  
 	setTableRow(prefContents,["&nbsp;Data Layer: ", dlSelect]);
-	prefContents.insertRow().innerHTML = formatBlankRow();
-	prefContents.insertRow().innerHTML = formatBlankRow();
+	addBlankRow(prefContents, 2)
 	layerprefs.appendChild(prefContents);
-	prefContents.insertRow().innerHTML = formatBlankRow();
+	addBlankRow(prefContents)
 	// Loop data layers, setting up a panel div for each layer
 	for (var key in dataLayers){
 		var breakprefs = setupLayerBreaks(e, key);
@@ -659,7 +674,6 @@ function setupLayerBreaks(e, mapName){
 	var helpprefs = getDivElement("breakPrefs_"+mapName);
 	var prefContents = document.createElement("TABLE"); 
 	var rowCtr = 0;
-	prefContents.insertRow().innerHTML = formatBlankRow();
 	var dataLayers = heatMap.getDataLayers();
 	var layer = dataLayers[mapName];
 	var gridShow = "<input name='"+mapName+"_gridPref' id='"+mapName+"_gridPref' type='checkbox' ";
@@ -667,13 +681,10 @@ function setupLayerBreaks(e, mapName){
 		gridShow = gridShow+"checked"
 	}
 	gridShow = gridShow+ " >";
-	setTableRow(prefContents, ["&nbsp;Show Map Grid:", gridShow]); 
 	var gridColorInput = "<input class='spectrumColor' type='color' name='"+mapName+"_gridColorPref' id='"+mapName+"_gridColorPref' value='"+layer.grid_color+"'>"; 
-	setTableRow(prefContents, ["&nbsp;Grid Color:", gridColorInput]); 
-	prefContents.insertRow().innerHTML = formatBlankRow();
-	prefContents.insertRow().innerHTML = formatBlankRow();
-	setTableRow(prefContents, ["&nbsp;<u>Breakpoint</u>", "<b><u>"+"Color"+"</u></b>","&nbsp;"]); 
-	rowCtr = 5;
+	addBlankRow(prefContents, 2)
+	setTableRow(prefContents, ["&nbsp;<u>Breakpoint</u>", "<u><b>Color</b></u>","&nbsp;"]); 
+	rowCtr = 3;
 	for (var j = 0; j < thresholds.length; j++) {
 		var threshold = thresholds[j];    
 		var color = colors[j];
@@ -686,14 +697,27 @@ function setupLayerBreaks(e, mapName){
 		if (j === 0) {
 			setTableRow(prefContents, [breakPtInput, colorInput, addButton]);
 		} else {
-			setTableRow(prefContents, [breakPtInput,  colorInput, addButton, delButton]);
+			setTableRow(prefContents, [breakPtInput,  colorInput, addButton+ delButton]);
 		}
 		rowCtr++;
 	} 
-	prefContents.insertRow().innerHTML = formatBlankRow();
-	rowCtr++;
+	addBlankRow(prefContents)
 	setTableRow(prefContents, ["&nbsp;Missing Color:",  "<input class='spectrumColor' type='color' name='"+mapName+"_missing_colorPref' id='"+mapName+"_missing_colorPref' value='"+colorMap.getMissingColor()+"'>"]);
-	rowCtr++;
+	addBlankRow(prefContents, 3)
+	// predefined color schemes put here
+	setTableRow(prefContents, ["&nbsp;<u>Choose a pre-defined color palette:</u>"],3);
+	addBlankRow(prefContents);
+	var rainbow = "<div style='display:flex'><div id='setROYGBV' class='presetPalette' style='background: linear-gradient(to right, red,orange,yellow,green,blue,violet);' onclick='setupLayerBreaksToPreset(event, \""+ mapName+ "\", [\"#FF0000\",\"#FF8000\",\"#FFFF00\",\"#00FF00\",\"#0000FF\",\"#FF00FF\"],\"#000000\")' > </div>" +
+			"<div class='presetPaletteMissingColor' style='background:black'></div></div>";
+	var redWhiteBlue = "<div style='display:flex'><div id='setRedWhiteBlue' class='presetPalette' style='background: linear-gradient(to right, blue,white,red);' onclick='setupLayerBreaksToPreset(event, \""+ mapName+ "\", [\"#0000FF\",\"#FFFFFF\",\"#ff0000\"],\"#000000\")'> </div>" +
+			"<div class='presetPaletteMissingColor' style='background:black'></div></div>";
+	var redBlackGreen = "<div style='display:flex'><div id='setRedBlackGreen' class='presetPalette' style='background: linear-gradient(to right, green,black,red);' onclick='setupLayerBreaksToPreset(event, \""+ mapName+ "\", [\"#00FF00\",\"#000000\",\"#FF0000\"],\"#ffffff\")'> </div>" +
+			"<div class='presetPaletteMissingColor' style='background:white'></div></div>"
+	setTableRow(prefContents, [ redWhiteBlue, rainbow, redBlackGreen ]);
+	setTableRow(prefContents, ["&nbsp;Blue Red",  "&nbsp;<b>Rainbow</b>","&nbsp;<b>Green Red</b>"]);
+	addBlankRow(prefContents, 3)
+	setTableRow(prefContents, ["&nbsp;Grid Lines:", gridColorInput, "<b>Show:&nbsp;&nbsp;</b>"+gridShow]); 
+	rowCtr+= 13;
 	if (rowCtr > maxRows) {
 		maxRows = rowCtr;
 	}
@@ -701,6 +725,70 @@ function setupLayerBreaks(e, mapName){
 	helpprefs.style.width = 30;
 	helpprefs.appendChild(prefContents);
 	return helpprefs;
+}	
+
+
+/**********************************************************************************
+ * FUNCTION - setupLayerBreaksToPreset: This function will be executed when the user
+ * selects a predefined color scheme. It will fill the first and last breakpoints with the 
+ * predefined colors and interpolate the breakpoints in between.
+ * "preset" is an array of the colors in HEX of the predefined color scheme
+ **********************************************************************************/
+function setupLayerBreaksToPreset(e, mapName, preset, missingColor,axis,type){
+	var elemName = mapName;
+	if (typeof axis != 'undefined') {
+		elemName += "_"+axis;
+	}
+	var i = 0; // find number of breakpoints in the 
+	while(document.getElementById(elemName+"_color"+ ++i+"_colorPref"));
+	var lastShown = i-1;
+	// create dummy colorScheme
+	var thresh = [];
+	if (document.getElementById(elemName+"_breakPt0_breakPref")){ // if the breakpoints are changeable (data layer)...
+		var firstBP = document.getElementById(elemName+"_breakPt0_breakPref").value;
+		var lastBP = document.getElementById(elemName+"_breakPt"+ lastShown +"_breakPref").value;
+		var range = lastBP-firstBP;
+		for (var j = 0; j < preset.length; j++){
+			thresh[j] =Number(firstBP)+j*(range/(preset.length-1));
+		}
+		var colorScheme = {"missing": missingColor,"thresholds": thresh,"colors": preset,"type": "continuous"};
+		var csTemp = new ColorMap(colorScheme);
+		
+		for (var j = 0; j < i; j++) {
+			var threshId = mapName+"_breakPt"+j;
+			var colorId = mapName+"_color"+j;
+			var breakpoint = document.getElementById(threshId+"_breakPref").value;
+			document.getElementById(colorId+"_colorPref").value = csTemp.getRgbToHex(csTemp.getColor(breakpoint)); 
+		} 
+		document.getElementById(mapName+"_missing_colorPref").value = csTemp.getRgbToHex(csTemp.getColor("Missing")); 
+	} else { // if the breakpoints are not changeable (covariate bar)...
+		if (type == "Discrete"){ // if colors can be mapped directly
+			for (var j = 0; j < i; j++) {
+				var colorId = elemName+"_color"+j;
+				if (j > preset.length){ // in case there are more breakpoints than predef colors, we cycle back
+					document.getElementById(colorId+"_colorPref").value = preset[j%preset.length];
+				}else{
+					document.getElementById(colorId+"_colorPref").value = preset[j];
+				} 
+			} 
+			document.getElementById(elemName+"_missing_colorPref").value = missingColor; 
+		} else { // if colors need to be blended
+			var colorMap = heatMap.getColorMapManager().getColorMap(axis, mapName)
+			var thresholds = colorMap.getThresholds();
+			var range = thresholds[thresholds.length-1]-thresholds[0];
+			for (var j = 0; j < preset.length; j++){
+				thresh[j] = Number(thresholds[0])+j*(range/(preset.length-1));
+			}
+			var colorScheme = {"missing": missingColor,"thresholds": thresh,"colors": preset,"type": "continuous"};
+			var csTemp = new ColorMap(colorScheme);
+			for (var j = 0; j < thresholds.length; j++) {
+				var colorId = elemName+"_color"+j;
+				var breakpoint = thresholds[j];
+				document.getElementById(colorId+"_colorPref").value = csTemp.getRgbToHex(csTemp.getColor(breakpoint)); 
+			} 
+			document.getElementById(elemName+"_missing_colorPref").value = csTemp.getRgbToHex(csTemp.getColor("Missing")); 
+		}
+	}
 }	
 
 /**********************************************************************************
@@ -775,7 +863,7 @@ function deleteLayerBreak(pos,colorMapName) {
 function reloadLayerBreaksColorMap(colorMapName, colorMap) {
 	var e = document.getElementById('gear_btn')
 	var colorMapMgr = heatMap.getColorMapManager();
-	colorMapMgr.setColorMap(colorMapName, colorMap);
+	colorMapMgr.setColorMap(colorMapName, colorMap, "data");
 	var breakPrefs = document.getElementById('breakPrefs_'+colorMapName);
 	if (breakPrefs){
 		breakPrefs.remove();
@@ -812,32 +900,15 @@ function setupClassPrefs(e, prefprefs){
 	var colClassBars = heatMap.getColClassificationConfig();
 	var classprefs = getDivElement("classPrefs");
 	var prefContents = document.createElement("TABLE");
-	prefContents.insertRow().innerHTML = formatBlankRow();
+	addBlankRow(prefContents);
 	var filterInput = "<input name='all_searchPref' id='all_searchPref'>";
-	var filterButton = "<img id='all_searchPref_btn' src='" + staticPath + "images/filterClassButton.png' alt='Search Covariates' onclick='filterClassPrefs(true);' align='top'/>";
-	if (filterVal != null) {
-		var filterInput = "<input name='all_searchPref' id='all_searchPref' value='"+filterVal+"'>";
-		var filterButton = "<img id='all_searchPref_btn' src='" + staticPath + "images/removeFilterClassButton.png' alt='Search Covariates' onclick='filterClassPrefs(false);' align='top'/>";
-	}
+	var filterButton = "<img id='all_searchPref_btn' src='" + staticPath + "images/filterClassButton.png' alt='Filter Covariates' onclick='filterClassPrefs(true);' align='top'/>";
 	var searchClasses = filterInput+"&nbsp;&nbsp;"+filterButton;
 	setTableRow(prefContents,[searchClasses], 4, 'right');
-	prefContents.insertRow().innerHTML = formatBlankRow();
-	prefContents.insertRow().innerHTML = formatBlankRow();
-	var classSelect = "<select name='classPref_list' id='classPref_list' onchange='showClassBreak();'>"
-    classSelect = classSelect+"<option value='ALL'>ALL</option>";
-	for (var key in rowClassBars) {
-		if (filterShow(key)) {
-			classSelect = classSelect+"<option value='"+key+"'>"+key+"</option>";
-		}
-	}
-	for (var key in colClassBars){
-		if (filterShow(key)) {
-			classSelect = classSelect+"<option value='"+key+"'>"+key+"</option>";
-		}
-	}
-	classSelect = classSelect+"</select>"
+	addBlankRow(prefContents,2);
+	var classSelect = "<select name='classPref_list' id='classPref_list' onchange='showClassBreak();'></select>"
 	setTableRow(prefContents,["&nbsp;Covariate Bar: ", classSelect]);
-	prefContents.insertRow().innerHTML = formatBlankRow();
+	addBlankRow(prefContents);
 	classprefs.appendChild(prefContents);
 	var i = 0;
 	for (var key in rowClassBars){
@@ -861,7 +932,7 @@ function setupClassPrefs(e, prefprefs){
 		i++;
 	}
 	// Append a DIV panel for all of the covariate class bars 
-	var allPrefs = setupAllClassesPrefs(e); 
+	var allPrefs = setupAllClassesPrefs(); 
 	allPrefs.style.display="block";
 	classprefs.appendChild(allPrefs);
 	return classprefs;
@@ -872,11 +943,12 @@ function setupClassPrefs(e, prefprefs){
  * containing a list of all covariate bars with informational data and user preferences 
  * that are common to all bars (show/hide and size).  
  **********************************************************************************/
-function setupAllClassesPrefs(e){
+function setupAllClassesPrefs(){
 	var allprefs = getDivElement("breakPrefs_ALL");
 	var prefContents = document.createElement("TABLE");
+	prefContents.id = "tableAllClasses";
 	var rowCtr = 0;
-	prefContents.insertRow().innerHTML = formatBlankRow();  
+	addBlankRow(prefContents);
 	var colShowAll = "<input name='all_showPref' id='all_showPref' type='checkbox' onchange='showAllBars();'> ";
 	setTableRow(prefContents,["&nbsp;<u>"+"Classification"+"</u>", "<b><u>"+"Position"+"</u></b>", colShowAll+"<b><u>"+"Show"+"</u></b>", "<b><u>"+"Height"+"</u></b>"]);
 	rowCtr=2;
@@ -884,28 +956,38 @@ function setupAllClassesPrefs(e){
 	var rowClassBars = heatMap.getRowClassificationConfig();
 	for (var key in rowClassBars){
 		var currentClassBar = rowClassBars[key];
+		var keyrow = key+"_row";
 		if (filterShow(key)) {
-			var colShow = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input name='"+key+"_showPref' id='"+key+"_showPref' type='checkbox' onchange='setShowAll();'";
+			var colShow = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input name='"+keyrow+"_showPref' id='"+keyrow+"_showPref' type='checkbox' onchange='setShowAll();'";
 			if (currentClassBar.show == 'Y') {
 				colShow = colShow+"checked"
 			}
 			colShow = colShow+ " >";
-			var colHeight = "<input name='"+key+"_heightPref' id='"+key+"_heightPref' value='"+currentClassBar.height+"' maxlength='2' size='2'>";
-			setTableRow(prefContents,["&nbsp;&nbsp;"+key,"Row",colShow,colHeight]); 
+			var colHeight = "<input name='"+keyrow+"_heightPref' id='"+keyrow+"_heightPref' value='"+currentClassBar.height+"' maxlength='2' size='2'>";
+			var displayName = key;
+			if (key.length > 20){
+				displayName = key.substring(0,20) + "...";
+			}
+			setTableRow(prefContents,["&nbsp;&nbsp;"+displayName,"Row",colShow,colHeight]); 
 			rowCtr++;
 		}
 	}
 	var colClassBars = heatMap.getColClassificationConfig();
 	for (var key in colClassBars){
 		var currentClassBar = colClassBars[key];
+		var keycol = key+"_col";
 		if (filterShow(key)) {
-			var colShow = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input name='"+key+"_showPref' id='"+key+"_showPref' type='checkbox' onchange='setShowAll();'";
+			var colShow = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input name='"+keycol+"_showPref' id='"+keycol+"_showPref' type='checkbox' onchange='setShowAll();'";
 			if (currentClassBar.show == 'Y') {
 				colShow = colShow+"checked"
 			}
 			colShow = colShow+ " >";
-			var colHeight = "<input name='"+key+"_heightPref' id='"+key+"_heightPref' value='"+currentClassBar.height+"' maxlength='2' size='2'>";
-			setTableRow(prefContents,["&nbsp;&nbsp;"+key,"Col",colShow,colHeight]); 
+			var colHeight = "<input name='"+keycol+"_heightPref' id='"+keycol+"_heightPref' value='"+currentClassBar.height+"' maxlength='2' size='2'>";
+			var displayName = key;
+			if (key.length > 20){
+				displayName = key.substring(0,20) + "...";
+			}
+			setTableRow(prefContents,["&nbsp;&nbsp;"+displayName,"Col",colShow,colHeight]); 
 			rowCtr++;
 		}
 	}
@@ -922,43 +1004,50 @@ function setupAllClassesPrefs(e){
  * covariate classfication bar.  
  **********************************************************************************/
 function setupClassBreaks(e, key, barType, classBar){
+	//must add barType to key when adding objects to DOM
+	var keyRC = key+"_"+barType;
 	var colorMap = heatMap.getColorMapManager().getColorMap(barType, key);
 	var thresholds = colorMap.getThresholds();
 	var colors = colorMap.getColors();
-	var helpprefs = getDivElement("breakPrefs_"+key);
+	var helpprefs = getDivElement("breakPrefs_"+keyRC);
 	var prefContents = document.createElement("TABLE"); 
-	var rowCtr = 0;
-	prefContents.insertRow().innerHTML = formatBlankRow();
-	var colShow = "<input name='"+key+"_showPref' id='"+key+"_showPref' type='checkbox' ";
-	if (classBar.show == 'Y') {
-		colShow = colShow+"checked"
-	}
-	colShow = colShow+ " >";
-	var colHeight = "<input name='"+key+"_heightPref' id='"+key+"_heightPref' value='"+classBar.height+"' maxlength='2' size='2'>";
+	addBlankRow(prefContents);
 	var pos = toTitleCase(barType);
 	var typ = toTitleCase(colorMap.getType());
 	setTableRow(prefContents,["&nbsp;Bar Position: ","<b>"+pos+"</b>"]);
 	setTableRow(prefContents,["&nbsp;Bar Type: ","<b>"+typ+"</b>"]);
-	prefContents.insertRow().innerHTML = formatBlankRow();
-	prefContents.insertRow().innerHTML = formatBlankRow();
-	rowCtr = rowCtr+4;
-	prefContents.insertRow().innerHTML = formatBlankRow();
-	rowCtr++;
-	setTableRow(prefContents, ["&nbsp;<u>Category</u>", "<b><u>"+"Color"+"</u></b>"]); 
-	rowCtr++;
+	addBlankRow(prefContents, 3);
+	setTableRow(prefContents, ["&nbsp;<u>Category</u>","<b><u>"+"Color"+"</b></u>"]); 
+	var rowCtr = 7;
 	for (var j = 0; j < thresholds.length; j++) {
 		var threshold = thresholds[j];
 		var color = colors[j];
-		var threshId = key+"_breakPt"+j;
-		var colorId = key+"_color"+j;
+		var threshId = keyRC+"_breakPt"+j;
+		var colorId = keyRC+"_color"+j;
 		var colorInput = "<input class='spectrumColor' type='color' name='"+colorId+"_colorPref' id='"+colorId+"_colorPref' value='"+color+"'>"; 
 		setTableRow(prefContents, ["&nbsp;&nbsp;"+threshold, colorInput]);
 		rowCtr++;
 	} 
-	prefContents.insertRow().innerHTML = formatBlankRow();
-	rowCtr++;
-	setTableRow(prefContents, ["&nbsp;Missing Color:",  "<input class='spectrumColor' type='color' name='"+key+"_missing_colorPref' id='"+key+"_missing_colorPref' value='"+colorMap.getMissingColor()+"'>"]);
-	rowCtr++;
+	addBlankRow(prefContents);
+	setTableRow(prefContents, ["&nbsp;Missing Color:",  "<input class='spectrumColor' type='color' name='"+keyRC+"_missing_colorPref' id='"+keyRC+"_missing_colorPref' value='"+colorMap.getMissingColor()+"'>"]);
+	addBlankRow(prefContents, 3);
+	setTableRow(prefContents, ["&nbsp;<u>Choose a pre-defined color palette:</u>"],3);
+	addBlankRow(prefContents);
+	if (typ == "Discrete"){
+		var scheme1 = "<div style='display:flex'><div class='presetPalette' style='background: linear-gradient(to right, #1f77b4,#ff7f0e,#2ca02c,#d62728,#9467bd,#8c564b,#e377c2,#7f7f7f,#bcbd22,#17becf);' onclick='setupLayerBreaksToPreset(event, \""+ key+ "\", [\"#1f77b4\",\"#ff7f0e\",\"#2ca02c\", \"#d62728\", \"#9467bd\", \"#8c564b\", \"#e377c2\", \"#7f7f7f\", \"#bcbd22\", \"#17becf\"],\"#ffffff\",\""+barType+"\",\""+typ+"\")'> </div><div class='presetPaletteMissingColor' style='background:white'></div></div>";
+		var scheme2 = "<div style='display:flex'><div class='presetPalette' style='background: linear-gradient(to right, #1f77b4,#aec7e8,#ff7f0e,#ffbb78,#2ca02c,#98df8a,#d62728,#ff9896,#9467bd,#c5b0d5,#8c564b,#c49c94,#e377c2,#f7b6d2,#7f7f7f,#c7c7c7,#bcbd22,#dbdb8d,#17becf,#9edae5);' onclick='setupLayerBreaksToPreset(event, \""+ key+ "\", [\"#1f77b4\",\"#aec7e8\",\"#ff7f0e\",\"#ffbb78\",\"#2ca02c\",\"#98df8a\",\"#d62728\",\"#ff9896\",\"#9467bd\",\"#c5b0d5\",\"#8c564b\",\"#c49c94\",\"#e377c2\",\"#f7b6d2\",\"#7f7f7f\",\"#c7c7c7\",\"#bcbd22\",\"#dbdb8d\",\"#17becf\",\"#9edae5\"],\"#ffffff\",\""+barType+"\",\""+typ+"\")'> </div><div class='presetPaletteMissingColor' style='background:white'></div></div>";
+		var scheme3 = "<div style='display:flex'><div class='presetPalette' style='background: linear-gradient(to right,#393b79, #637939, #8c6d31, #843c39, #7b4173, #5254a3, #8ca252, #bd9e39, #ad494a, #a55194, #6b6ecf, #b5cf6b, #e7ba52, #d6616b, #ce6dbd, #9c9ede, #cedb9c, #e7cb94, #e7969c, #de9ed6);' onclick='setupLayerBreaksToPreset(event, \""+ key+ "\", [\"#393b79\", \"#637939\", \"#8c6d31\", \"#843c39\", \"#7b4173\", \"#5254a3\", \"#8ca252\", \"#bd9e39\", \"#ad494a\", \"#a55194\", \"#6b6ecf\", \"#b5cf6b\", \"#e7ba52\", \"#d6616b\", \"#ce6dbd\", \"#9c9ede\", \"#cedb9c\", \"#e7cb94\", \"#e7969c\", \"#de9ed6\"],\"#ffffff\",\""+barType+"\",\""+typ+"\")'> </div><div class='presetPaletteMissingColor' style='background:white'></div></div>";
+		setTableRow(prefContents, [scheme1,scheme2,scheme3]);
+		setTableRow(prefContents, ["&nbsp;Palette1",  "&nbsp;<b>Palette2</b>","&nbsp;<b>Palette3</b>"]);
+	} else {
+		var rainbow = "<div style='display:flex'><div class='presetPalette' style='background: linear-gradient(to right, red,orange,yellow,green,blue,violet);' onclick='setupLayerBreaksToPreset(event, \""+ key+ "\", [\"#FF0000\",\"#FF8000\",\"#FFFF00\",\"#00FF00\",\"#0000FF\",\"#FF00FF\"],\"#000000\",\""+barType+"\",\""+typ+"\")' > </div><div class='presetPaletteMissingColor' style='background:black'></div></div>";
+		var greyscale = "<div style='display:flex'><div class='presetPalette' style='background: linear-gradient(to right, white,black);' onclick='setupLayerBreaksToPreset(event, \""+ key+ "\", [\"#FFFFFF\",\"#000000\"],\"#FF0000\",\""+barType+"\",\""+typ+"\")' > </div><div class='presetPaletteMissingColor' style='background:red'></div></div>";
+		var redBlackGreen = "<div style='display:flex'><div id='setRedBlackGreen' class='presetPalette' style='background: linear-gradient(to right, green,black,red);' onclick='setupLayerBreaksToPreset(event, \""+ key +"\", [\"#00FF00\",\"#000000\",\"#FF0000\"],\"#ffffff\",\""+barType+"\",\""+typ+"\")'> </div>" +
+		"<div class='presetPaletteMissingColor' style='background:white'></div></div>"
+		setTableRow(prefContents, [greyscale,rainbow,redBlackGreen]);
+		setTableRow(prefContents, ["&nbsp;Greyscale",  "&nbsp;<b>Rainbow</b>","&nbsp;<b>Green Red</b>"]);
+	}
+	rowCtr += 8;
 	if (rowCtr > maxRows) {
 		maxRows = rowCtr;
 	}
@@ -983,13 +1072,17 @@ function showAllBars(){
 	}
 	var rowClassBars = heatMap.getRowClassificationConfig();
 	for (var key in rowClassBars){
-		var colShow = document.getElementById(key+'_showPref');
-		colShow.checked = checkState;
+		if (filterShow(key)) {
+			var colShow = document.getElementById(key+"_row"+'_showPref');
+			colShow.checked = checkState;
+		}
 	}
 	var colClassBars = heatMap.getColClassificationConfig();
 	for (var key in colClassBars){
-		var colShow = document.getElementById(key+'_showPref');
-		colShow.checked = checkState;
+		if (filterShow(key)) {
+			var colShow = document.getElementById(key+"_col"+'_showPref');
+			colShow.checked = checkState;
+		}
 	}
 	return;
 }	
@@ -1006,7 +1099,7 @@ function setShowAll(){
 	var checkState = true;
 	var rowClassBars = heatMap.getRowClassificationConfig();
 	for (var key in rowClassBars){
-		var colShow = document.getElementById(key+'_showPref');
+		var colShow = document.getElementById(key+"_row"+'_showPref');
 		if (filterShow(key)) {
 			if (!colShow.checked) {
 				checkState = false;
@@ -1016,7 +1109,7 @@ function setShowAll(){
 	}
 	var colClassBars = heatMap.getColClassificationConfig();
 	for (var key in colClassBars){
-		var colShow = document.getElementById(key+'_showPref');
+		var colShow = document.getElementById(key+"_col"+'_showPref');
 		if (filterShow(key)) {
 			if (!colShow.checked) {
 				checkState = false;
@@ -1028,7 +1121,6 @@ function setShowAll(){
 	showAllBox.checked = checkState;
 	return;
 }	
-
 
 /**********************************************************************************
  * FUNCTION - showClassBreak: The purpose of this function is to show the 
@@ -1064,22 +1156,89 @@ function showClassBreak(selClass) {
  **********************************************************************************/
 function filterClassPrefs(filterOn){
 	searchPerformed = true;
+	showClassBreak("ALL");
+	var filterButton = document.getElementById('all_searchPref_btn');
+	var searchPrefSelect = document.getElementById('all_searchPref');
+	var searchPrefVal = searchPrefSelect.value;
 	if (filterOn) {
-		var searchPrefSelect = document.getElementById('all_searchPref');
-		var searchPrefVal = searchPrefSelect.value;
 		if (searchPrefVal != "") {
 			filterVal = searchPrefVal;
-		} else {
-			filterVal = null;
+			filterButton.src = staticPath + "images/removeFilterClassButton.png";
+			filterButton.onclick=function (){filterClassPrefs(false);};
 		}
 	} else {
+		filterButton.src = staticPath + "images/filterClassButton.png";
+		filterButton.onclick=function (){filterClassPrefs(true);};
+		searchPrefSelect.value = "";
 		filterVal = null;
 	}
-	var prefspanel = document.getElementById('prefsPanel');
-	if (prefspanel){
-		prefspanel.remove();
+	var allprefs = document.getElementById("breakPrefs_ALL");
+	hiddenItems = addClassPrefOptions();
+	filterAllClassesTable(hiddenItems);
+	showClassBreak("ALL");
+}
+
+/**********************************************************************************
+ * FUNCTION - filterAllClassesTable: The purpose of this function is to assign option
+ * values to the Covariates dropdown control on the Covariates preferences tab.  All 
+ * covariates will be loaded at startup.  The filter control, however, is used to 
+ * limit the visible options in this dropdown.
+ **********************************************************************************/
+function filterAllClassesTable(hiddenItems) {    
+    var table=document.getElementById('tableAllClasses');
+    for(var i=0; i<table.rows.length;i++){
+        var row  = table.rows[i];
+        row.className = "show";
+        var td = row.cells[0];
+        var tdText = td.innerHTML.replace(/&nbsp;/g,'');
+        for (var j=0;j<hiddenItems.length;j++) {
+        	if (hiddenItems[j] === tdText) {
+            	row.className = "hide";
+        	}
+        }
+     }
+}
+
+/**********************************************************************************
+ * FUNCTION - addClassPrefOptions: The purpose of this function is to assign option
+ * values to the Covariates dropdown control on the Covariates preferences tab.  All 
+ * covariates will be loaded at startup.  The filter control, however, is used to 
+ * limit the visible options in this dropdown.  This function returns a string 
+ * array containing a list of all options that are NOT being displayed.  This list
+ * is used to hide rows on the ALL covariates panel.
+ **********************************************************************************/
+function addClassPrefOptions() {
+	var rowClassBars = heatMap.getRowClassificationConfig();
+	var colClassBars = heatMap.getColClassificationConfig();
+	var classSelect = document.getElementById('classPref_list');
+	var hiddenOpts = new Array();
+	classSelect.options.length = 0;
+	classSelect.options[classSelect.options.length] = new Option('ALL', 'ALL');
+	for (var key in rowClassBars) {
+		var keyrow = key+"_row";
+		var displayName = key;
+		if (key.length > 20){
+			displayName = key.substring(0,20) + "...";
+		}
+		if (filterShow(key)) {
+			classSelect.options[classSelect.options.length] = new Option(displayName, keyrow);
+		} else {
+			hiddenOpts.push(displayName);
+		}
 	}
-	editPreferences(document.getElementById('gear_btn'));
+	for (var key in colClassBars){
+		var keycol = key+"_col";
+		var displayName = key;
+		if (key.length > 20){
+			displayName = key.substring(0,20) + "...";
+		}
+		if (filterShow(key)) {
+			classSelect.options[classSelect.options.length] = new Option(displayName, keycol);
+		} else {
+			hiddenOpts.push(displayName);
+		}
+	}
+	return hiddenOpts;
 }
 
 /**********************************************************************************
@@ -1104,7 +1263,7 @@ function filterShow(key) {
 /*===================================================================================
  *  ROW COLUMN PREFERENCE PROCESSING FUNCTIONS
  *  
- *  The following functions are utilized to present heat map covariate classfication
+ *  The following functions are utilized to present heat map covariate classification
  *  bar configuration options:
  *  	- setupRowColPrefs
  *  	- showDendroSelections
@@ -1121,59 +1280,56 @@ function filterShow(key) {
 function setupRowColPrefs(e, prefprefs){
 	var rowcolprefs = getDivElement("rowsColsPrefs");
 	var prefContents = document.createElement("TABLE");
-	prefContents.insertRow().innerHTML = formatBlankRow();
+	addBlankRow(prefContents);
+	setTableRow(prefContents,["MAP INFORMATION:"], 2);
+	addBlankRow(prefContents);
+	setTableRow(prefContents,["&nbsp;&nbsp;Version Id:", heatMap.getMapInformation().version_id]);
+	setTableRow(prefContents,["&nbsp;&nbsp;Read Only:", heatMap.getMapInformation().read_only]);
+	addBlankRow(prefContents,2);
 	setTableRow(prefContents,["ROW INFORMATION:"], 2);
-	prefContents.insertRow().innerHTML = formatBlankRow();
+	addBlankRow(prefContents);
 	var rowLabels = heatMap.getRowLabels();
 	var rowOrganization = heatMap.getRowOrganization();
 	var rowOrder = rowOrganization['order_method'];
+	setTableRow(prefContents,["&nbsp;&nbsp;Total Rows:",heatMap.getTotalRows()]);
 	setTableRow(prefContents,["&nbsp;&nbsp;Labels Type:",rowLabels['label_type']]);
 	setTableRow(prefContents,["&nbsp;&nbsp;Ordering Method:",rowOrder]);
-	var rowCtr = 5;
+	var rowCtr = 11;
 	var dendroShowOptions = "<option value='ALL'>Summary and Detail</option><option value='SUMMARY'>Summary Only</option><option value='NONE'>Hide</option></select>";
 	var dendroHeightOptions = "<option value='50'>50%</option><option value='75'>75%</option><option value='100'>100%</option><option value='125'>125%</option><option value='150'>150%</option><option value='200'>200%</option><option value='300'>300%</option></select>";
 	if (rowOrder === "Hierarchical") {
 		setTableRow(prefContents,["&nbsp;&nbsp;Agglomeration Method:",rowOrganization['agglomeration_method']]);
-		rowCtr++;
 		setTableRow(prefContents,["&nbsp;&nbsp;Distance Metric:",rowOrganization['distance_metric']]);
-		rowCtr++;
 		var rowDendroSelect = "<select name='rowDendroShowPref' id='rowDendroShowPref' onchange='dendroRowShowChange()'>"
 		rowDendroSelect = rowDendroSelect+dendroShowOptions;
 		setTableRow(prefContents,["&nbsp;&nbsp;Show Dendrogram:",rowDendroSelect]);  
-		rowCtr++;
 		var rowDendroHeightSelect = "<select name='rowDendroHeightPref' id='rowDendroHeightPref'>"
 		rowDendroHeightSelect = rowDendroHeightSelect+dendroHeightOptions;
 		setTableRow(prefContents,["&nbsp;&nbsp;Dendrogram Height:",rowDendroHeightSelect]); 
-		rowCtr++;
+		rowCtr += 4;
 	}  
-	prefContents.insertRow().innerHTML = formatBlankRow(); 
-	rowCtr++;
-	prefContents.insertRow().innerHTML = formatBlankRow();
-	rowCtr++;
+	addBlankRow(prefContents,2);
 	setTableRow(prefContents,["COLUMN INFORMATION:"], 2);
-	rowCtr++;
-	prefContents.insertRow().innerHTML = formatBlankRow();
+	addBlankRow(prefContents);
+	rowCtr += 4;
 	
 	var colLabels = heatMap.getColLabels();
 	var colOrganization = heatMap.getColOrganization();
 	var colOrder = colOrganization['order_method'];
+	setTableRow(prefContents,["&nbsp;&nbsp;Total Columns:",heatMap.getTotalCols()]);
 	setTableRow(prefContents,["&nbsp;&nbsp;Labels Type:",colLabels['label_type']]);
-	rowCtr++;
 	setTableRow(prefContents,["&nbsp;&nbsp;Ordering Method:",colOrder]);
-	rowCtr++;
+	rowCtr += 3;
 	if (colOrder === "Hierarchical") {
 		setTableRow(prefContents,["&nbsp;&nbsp;Agglomeration Method:",colOrganization['agglomeration_method']]);
-		rowCtr++;
 		setTableRow(prefContents,["&nbsp;&nbsp;Distance Metric:",colOrganization['distance_metric']]);
-		rowCtr++;
 		var colDendroShowSelect = "<select name='colDendroShowPref' id='colDendroShowPref' onchange='dendroColShowChange()'>"
 		colDendroShowSelect = colDendroShowSelect+dendroShowOptions;
 		var colDendroHeightSelect = "<select name='colDendroHeightPref' id='colDendroHeightPref'>"
 		colDendroHeightSelect = colDendroHeightSelect+dendroHeightOptions;
 		setTableRow(prefContents,["&nbsp;&nbsp;Show Dendrogram:",colDendroShowSelect]);
-		rowCtr++;
 		setTableRow(prefContents,["&nbsp;&nbsp;Dendrogram Height:",colDendroHeightSelect]);
-		rowCtr++;
+		rowCtr += 4;
 	}
 	if (rowCtr > maxRows) {
 		maxRows = rowCtr;

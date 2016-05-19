@@ -63,6 +63,11 @@ function initDetailDisplay() {
  		document.getElementById('split_btn').src= staticPath + "images/join.png";
  		document.getElementById('gear_btn').src= staticPath + "images/gearDis.png";
  		document.getElementById('pdf_btn').style.display = 'none';
+		if (flickExists()){
+			document.getElementById('pdf_gear').style.minWidth = '250px';
+		} else {
+			document.getElementById('pdf_gear').style.minWidth = '100px';
+		}
 	}
 	if (heatMap.isInitialized() > 0) {
  		document.getElementById('flicks').style.display = '';
@@ -332,7 +337,12 @@ function detailHRibbon () {
 	// and data size to 1.
 	if (selectedStart == null || selectedStart == 0) {
 		detailDataViewWidth = heatMap.getNumColumns(MatrixManager.RIBBON_HOR_LEVEL) + detailDataViewBoarder;
-		setDetailDataWidth(1);
+		var ddw = 1;
+		while(2*detailDataViewWidth < 500){ // make the width wider to prevent blurry/big dendros for smaller maps
+			ddw *=2;
+			detailDataViewWidth = ddw*heatMap.getNumColumns(MatrixManager.RIBBON_HOR_LEVEL) + detailDataViewBoarder;
+		}
+		setDetailDataWidth(ddw);
 		currentCol = 1;
 	} else {
 		var selectionSize = selectedStop - selectedStart + 1;
@@ -377,7 +387,12 @@ function detailVRibbon () {
 	// and data size to 1.
 	if (selectedStart == null || selectedStart == 0) {
 		detailDataViewHeight = heatMap.getNumRows(MatrixManager.RIBBON_VERT_LEVEL) + detailDataViewBoarder;
-		setDetailDataHeight(1);
+		var ddh = 1;
+		while(2*detailDataViewHeight < 500){ // make the height taller to prevent blurry/big dendros for smaller maps
+			ddh *=2;
+			detailDataViewHeight = ddh*heatMap.getNumRows(MatrixManager.RIBBON_VERT_LEVEL) + detailDataViewBoarder;
+		}
+		setDetailDataHeight(ddh);
 		currentRow = 1;
 	} else {
 		var selectionSize = selectedStop - selectedStart + 1;
@@ -454,53 +469,93 @@ function setButtons() {
 
 //Called when split/join button is pressed
 function detailSplit(){
-	userHelpClose();	
-	// If the summary and detail are in a single browser window, this is a split action.  
-	if (!isSub) {
-		//Write current selection settings to the local storage
-		hasSub=true;
-		clearLabels();
-		clearSelectionMarks();
-		updateSelection();
-		//Create a new detail browser window
-		detWindow = window.open(window.location.href + '&sub=true', '_blank', 'modal=yes, width=' + (window.screen.availWidth / 2) + ', height='+ window.screen.availHeight + ',top=0, left=' + (window.screen.availWidth / 2));
-		detWindow.moveTo(window.screen.availWidth / 2, 0);
-		detWindow.onbeforeunload = function(){rejoinNotice(),detailJoin(),hasSub=false;} // when you close the subwindow, it will return to the original window
-		var detailDiv = document.getElementById('detail_chm');
-		detailDiv.style.display = 'none';
-		var dividerDiv = document.getElementById('divider');
-		dividerDiv.style.display = 'none';
-		//In summary window, hide the action buttons and expand the summary to 100% of the window.
-		var detailButtonDiv = document.getElementById('detail_buttons');
-		var detailFlickDiv = document.getElementById('flicks');
-		detailButtonDiv.style.display = 'none';
-		detailFlickDiv.style.display = 'none';
-		var summaryDiv = document.getElementById('summary_chm');
-		summaryDiv.style.width = '100%';
-		drawRowSelectionMarks();
-		drawColSelectionMarks();
+	if (!heatMap.getUnAppliedChanges()) {
+		userHelpClose();
+		heatMap.setFlickInitialized(false);
+		// If the summary and detail are in a single browser window, this is a split action.  
+		if (!isSub) {
+			//Write current selection settings to the local storage
+			hasSub=true;
+			clearLabels();
+			clearSelectionMarks();
+			updateSelection();
+			//Create a new detail browser window
+			detWindow = window.open(window.location.href + '&sub=true', '_blank', 'modal=yes, width=' + (window.screen.availWidth / 2) + ', height='+ window.screen.availHeight + ',top=0, left=' + (window.screen.availWidth / 2));
+			detWindow.moveTo(window.screen.availWidth / 2, 0);
+			detWindow.onbeforeunload = function(){rejoinNotice(),detailJoin(),hasSub=false;} // when you close the subwindow, it will return to the original window
+			var detailDiv = document.getElementById('detail_chm');
+			detailDiv.style.display = 'none';
+			var dividerDiv = document.getElementById('divider');
+			dividerDiv.style.display = 'none';
+			//In summary window, hide the action buttons and expand the summary to 100% of the window.
+			var detailButtonDiv = document.getElementById('bottom_buttons');
+			var detailFlickDiv = document.getElementById('flicks');
+			detailButtonDiv.style.display = 'none';
+			detailFlickDiv.style.display = 'none';
+			var summaryDiv = document.getElementById('summary_chm');
+			summaryDiv.style.width = '100%';
+			drawRowSelectionMarks();
+			drawColSelectionMarks();
+	 		document.getElementById('gear_btn').style.display = 'none';
+		} else {
+			updateSelection();
+			rejoinNotice();
+			window.close();
+		}
 	} else {
-		updateSelection();
-		rejoinNotice();
-		window.close();
+		var changePanel = document.getElementById('unappliedChangeSavePanel');
+		if (heatMap.isReadOnly()) {
+			document.getElementById('readOnlySaveText').style.display = '';
+			document.getElementById('unappliedSaveText').style.display = 'none';
+			document.getElementById('unappliedChange_Save_btn').style.display = 'none';
+		} else {
+			document.getElementById('readOnlySaveText').style.display = 'none';
+			document.getElementById('unappliedSaveText').style.display = '';
+			document.getElementById('unappliedChange_Save_btn').style.display = '';
+		}
+		changePanel.style.top = 150;
+		changePanel.style.left = 300;
+		changePanel.style.display = 'block';
 	}
 }
+
+function unappliedChangeButtonAction(action) {
+	document.getElementById('unappliedChangeSavePanel').style.display = 'none';
+	if (action === 'save') {
+		var success = heatMap.saveHeatMapProperties(2);
+		if (success === "true") {
+			heatMap.setUnAppliedChanges(false);
+			detailSplit();
+		}
+	} 
+}
+
+
 
 //Called when a separate detail window is joined back into the main window.
 function detailJoin() {
 	var detailDiv = document.getElementById('detail_chm');
 	detailDiv.style.display = '';
 	detailDiv.style.width = '48%';
-	var detailButtonDiv = document.getElementById('detail_buttons');
+	var detailButtonDiv = document.getElementById('bottom_buttons');
 	detailButtonDiv.style.display = '';
 	var dividerDiv = document.getElementById('divider');
 	dividerDiv.style.display = '';
 	var summaryDiv = document.getElementById('summary_chm');
 	summaryDiv.style.width = '48%';
+	setSummarySize();
 	initFromLocalStorage();
 	clearSelectionMarks();
 	drawRowSelectionMarks();
 	drawColSelectionMarks();
+	heatMap.configureFlick();
+	flickToggleOff();
+	document.getElementById('gear_btn').style.display = '';
+	if (flickExists()){
+		document.getElementById('pdf_gear').style.minWidth = '340px';
+	} else {
+		document.getElementById('pdf_gear').style.minWidth = '140px';
+	}
 }
 
 
@@ -510,6 +565,7 @@ function processDetailMapUpdate (event, level) {
 
 	if (event == MatrixManager.Event_INITIALIZED) {
 		detailInit();
+		heatMap.configureButtonBar();
 	} else {
 		//Data tile update - wait a bit to see if we get another new tile quickly, then draw
 		if (detEventTimer != 0) {
@@ -540,12 +596,28 @@ function detailInit() {
 	detCanvas.height = (detailDataViewHeight + calculateTotalClassBarHeight("column") + detailDendroHeight);
 	createLabelMenus();
 	createEmptySearchItems();
+	if (getURLParameter("selected") !== ""){
+		var selected = getURLParameter("selected").split(",");
+		for (var i = 0; i < selected.length; i++){
+			var item = selected[i];
+			var axis = "Row";
+			var index = findRowLabel(item);
+			if (index < 0){
+				axis = "Column";
+				index = findColLabel(item);
+			}
+			if (!searchItems[axis])searchItems[axis] = {};
+			searchItems[axis][index+1] = 1;
+		}
+		drawRowSelectionMarks();
+		drawColSelectionMarks();
+	}
 	if (dataBoxWidth === undefined) {
 		setDetailDataSize(10);
 	}
 	detSetupGl();
 	detInitGl();
-	if (isSub)
+	if (isSub) 
 		initFromLocalStorage();
 	else
 		updateSelection();
@@ -724,8 +796,11 @@ function detailSearch() {
 			reg = new RegExp("^" + tmpSearchItems[j].toUpperCase().replace(/\*/g, ".*") + "$");
 		}
 		for (var i = 0; i < labels.length; i++) {
-			if ((labels[i].toUpperCase() == tmpSearchItems[j].toUpperCase()) ||
-				((reg != null) && reg.test(labels[i].toUpperCase()))){
+			var label = labels[i].toUpperCase();
+			if (label.indexOf('|') > -1)
+				label = label.substring(0,label.indexOf('|'));
+			if ((label == tmpSearchItems[j].toUpperCase()) ||
+				((reg != null) && reg.test(label))){
 				searchItems["Row"][i+1] = 1;
 				if (itemsFound.indexOf(tmpSearchItems[j]) == -1)
 					itemsFound.push(tmpSearchItems[j]);
@@ -830,7 +905,7 @@ function findNextSearchItem(index, axis){
 			while( !searchItems[axis][++curr] && curr <  index);
 			if (curr < index && index != -1){
 				currentSearchItem["axis"] = axis;
-				currentSearchItem["index"] = index;
+				currentSearchItem["index"] = curr;
 			}
 		} else {
 			currentSearchItem["axis"] = otherAxis;
@@ -885,19 +960,19 @@ function searchPrev() {
 }
 
 //Called when red 'X' is clicked.
-function clearSearch(){
+function clearSearch(event){
 	var searchElement = document.getElementById('search_text');
 	searchElement.value = "";
 	currentSearchItem = {};
 	labelLastClicked = {};
 	createEmptySearchItems();
 	clearSelectionMarks();
-	clearSrchBtns();
+	clearSrchBtns(event);
 	detailResize();
 	detailSearch();
 }
 
-function clearSrchBtns() {
+function clearSrchBtns(event) {
 	if ((event != null) && (event.keyCode == 13))
 		return;
 	
@@ -985,7 +1060,7 @@ function drawColLabels() {
 	var labelLen = getMaxLength(labels);
 		
 	if (skip > minLabelSize) {
-		var yPos = detCanvas.clientHeight + 4;
+		var yPos = detCanvas.clientHeight + 3;
 		for (var i = currentCol; i < currentCol + dataPerRow; i++) {
 			var xPos = start + ((i-currentCol) * skip);
 			var shownLabel = labels[i-1].split("|")[0];
@@ -998,7 +1073,6 @@ function addLabelDiv(parent, id, className, text, left, top, fontSize, rotate, i
 	var div = document.createElement('div');
 	div.id = id;
 	div.className = className;
-	div.innerHTML = text;
 	div.setAttribute("index",index)
 	if (div.classList.contains('ClassBar')){
 		div.setAttribute('axis','ColumnCovar');
@@ -1034,11 +1108,20 @@ function addLabelDiv(parent, id, className, text, left, top, fontSize, rotate, i
 	div.style.left = left;
 	div.style.top = top;
 	div.style.fontSize = fontSize.toString() +'pt';
-	div.style.fontFamily = 'times new roman';
+	div.style.fontFamily = 'sans-serif';
 	div.style.fontWeight = 'bold';
-	div.style.whiteSpace = "nowrap";
+	div.innerHTML = text;
 	
 	parent.appendChild(div);
+	if (div.getBoundingClientRect().right > window.innerWidth-15){
+		div.style.width =  window.innerWidth - div.getBoundingClientRect().left - 15;
+		div.onmouseover = function(){detailDataToolHelp(this,text);}
+		div.onmouseleave = userHelpClose;
+	} else if (div.getBoundingClientRect().bottom > window.innerHeight-15){
+		div.style.width =  window.innerHeight - div.getBoundingClientRect().top - 15;
+		div.onmouseover = function(){detailDataToolHelp(this,text);}
+		div.onmouseleave = userHelpClose;
+	}
 }
 
 
@@ -1171,6 +1254,9 @@ function labelRightClick(e) {
 }
 
 function labelIndexInSearch(index,axis){ // basically a Array.contains function, but for searchItems
+	if (index == null || axis == null){
+		return false;
+	}
 	if (searchItems[axis][index] == 1){
 		return true;
 	}else{
@@ -1270,8 +1356,13 @@ function detailDrawColClassBarLabels() {
 					if (!document.getElementById("missingDetColClassBars")){
 						var x =  detCanvas.clientWidth+2;
 						var y = detailDendroHeight*scale-12;
-						addLabelDiv(labelElement, "missingDetColClassBars", "ClassBar", "...", x, y, 10, "F", null,"Column")
-					}		
+						addLabelDiv(labelElement, "missingDetColClassBars", "ClassBar MarkLabel", "...", x, y, 10, "F", null,"Column")
+					}
+					if (!document.getElementById("missingColClassBars")){
+						var x =  detCanvas.clientWidth + 2;
+						var y = columnDendroHeight*detCanvas.clientHeight/summaryTotalHeight - 10;
+						addLabelDiv(document.getElementById('sumlabelDiv'), "missingColClassBars", "ClassBar MarkLabel", "...", x, y, 10, "F", null,"Column")
+					}	
 				}
 			}	
 		}
@@ -1339,7 +1430,12 @@ function detailDrawRowClassBarLabels() {
 					if (!document.getElementById("missingDetRowClassBars")){
 						var x = detailDendroWidth*scale + 10;
 						var y = detCanvas.clientHeight+2;
-						addLabelDiv(labelElement, "missingDetRowClassBars", "ClassBar", "...", x, y, 10, 'T', i, "Row");
+						addLabelDiv(labelElement, "missingDetRowClassBars", "ClassBar MarkLabel", "...", x, y, 10, 'T', i, "Row");
+					}
+					if (!document.getElementById("missingRowClassBars")){
+						var x = rowDendroHeight*detCanvas.clientWidth/summaryTotalWidth + 10;
+						var y = detCanvas.clientHeight + 2;
+						addLabelDiv(document.getElementById('sumlabelDiv'), "missingRowClassBars", "ClassBar MarkLabel", "...", x, y, 10, "T", null,"Row");
 					}
 				}
 			}
@@ -1763,6 +1859,7 @@ function detInitGl () {
 	detTexPixels = new Uint8Array(texData);
 	detTextureParams['width'] = texWidth;
 	detTextureParams['height'] = texHeight; 
+	
 }
 /*  Disabled until we decide to add a toggle button.
  *  when we do we will need to use the grid_show

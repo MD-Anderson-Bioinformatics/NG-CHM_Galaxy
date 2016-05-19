@@ -51,14 +51,38 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 	var colorMapMgr;
 	var initialized = 0;
 	var eventListeners = [];
+	var flickInitialized = false;
+	var unAppliedChanges = false;
 	
-	//Return the number of rows for a given level
-	this.isSaveAllowed = function(){
-		if (mode === "F") {
-			return false;
-		} else {
+	this.isReadOnly = function(){
+		if (mapConfig.data_configuration.map_information.read_only === 'Y') {
 			return true;
+		} else {
+			return false;
 		}
+	}
+	
+	this.setUnAppliedChanges = function(value){
+		unAppliedChanges = value;
+		return;
+	}
+	
+	this.getUnAppliedChanges = function(){
+		return unAppliedChanges;
+	}
+	
+	//Return the total number of detail rows
+	this.getTotalRows = function(){
+		return datalevels[MatrixManager.DETAIL_LEVEL].totalRows;
+	}
+	
+	this.setFlickInitialized = function(value){
+		flickInitialized = value;
+	}
+	
+	//Return the total number of detail rows
+	this.getTotalCols = function(){
+		return datalevels[MatrixManager.DETAIL_LEVEL].totalColumns;
 	}
 	
 	//Return the number of rows for a given level
@@ -220,13 +244,32 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 	this.saveHeatMapProperties = function (whereFrom) {
 		var success = true;
 		if (mode !== "F") {
-			success = webSaveMapProperties("mapConfig",JSON.stringify(mapConfig)); 
+			if (whereFrom === 1) {
+				success = webSaveMapProperties(JSON.stringify(mapConfig)); 
+			} else {
+				if ((mapConfig.data_configuration.map_information.read_only === 'Y') && (whereFrom === 2)) {
+					zipSaveNotification(3);
+					success = zipMapProperties(JSON.stringify(mapConfig)); 
+				} else {
+					success = webSaveMapProperties(JSON.stringify(mapConfig)); 
+				}
+			}
 		} else {
 			zipSaveNotification(whereFrom);
 			zipSaveMapProperties();
 		} 
 		return success;
 	}
+	
+	// Call download of NGCHM File Viewer application zip
+	this.downloadFileApplication = function () { 
+		if (staticPath != "") {
+			window.open(staticPath + "ngchmApp.zip");
+		} else {
+			zipAppFileMode();
+		}	
+	}
+
 	
 	//This function is used to set a read window for high resolution data layers.
 	//Calling setReadWindow will cause the HeatMap object to retrieve tiles needed
@@ -248,26 +291,55 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 	this.isInitialized = function() {
 		return initialized;
 	}
+
+	//If collectionHome param exists on URL, add "back" button to screen.
+	this.configureButtonBar = function(){
+		var splitButton = document.getElementById("split_btn");
+		if ((splitButton != null) && (mode === "F")) {
+			splitButton.style.display = 'none';
+		}
+		var backButton = document.getElementById("back_btn");
+		var url = getURLParameter("collectionHome");
+		if (url !== "") {
+			backButton.style.display = '';
+		}
+	}
 	
 	this.configureFlick = function(){
-		var flicks = document.getElementById("flicks");
-		var flickViewsOff = document.getElementById("noFlickViews");
-		var flickViewsDiv = document.getElementById("flickViews");
-		var flick1 = document.getElementById("flick1");
-		var flick2 = document.getElementById("flick2");
-		var dl = this.getDataLayers();
-		if (Object.keys(dl).length > 1) {
-			var flickOptions = "";
-			for (var key in dl){
-				flickOptions+= '<option value="'+key+'">'+dl[key].name.substring(0,30)+'</option>';
+		if (!flickInitialized) {
+			var flicks = document.getElementById("flicks");
+			var flickViewsOff = document.getElementById("noFlickViews");
+			var flickViewsDiv = document.getElementById("flickViews");
+			var flick1 = document.getElementById("flick1");
+			var flick2 = document.getElementById("flick2");
+			var dl = this.getDataLayers();
+			if (Object.keys(dl).length > 1) {
+				var dls = new Array(Object.keys(dl).length);
+				var orderedKeys = new Array(Object.keys(dl).length);
+				var flickOptions = "";
+				for (var key in dl){
+					var dlNext = key.substring(2, key.length);
+					orderedKeys[dlNext-1] = key;
+					var displayName = dl[key].name;
+					if (displayName.length > 20){
+						displayName = displayName.substring(0,20) + "...";
+					}
+					dls[dlNext-1] = '<option value="'+key+'">'+displayName+'</option>';
+				}
+				for(var i=0;i<dls.length;i++) {
+					flickOptions += dls[i];
+				}
+				flick1.innerHTML=flickOptions;
+				flick2.innerHTML=flickOptions;
+				flick1.value=currentDl;
+				flick2.value=orderedKeys[1];
+				flicks.style.display='';
+				flicks.style.right=1;
+				if (flickViewsDiv.style.display === 'none') {;
+					flickViewsOff.style.display='';
+				}
 			}
-			flick1.innerHTML=flickOptions;
-			flick2.innerHTML=flickOptions;
-			flick1.value=Object.keys(dl)[0];
-			flick2.value=Object.keys(dl)[1];
-			flicks.style.display='';
-			flicks.style.right=1;
-			flickViewsOff.style.display='';
+			flickInitialized = true;	
 		}
 	}
 
@@ -395,14 +467,14 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 
 		  zipper.addTexts(function addTextsCallback() {
 		    zipper.getBlob(function getBlobCallback(blob) {
-		      saveAs(blob, heatMapName+".zip"); 
+		      saveAs(blob, heatMapName+".ngchm");   
 		    });
 		  });  
 		}
 	
-	function webSaveMapProperties(type, jsonData) {
+	function webSaveMapProperties(jsonData) {
 		var success = "false";
-		var name = "SaveMapProperties?map=" + heatMapName + "&type=" + type;
+		var name = "SaveMapProperties?map=" + heatMapName;
 		var req = new XMLHttpRequest();
 		req.open("POST", name, false);
 		req.setRequestHeader("Content-Type", "application/json");
@@ -420,6 +492,36 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 		return success;
 	}
 
+	function zipAppFileMode() {
+		var success = "";
+		var name = "ZipAppDownload"; 
+		callServlet("POST", name, false);
+		return true;
+	}
+	
+	function zipMapProperties(jsonData) {
+		var success = "";
+		var name = "ZippedMap?map=" + heatMapName; 
+		callServlet("POST", name, jsonData);
+		return true;
+	}
+	
+	callServlet = function(verb, url, data) {
+		  var form = document.createElement("form");
+		  form.action = url;
+		  form.method = verb;
+		  if (data) { 
+		    var input = document.createElement("textarea");
+	        input.name = "configData";
+	        input.id = "configData";
+	        input.value = data;
+	        form.appendChild(input);
+		  }
+		  form.style.display = 'none';
+		  document.body.appendChild(form);
+		  form.submit();
+		};
+	
 	//  Initialize the data layers once we know the tile structure.
 	//  JSON structure object describing available data layers passed in.
 	function addDataLayers(mapConfig) {

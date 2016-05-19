@@ -302,13 +302,17 @@ function initFromLocalStorage() {
 	mode = localStorage.getItem('mode');
 	if (heatMap.showColDendrogram("DETAIL")) {
 		buildDendroMatrix('col');
-	}
+	} 
 	if (heatMap.showRowDendrogram("DETAIL")) {
 		buildDendroMatrix('row');
 	}
 	heatMap.configureFlick();
+
 	dataBoxHeight = (DETAIL_SIZE_NORMAL_MODE-detailDataViewBoarder)/dataPerCol;
 	dataBoxWidth = (DETAIL_SIZE_NORMAL_MODE-detailDataViewBoarder)/dataPerRow;
+	var nameDiv = document.getElementById("mapName");
+		nameDiv.innerHTML = "<b>Map Name:</b>&nbsp;&nbsp;"+heatMap.getMapInformation().name;
+
 	
 	if (mode == 'RIBBONH')
 		detailHRibbon();
@@ -452,6 +456,8 @@ function getCurrentDetCol() {
  * view where the value needs to be scaled in one dimension.
  **********************************************************************************/
 function getCurrentDetDataPerRow() {
+	// make sure dataPerCol is the correct value. split screen can cause issues with values updating properly.
+	if (dataPerRow !== (detailDataViewWidth -2)/dataBoxWidth) dataPerRow = (detailDataViewWidth -2)/dataBoxWidth;
 	var	detDataPerRow = dataPerRow;
 	if (mode == 'RIBBONH') {
 		var rate = heatMap.getColSummaryRatio(MatrixManager.RIBBON_HOR_LEVEL);
@@ -461,6 +467,8 @@ function getCurrentDetDataPerRow() {
 }
 // Follow similar methodology for Column as is used in above row based function
 function getCurrentDetDataPerCol() {
+	// make sure dataPerCol is the correct value. split screen can cause issues with values updating properly.
+	if (dataPerCol !== (detailDataViewHeight -2)/dataBoxHeight) dataPerCol = (detailDataViewHeight -2)/dataBoxHeight;
 	var	detDataPerCol = dataPerCol;
 	if (mode == 'RIBBONV') {
 		var rate = heatMap.getRowSummaryRatio(MatrixManager.RIBBON_VERT_LEVEL);
@@ -510,7 +518,7 @@ function setDataPerColFromDet(detDataPerCol) {
 function flickExists() {
 	var flicks = document.getElementById("flicks");
 	if ((flicks != null) && (flicks.style.display === '')) {
-		 return true;
+		return true;
 	}
 	return false;
 }

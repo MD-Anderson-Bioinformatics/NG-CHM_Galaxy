@@ -48,7 +48,7 @@ function getPDF(){
 	var header = document.getElementsByClassName('mdaServiceHeaderLogo')[0];
 	headerCanvas.height = 85; // logo png's actual dimensions
 	headerCanvas.width = 260;
-	headerCtx.drawImage(header.children[0], 0, 0);
+	headerCtx.drawImage(header.children[0].children[0], 0, 0);
 	var headerData = headerCanvas.toDataURL('image/png');
 	var headerHeight = header.clientHeight + 5;
 	createHeader();
@@ -219,7 +219,11 @@ function getPDF(){
 	 * inputs: classBar object, colorMap object, and string for name
 	 **********************************************************************************/
 	function getBarGraphForContinuousClassBar(classBar, colorMap,name){
-		doc.text(leftOff, topOff , name, null);
+		if (doc.getStringUnitWidth(name)*classBarLegendTextSize > classBarFigureW){
+			doc.text(leftOff, topOff , name.substring(0,30), null);
+		} else {
+			doc.text(leftOff, topOff , name, null);
+		}
 		var thresholds = colorMap.getContinuousThresholdKeys();
 		var numThresholds = thresholds.length-1; // the last threshold repeats for some reason :\
 		var barHeight = !condenseClassBars ? classBarFigureH/(thresholds.length) : 10;		
@@ -248,25 +252,31 @@ function getPDF(){
 		
 		var bartop = topOff+5; // top location of first bar
 		var missingCount = classBar.values.length; // start at total number of labels and work down
+		var value;
 		for (var j = 0; j < thresholds.length-1; j++){
 			var rgb = colorMap.getClassificationColor(thresholds[j]);
 			doc.setFillColor(rgb.r,rgb.g,rgb.b);
 			doc.setDrawColor(0,0,0);
+			value = counts[thresholds[j]];
+			if (isNaN(value) || value == undefined){
+				value = 0;
+			}
 			if (condenseClassBars){ // square
 				var barW = 10;
 				doc.rect(leftOff, bartop, barW, barHeight, "FD"); // make the square
 				doc.setFontSize(classBarLegendTextSize);
-				doc.text(leftOff +barW + 5, bartop + classBarLegendTextSize, thresholds[j].toString() + "   " + "n = " + counts[thresholds[j]] , null);
+				doc.text(leftOff +barW + 5, bartop + classBarLegendTextSize, thresholds[j].toString() + "   " + "n = " + value , null);
 			} else { // histogram
-				var barW = counts[thresholds[j]]/maxCount*classBarFigureW;
+				var barW = value/maxCount*classBarFigureW;
 				doc.rect(leftOff + maxLabelLength, bartop, barW, barHeight, "FD"); // make the histo bar
 				doc.setFontSize(classBarLegendTextSize);
 				doc.text(leftOff + maxLabelLength - doc.getStringUnitWidth(thresholds[j].toString())*classBarLegendTextSize - 4, bartop + classBarLegendTextSize, thresholds[j].toString() , null);
-				doc.text(leftOff + maxLabelLength +barW + 5, bartop + classBarLegendTextSize, "n = " + counts[thresholds[j]] , null);
+				doc.text(leftOff + maxLabelLength +barW + 5, bartop + classBarLegendTextSize, "n = " + value , null);
 			}
-			missingCount -= counts[thresholds[j]]; 
+			missingCount -= value; 
 			bartop+=barHeight; // adjust top position for the next bar
 		}
+		missingCount = Math.max(0,missingCount); // just in case missingCount goes negative...
 		var rgb = colorMap.getClassificationColor("Missing Value");
 		doc.setFillColor(rgb.r,rgb.g,rgb.b);
 		doc.setDrawColor(0,0,0);
@@ -303,7 +313,11 @@ function getPDF(){
 	 * inputs: classBar object, colorMap object, and string for name
 	 **********************************************************************************/
 	function getBarGraphForDiscreteClassBar(classBar, colorMap,name){
-		doc.text(leftOff, topOff , name, null);
+		if (doc.getStringUnitWidth(name)*classBarLegendTextSize > classBarFigureW){
+			doc.text(leftOff, topOff , name.substring(0,30), null);
+		} else {
+			doc.text(leftOff, topOff , name, null);
+		}
 		var thresholds = colorMap.getThresholds();
 		var barHeight = !condenseClassBars ? Math.max(classBarFigureH/(thresholds.length+1),10) : 10;
 		var counts = {}, maxCount = 0, maxLabelLength = doc.getStringUnitWidth("Missing Value")*classBarLegendTextSize;
@@ -342,7 +356,7 @@ function getPDF(){
 			missingCount -= count;
 			bartop+=barHeight;
 		}
-			
+		missingCount = Math.max(0,missingCount); // just in case missingCount goes negative...
 		var rgb = colorMap.getClassificationColor("Missing Value");
 		doc.setFillColor(rgb.r,rgb.g,rgb.b);
 		doc.setDrawColor(0,0,0);

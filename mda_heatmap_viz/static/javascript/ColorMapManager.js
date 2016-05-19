@@ -91,7 +91,7 @@ function ColorMap(colorMapObj){
 	
 		if (isNaN(value)){
 			color = rgbaMissingColor;
-		}else if(value < thresholds[0]){
+		}else if(value <= thresholds[0]){
 			color = rgbaColors[0]; // return color for lowest threshold if value is below range
 		} else if (value >= thresholds[numBreaks-1]){
 			color = rgbaColors[numBreaks-1]; // return color for highest threshold if value is above range
@@ -221,17 +221,16 @@ function ColorMapManager(mapConfig){
 		return colorMap;
 	}
 	
-	this.setColorMap = function(colorMapName, colorMap){
-		for (var i=0;i<colorMapCollection.length;i++) {
-			var colorMaps = colorMapCollection[i];
-			for (var key in colorMaps){
-				if (key === colorMapName) {
-					colorMapCollection[i][colorMapName].color_map.colors = colorMap.getColors();
-					colorMapCollection[i][colorMapName].color_map.thresholds = colorMap.getThresholds();
-					colorMapCollection[i][colorMapName].color_map.missing = colorMap.getMissingColor();
-				}
-			}
+	this.setColorMap = function(colorMapName, colorMap, type) {
+		if (type === "row") {
+			var existingColorMap = colorMapCollection[1][colorMapName].color_map;
+		} else if (type === "col") {
+			var existingColorMap = colorMapCollection[2][colorMapName].color_map;
+		} else {
+		    var existingColorMap = colorMapCollection[0][colorMapName].color_map;
 		}
+		existingColorMap.colors = colorMap.getColors();
+		existingColorMap.thresholds = colorMap.getThresholds();
+		existingColorMap.missing = colorMap.getMissingColor();
 	}
-	
 }

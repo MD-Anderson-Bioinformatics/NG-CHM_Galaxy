@@ -46,7 +46,11 @@ function userHelpOpen(e){
     	if (classLen > 0) {
 			setTableRow(helpContents, ["&nbsp;<u>"+"Row Classifications"+"</u>", "&nbsp;"], 2);
 	    	for (var key in classBars){
-	    		setTableRow(helpContents,["&nbsp;&nbsp;&nbsp;"+key+":"+"</u>", classBars[key].values[pos-1]]);	    		
+				var displayName = key;
+				if (key.length > 20){
+					displayName = key.substring(0,20) + "...";
+				}
+	    		setTableRow(helpContents,["&nbsp;&nbsp;&nbsp;"+displayName+":"+"</u>", classBars[key].values[pos-1]]);	    		
 	    		rowCtr++;
 	    	}
     	}
@@ -56,7 +60,11 @@ function userHelpOpen(e){
     	if (classLen > 0) {
 			setTableRow(helpContents, ["&nbsp;<u>"+"Column Classifications"+"</u>", "&nbsp;"], 2);
 	    	for (var key in classBars){
-	    		setTableRow(helpContents,["&nbsp;&nbsp;&nbsp;"+key+":"+"</u>", classBars[key].values[pos-1]]);	    		
+				var displayName = key;
+				if (key.length > 20){
+					displayName = key.substring(0,20) + "...";
+				}
+	    		setTableRow(helpContents,["&nbsp;&nbsp;&nbsp;"+displayName+":"+"</u>", classBars[key].values[pos-1]]);	    		
 	    		rowCtr++;
 	    	}
     	}
@@ -127,7 +135,12 @@ function userHelpOpen(e){
     	
     	// Build TABLE HTML for contents of help box
     	var helpContents = document.createElement("TABLE");
-    	setTableRow(helpContents, ["Class: ", "&nbsp;"+hoveredBar]);
+		var displayName = hoveredBar;
+		if (hoveredBar.length > 20){
+			displayName = displayName.substring(0,20) + "...";
+		}
+
+    	setTableRow(helpContents, ["Class: ", "&nbsp;"+displayName]);
     	setTableRow(helpContents, ["Value: ", "&nbsp;"+value]);
     	helpContents.insertRow().innerHTML = formatBlankRow();
     	var rowCtr = 3 + thresholds.length;
@@ -220,7 +233,11 @@ function locateHelpBox(e, helptext) {
 	helptext.style.left = boxLeft;
 	var boxTop = e.pageY;
 	if ((boxTop+helptext.clientHeight) > e.target.clientHeight + 90) {
-		boxTop = e.pageY - helptext.clientHeight;
+		if (helptext.clientHeight > e.pageY) {
+			boxTop = e.pageY - (helptext.clientHeight/2);
+		} else {
+			boxTop = e.pageY - helptext.clientHeight;
+		}
 	}
 	helptext.style.top = boxTop;
 }
@@ -256,8 +273,14 @@ function detailDataToolHelp(e,text,width) {
 	    		helptext.style.top = pdfButt.offsetTop + (pdfButt.offsetHeight);
 	    	}
 	    }
+	    // Unless close to the bottom, set help text below cursor
+	    // Else, set to right of cursor.
     	if (e.offsetTop !== 0) {
-    		helptext.style.top = e.offsetTop + 15;
+    		if (e.offsetTop > 500) {
+    			helptext.style.top = e.offsetTop - 25;
+	    	} else {
+	    		helptext.style.top = e.offsetTop + 15;
+	    	}
     	}
 	    helptext.style.width = width;
 		var htmlclose = "</font></b>";
@@ -285,6 +308,7 @@ function getDivElement(elemName) {
  **********************************************************************************/
 function setTableRow(tableObj, tdArray, colSpan, align) {
 	var tr = tableObj.insertRow();
+	tr.className = "show";
 	for (var i = 0; i < tdArray.length; i++) {
 		var td = tr.insertCell(i);
 		if (typeof colSpan != 'undefined') {
@@ -326,6 +350,20 @@ function formatBlankRow() {
 }
 
 /**********************************************************************************
+ * FUNCTION - addBlankRow: The purpose of this function is to return the html
+ * text for a blank row.
+ **********************************************************************************/
+function addBlankRow(addDiv, rowCnt) {
+	addDiv.insertRow().innerHTML = formatBlankRow();
+	if (typeof rowCnt !== 'undefined') {
+		for (var i=1;i<rowCnt;i++) {
+			addDiv.insertRow().innerHTML = formatBlankRow();
+		}
+	}
+	return;
+}
+
+/**********************************************************************************
  * FUNCTION - userHelpClose: The purpose of this function is to close any open 
  * user help pop-ups and any active timeouts associated with those pop-up panels.
  **********************************************************************************/
@@ -363,19 +401,48 @@ function showSearchError(type){
 function zipSaveNotification(textId) {
 	var zipopentext = document.getElementById('zipSaveOpen');
 	var zippreftext = document.getElementById('zipSavePref');
+	var ziprotext = document.getElementById('zipSaveRo');
+	var zipfileapp = document.getElementById('zipFileAppButton');
 	if (textId === 1) {
 		zipopentext.style.display = '';
+		ziprotext.style.display = 'none';
 		zippreftext.style.display = 'none';
+		zipfileapp.style.display = 'none';
+	} else if (textId === 2) {
+		zipopentext.style.display = 'none';
+		ziprotext.style.display = 'none';
+		zippreftext.style.display = '';
+		if (staticPath === "")
+			zipfileapp.style.display = 'none';
+		else
+			zipfileapp.style.display = '';
 	} else {
 		zipopentext.style.display = 'none';
-		zippreftext.style.display = '';
+		ziprotext.style.display = '';
+		zippreftext.style.display = 'none';
+		zipfileapp.style.display = '';
 	}
 	var zippanel = document.getElementById('zipFileSavePanel');
 	zippanel.style.top = 150;
-	zippanel.style.left = 500;
+	zippanel.style.left = 300;
 	zippanel.style.display = 'block';
 }
 function zipCancelButton(){
 	var zippanel = document.getElementById('zipFileSavePanel');
 	zippanel.style.display = 'none';
+}
+function zipRequestAppDownload(){
+	zipCancelButton();
+	var zippanel = document.getElementById('downloadFileModeApp');
+	zippanel.style.top = 150;
+	zippanel.style.left = 300;
+	zippanel.style.display = 'block';
+}
+function zipAppDownCancel(){
+	var zippanel = document.getElementById('downloadFileModeApp');
+	zippanel.style.display = 'none';
+}
+function zipAppDownload(){
+	zipAppDownCancel();
+	heatMap.downloadFileApplication();
 }

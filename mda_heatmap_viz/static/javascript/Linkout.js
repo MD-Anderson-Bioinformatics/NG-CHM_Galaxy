@@ -22,11 +22,13 @@ linkouts.getPositions = function (axis){
 }
 
 function createLabelMenus(){
-	createLabelMenu('Column'); // create the menu divs
-	createLabelMenu('ColumnCovar');
-	createLabelMenu('Row');
-	createLabelMenu('RowCovar');
-	getDefaultLinkouts();
+	if (!document.getElementById("RowLabelMenu")){
+		createLabelMenu('Column'); // create the menu divs if they don't exist yet
+		createLabelMenu('ColumnCovar');
+		createLabelMenu('Row');
+		createLabelMenu('RowCovar');
+		getDefaultLinkouts();
+	}
 }
 
 function labelHelpClose(axis){
@@ -58,8 +60,8 @@ function labelHelpOpen(axis, e){
     
     if (labelMenu){
     	labelMenu.style.display = 'inherit';
-    	labelMenu.style.left = e.pageX + labelMenu.offsetWidth > window.innerWidth ? window.innerWidth-labelMenu.offsetWidth : e.pageX;
-    	labelMenu.style.top = e.pageY + labelMenu.offsetHeight > window.innerHeight ? window.innerHeight-labelMenu.offsetHeight : e.pageY;
+    	labelMenu.style.left = e.pageX + labelMenu.offsetWidth > window.innerWidth ? window.innerWidth-labelMenu.offsetWidth-15 : e.pageX; // -15 added in for the scroll bars
+    	labelMenu.style.top = e.pageY + labelMenu.offsetHeight > window.innerHeight ? window.innerHeight-labelMenu.offsetHeight-15 : e.pageY;
     }
 }
 
@@ -154,7 +156,9 @@ function selectionError(e){
 
 function getDefaultLinkouts(){
 	addLinkout("Copy " + heatMap.getColLabels().label_type +" to Clipboard", heatMap.getColLabels().label_type, linkouts.MULTI_SELECT, linkouts.VISIBLE_LABELS, copyToClipBoard,null,0);
-	addLinkout("Copy " + heatMap.getRowLabels().label_type + " to Clipboard", heatMap.getRowLabels().label_type, linkouts.MULTI_SELECT, linkouts.VISIBLE_LABELS, copyToClipBoard,null,0);
+	if (heatMap.getRowLabels().label_type !== heatMap.getColLabels().label_type){
+		addLinkout("Copy " + heatMap.getRowLabels().label_type + " to Clipboard", heatMap.getRowLabels().label_type, linkouts.MULTI_SELECT, linkouts.VISIBLE_LABELS, copyToClipBoard,null,0);
+	}
 	addLinkout("Copy bar data for all labels", "ColumnCovar", linkouts.MULTI_SELECT, linkouts.VISIBLE_LABELS,copyEntireClassBarToClipBoard,null,0);
 	addLinkout("Copy bar data for selected labels", "ColumnCovar", linkouts.MULTI_SELECT, linkouts.VISIBLE_LABELS,copyPartialClassBarToClipBoard,null,1);
 	addLinkout("Copy bar data for all labels", "RowCovar", linkouts.MULTI_SELECT, linkouts.VISIBLE_LABELS,copyEntireClassBarToClipBoard,null,0);

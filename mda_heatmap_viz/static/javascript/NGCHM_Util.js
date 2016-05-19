@@ -32,3 +32,14 @@ function getStyle(x,styleProp){
         var y = document.defaultView.getComputedStyle(x,null).getPropertyValue(styleProp);
     return y;
 }
+
+/**********************************************************************************
+ * FUNCTION - returnToHome: The purpose of this function is to open a "home" URL
+ * in the same tab as the heatMap (when a link is present).
+ **********************************************************************************/
+function returnToHome() { 
+	var collectionhomeurl = getURLParameter("collectionHome");
+	if (collectionhomeurl !== "") {
+		window.open(collectionhomeurl,"_self")
+	}
+}

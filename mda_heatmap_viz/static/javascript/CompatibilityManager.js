@@ -5,7 +5,8 @@ var jsonConfigStr = "{\"row_configuration\": {\"classifications\": {\"show\": \"
 			"\"col_configuration\": {\"classifications\": {\"show\": \"Y\",\"height\": 15},"+
 		    "\"organization\": {\"agglomeration_method\": \"unknown\",\"order_method\": \"unknown\",\"distance_metric\": \"unknown\"},"+
 		    "\"dendrogram\": {\"show\": \"ALL\",\"height\": \"100\"}},\"data_configuration\": {\"map_information\": {\"data_layer\": {"+
-		    "\"name\": \"Data Layer\",\"grid_show\": \"Y\",\"grid_color\": \"#FFFFFF\"},\"name\": \"CHM Name\",\"description\": \"Full length description of this heatmap\"}}}";
+		    "\"name\": \"Data Layer\",\"grid_show\": \"Y\",\"grid_color\": \"#FFFFFF\"},\"name\": \"CHM Name\",\"description\": \""+
+		    "Full length description of this heatmap\",\"read_only\": \"N\",\"version_id\": \"1.0.0\"}}}";
 
 /**********************************************************************************
  * FUNCTION - CompatibilityManager: The purpose of the compatibility manager is to 

@@ -57,6 +57,12 @@ function initSummaryDisplay() {
 	// set the position to (1,1) so that the detail pane loads at the top left corner of the summary.
 	currentRow = 1;
 	currentCol = 1;
+	if (getURLParameter("row") !== "" && !isNaN(Number(getURLParameter("row")))){
+		currentRow = Number(getURLParameter("row"))
+	}
+	if (getURLParameter("column") !== "" && !isNaN(Number(getURLParameter("column")))){
+		currentCol = Number(getURLParameter("column"))
+	}
 };
 
 // Callback that is notified every time there is an update to the heat map 
@@ -64,6 +70,7 @@ function initSummaryDisplay() {
 function processSummaryMapUpdate (event, level) {   
 
 	if (event == MatrixManager.Event_INITIALIZED) {
+		heatMap.configureButtonBar();
 		heatMap.configureFlick();
 		summaryInit();
 	} else if (event == MatrixManager.Event_NEWDATA && level == MatrixManager.SUMMARY_LEVEL){
@@ -99,15 +106,15 @@ function summaryInit() {
 		
 	calcTotalSize();
 	var nameDiv = document.getElementById("mapName");
-	nameDiv.innerHTML = heatMap.getMapInformation().name.length > 25 ? heatMap.getMapInformation().name.substring(0,25) + "..." :heatMap.getMapInformation().name;
+	nameDiv.innerHTML = "<b>Map Name:</b>&nbsp;&nbsp;"+heatMap.getMapInformation().name;
 	canvas.width =  summaryTotalWidth;
 	canvas.height = summaryTotalHeight;
 	setupGl();
 	initGl();
 	if (flickExists()){
-		document.getElementById('settings_buttons').style.minWidth = '160px';
+		document.getElementById('pdf_gear').style.minWidth = '250px';
 	} else {
-		document.getElementById('settings_buttons').style.minWidth = '50px';
+		document.getElementById('pdf_gear').style.minWidth = '100px';
 	}
 	buildSummaryTexture();
 	leftCanvasBoxVertThick = 1/canvas.width;
@@ -590,7 +597,7 @@ function drawColClassBars(dataBuffer){
 			if (!document.getElementById("missingColClassBars")){
 				var x =  canvas.clientWidth + 2;
 				var y = columnDendroHeight*canvas.clientHeight/summaryTotalHeight - 10;
-				addLabelDiv(document.getElementById('sumlabelDiv'), "missingColClassBars", "ClassBar", "...", x, y, 10, "F", null,"Column")
+				addLabelDiv(document.getElementById('sumlabelDiv'), "missingColClassBars", "ClassBar MarkLabel", "...", x, y, 10, "F", null,"Column")
 			}		
 		}
 	}
@@ -638,7 +645,7 @@ function drawRowClassBars(dataBuffer){
 			if (!document.getElementById("missingRowClassBars")){
 				var x = rowDendroHeight*canvas.clientWidth/summaryTotalWidth + 10;
 				var y = canvas.clientHeight + 2;
-				addLabelDiv(document.getElementById('sumlabelDiv'), "missingRowClassBars", "ClassBar", "...", x, y, 10, "T", null,"Row");
+				addLabelDiv(document.getElementById('sumlabelDiv'), "missingRowClassBars", "ClassBar MarkLabel", "...", x, y, 10, "T", null,"Row");
 			}
 		}
 	}
@@ -1036,10 +1043,11 @@ function drawColSelectionMarks() {
 }
 
 function clearSelectionMarks() {
-	var markElement = document.getElementById('sumlabelDiv');
+//	var markElement = document.getElementById('sumlabelDiv');
 	var oldMarks = document.getElementsByClassName("MarkLabel");
 	while (oldMarks.length > 0) {
-		markElement.removeChild(oldMarks[0]);
+//		markElement.removeChild(oldMarks[0]);
+		oldMarks[0].remove();
 	}
 
 }
@@ -1063,18 +1071,21 @@ function dividerMove(e){
 	var summary = document.getElementById('summary_chm');
 	var summaryX = summary.offsetWidth - Xmove;
 	summary.style.width=summaryX+'px';
+	if (summary.style.width == summary.style.maxWidth){
+		return
+	}
 	var sumScale = summaryX/summary.clientWidth;
 	var container = document.getElementById("container");
 	var originalW = Math.max(Math.max(Math.round(summaryMatrixWidth/250 * 48), 3))*container.clientWidth;
 	var originalH = Math.max(Math.max(Math.round(summaryMatrixHeight/250 * 48), 3))*container.clientHeight;
 	var originalAR = originalW/originalH;
 	// if the summary were small enough to get resized at startup, make the height change accordingly
-	if ((summaryMatrixWidth < 250 && summaryMatrixHeight < 250) && summary.clientWidth/summary.clientHeight <= originalAR){
-		summary.style.height = summary.clientWidth*originalAR;
-	}
+//	if ((summaryMatrixWidth < 250 && summaryMatrixHeight < 250) && summary.clientWidth/summary.clientHeight <= originalAR){
+//		summary.style.height = summary.clientWidth*originalAR;
+//	}
 	var detail = document.getElementById('detail_chm');
 	var detailX = detail.offsetWidth + Xmove;
-	if (summary.clientWidth < window.innerWidth*.8)
+//	if (summary.clientWidth < window.innerWidth*.8)
 	detail.style.width=detailX+'px';
 	clearLabels();
 	clearSelectionMarks();
@@ -1084,6 +1095,14 @@ function dividerEnd(){
 	document.removeEventListener('mouseup', dividerEnd);
 	document.removeEventListener('touchmove',dividerMove);
 	document.removeEventListener('touchend',dividerEnd);
-	detailResize();
+	// set summary and detail canvas sizes to percentages to avoid map getting pushed down on resize
+	var container = document.getElementById('container');
+	var summary = document.getElementById('summary_chm');
+	var sumPercent = 100*summary.clientWidth / container.clientWidth;
+	summary.style.width = sumPercent + "%";
+	var detail = document.getElementById('detail_chm');
+	var detPercent = 100*detail.clientWidth/container.clientWidth;
+	detail.style.width = detPercent + "%";
 	summaryResize();
+	detailResize();
 }
