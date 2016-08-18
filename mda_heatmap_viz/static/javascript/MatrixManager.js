@@ -54,6 +54,13 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 	var flickInitialized = false;
 	var unAppliedChanges = false;
 	
+	this.isFileMode = function () {
+		if (mode === "F") 
+			return true;
+		else
+			return false;
+	}
+	
 	this.isReadOnly = function(){
 		if (mapConfig.data_configuration.map_information.read_only === 'Y') {
 			return true;
@@ -125,8 +132,46 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 		return mapConfig.row_configuration.classifications;
 	}
 	
+	this.getRowClassificationConfigOrder = function() {
+		return mapConfig.row_configuration.classifications_order;
+	}
+	
 	this.getColClassificationConfig = function() {
 		return mapConfig.col_configuration.classifications;
+	}
+	
+	this.getColClassificationConfigOrder = function() {
+		return mapConfig.col_configuration.classifications_order;
+	}
+	
+	this.getRowClassificationOrder = function() {
+		var rowClassBarsOrder = mapConfig.row_configuration.classifications_order;
+		if (typeof rowClassBarsOrder === 'undefined') {
+			rowClassBarsOrder = [];
+			for (key in mapConfig.row_configuration.classifications) {
+				rowClassBarsOrder.push(key);
+			}
+		}
+		return rowClassBarsOrder;
+	}
+	
+	this.setRowClassificationOrder = function() {
+		mapConfig.row_configuration.classifications_order = this.getRowClassificationOrder();
+	}
+	
+	this.getColClassificationOrder = function(){
+		var colClassBarsOrder = mapConfig.col_configuration.classifications_order;
+		if (typeof colClassBarsOrder === 'undefined') {
+			colClassBarsOrder = [];
+			for (key in mapConfig.col_configuration.classifications) {
+				colClassBarsOrder.push(key);
+			}
+		}
+		return colClassBarsOrder;
+	}
+	
+	this.setColClassificationOrder = function() {
+		mapConfig.col_configuration.classifications_order = this.getColClassificationOrder();
 	}
 	
 	this.getRowClassificationData = function() {
@@ -155,9 +200,10 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 		}
 	}
 	
-	this.setLayerGridPrefs = function(key, showVal, colorVal) {
+	this.setLayerGridPrefs = function(key, showVal, gridColorVal, selectionColorVal) {
 		mapConfig.data_configuration.map_information.data_layer[key].grid_show = showVal ? 'Y' : 'N';
-		mapConfig.data_configuration.map_information.data_layer[key].grid_color = colorVal;
+		mapConfig.data_configuration.map_information.data_layer[key].grid_color = gridColorVal;
+		mapConfig.data_configuration.map_information.data_layer[key].selection_color = selectionColorVal;
 	}
 	
 	//Get Row Organization
@@ -241,26 +287,44 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 		return showDendro;
 	}
 
-	this.saveHeatMapProperties = function (whereFrom) {
+	this.saveHeatMapToServer = function () {
 		var success = true;
-		if (mode !== "F") {
-			if (whereFrom === 1) {
-				success = webSaveMapProperties(JSON.stringify(mapConfig)); 
-			} else {
-				if ((mapConfig.data_configuration.map_information.read_only === 'Y') && (whereFrom === 2)) {
-					zipSaveNotification(3);
-					success = zipMapProperties(JSON.stringify(mapConfig)); 
-				} else {
-					success = webSaveMapProperties(JSON.stringify(mapConfig)); 
-				}
-			}
-		} else {
-			zipSaveNotification(whereFrom);
-			zipSaveMapProperties();
-		} 
+		initMessageBox();
+		success = webSaveMapProperties(JSON.stringify(mapConfig)); 
+		if (success) {
+			heatMap.setUnAppliedChanges(false);
+		}
 		return success;
 	}
 	
+	this.saveHeatMapToNgchm = function () {
+		var success = true;
+		initMessageBox();
+		if (mode !== "F") {
+			success = zipMapProperties(JSON.stringify(mapConfig)); 
+			zipSaveNotification(false);
+		} else {
+			zipSaveMapProperties();
+			if (staticPath !== "") {
+				zipSaveNotification(false);
+			}
+		}
+		heatMap.setUnAppliedChanges(false);
+	}
+	
+	this.autoSaveHeatMap = function () {
+		this.setRowClassificationOrder();
+		this.setColClassificationOrder();
+		var success = true;
+		if (mode !== "F") {
+			success = webSaveMapProperties(JSON.stringify(mapConfig)); 
+		} else {
+			zipSaveMapProperties();
+			zipSaveNotification(true);
+		}
+		return success;
+	}
+
 	// Call download of NGCHM File Viewer application zip
 	this.downloadFileApplication = function () { 
 		if (staticPath != "") {
@@ -313,6 +377,7 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 			var flick1 = document.getElementById("flick1");
 			var flick2 = document.getElementById("flick2");
 			var dl = this.getDataLayers();
+			var maxDisplay = 0;
 			if (Object.keys(dl).length > 1) {
 				var dls = new Array(Object.keys(dl).length);
 				var orderedKeys = new Array(Object.keys(dl).length);
@@ -321,6 +386,9 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 					var dlNext = key.substring(2, key.length);
 					orderedKeys[dlNext-1] = key;
 					var displayName = dl[key].name;
+					if (displayName.length > maxDisplay) {
+						maxDisplay = displayName.length;
+					}
 					if (displayName.length > 20){
 						displayName = displayName.substring(0,20) + "...";
 					}
@@ -339,7 +407,16 @@ function HeatMap (heatMapName, updateCallback, mode, chmFile) {
 					flickViewsOff.style.display='';
 				}
 			}
-			flickInitialized = true;	
+			flickInitialized = true;
+			var gearBtnPanel = document.getElementById("pdf_gear");
+			if (maxDisplay > 15) {
+				gearBtnPanel.style.minWidth = '320px';
+			} else if (maxDisplay === 0) {
+				gearBtnPanel.style.minWidth = '80px';
+			} else {	
+				gearBtnPanel.style.minWidth = '250px'
+			}
+			
 		}
 	}
 

@@ -5,7 +5,7 @@ function openPdfPrefs(e){
 	//Add prefspanel table to the main preferences DIV and set position and display
 	prefspanel.style.top = e.offsetTop + 15;
 	prefspanel.style.display="inherit";
-	prefspanel.style.left = e.offsetLeft - prefspanel.clientWidth;
+	prefspanel.style.left = e.getBoundingClientRect().left - prefspanel.clientWidth;
 }
 
 /**********************************************************************************
@@ -19,6 +19,8 @@ function getPDF(){
 	// canvas elements need to be converted to DataUrl to be loaded into PDF
 	updateSelection(); // redraw the canvases because otherwise they can show up blank
 	var sumImgData = canvas.toDataURL('image/png');
+	var sumRowDendroData = document.getElementById("row_dendro_canvas").toDataURL('image/png');
+	var sumColDendroData = document.getElementById("column_dendro_canvas").toDataURL('image/png');
 	var detImgData = detCanvas.toDataURL('image/png');
 	var mapsToShow = isChecked("pdfInputSummaryMap") ? "S" : isChecked("pdfInputDetailMap") ? "D" : "B";
 	var doc = isChecked("pdfInputPortrait") ? new jsPDF("p","pt") :new jsPDF("l","pt"); // landscape or portrait?
@@ -39,8 +41,9 @@ function getPDF(){
 			longestColLabelUnits = Math.max(doc.getStringUnitWidth(label.innerHTML),longestColLabelUnits);
 		}
 	}
-	longestColLabelUnits *= 11;
-	longestRowLabelUnits *= 11;
+	
+	longestColLabelUnits *= getColFontSize();
+	longestRowLabelUnits *= getRowFontSize();
 	
 	// header
 	var headerCanvas = document.createElement('CANVAS'); // load the MDAnderson logo into a canvas, since you can't load an img directly
@@ -59,20 +62,45 @@ function getPDF(){
 	var detImgL = paddingLeft;
 	if (mapsToShow == "S"){
 		sumImgW = pageWidth - 2*paddingLeft, sumImgH = pageHeight - paddingTop - 2*paddingLeft;
-		doc.addImage(sumImgData, 'PNG', paddingLeft, paddingTop, sumImgW,sumImgH);
+		var left = sumImgW/5;
+		var top = sumImgH/5;
+		var width = sumImgW*4/5;
+		var height = sumImgH*4/5;
+		
+		doc.addImage(sumRowDendroData, 'PNG', paddingLeft, paddingTop+top+height*(summaryTotalHeight-summaryMatrixHeight)/summaryTotalHeight, sumImgW/5,height*summaryMatrixHeight/summaryTotalHeight);
+		doc.addImage(sumColDendroData, 'PNG', paddingLeft+left+width*(summaryTotalWidth-summaryMatrixWidth)/summaryTotalWidth, paddingTop, width*summaryMatrixWidth/summaryTotalWidth,sumImgH/5);
+		doc.addImage(sumImgData, 'PNG', paddingLeft+left, paddingTop+top, sumImgW*.8,sumImgH*.8);
 	} else if (mapsToShow == "D"){
 		detImgW = pageWidth - 2*paddingLeft - longestRowLabelUnits, detImgH = pageHeight - paddingTop - longestColLabelUnits;
 		doc.addImage(detImgData, 'PNG', paddingLeft, paddingTop, detImgW,detImgH);
 	} else {
 		if (!isChecked("pdfInputPages")){
-			sumImgW = (pageWidth - longestRowLabelUnits - 2*paddingLeft)/2, sumImgH = pageHeight - paddingTop - longestColLabelUnits;
-			detImgW = (pageWidth - longestRowLabelUnits - 2*paddingLeft)/2, detImgH = pageHeight - paddingTop - longestColLabelUnits;
+			// default values for Summary and Detail map height and width
+			sumImgW = (pageWidth - longestRowLabelUnits - 2*paddingLeft)/2;
+			sumImgH = pageHeight - paddingTop - longestColLabelUnits;
+			detImgW = (pageWidth - longestRowLabelUnits - 2*paddingLeft)/2;
+			detImgH = pageHeight - paddingTop - longestColLabelUnits;
 			detImgL = sumImgW + 2*paddingLeft;
-			doc.addImage(sumImgData, 'PNG', paddingLeft, paddingTop, sumImgW,sumImgH);
+			
+			var left = sumImgW/5;
+			var top = sumImgH/5;
+			var width = sumImgW*4/5;
+			var height = sumImgH*4/5;
+			
+			doc.addImage(sumRowDendroData, 'PNG', paddingLeft, paddingTop+top+height*(summaryTotalHeight-summaryMatrixHeight)/summaryTotalHeight, sumImgW/5,height*summaryMatrixHeight/summaryTotalHeight);
+			doc.addImage(sumColDendroData, 'PNG', paddingLeft+left+width*(summaryTotalWidth-summaryMatrixWidth)/summaryTotalWidth, paddingTop, width*summaryMatrixWidth/summaryTotalWidth,sumImgH/5);
+			doc.addImage(sumImgData, 'PNG', paddingLeft+left, paddingTop+top, sumImgW*.8,sumImgH*.8);
 			doc.addImage(detImgData, 'PNG', detImgL, paddingTop, detImgW,detImgH);
 		} else {
 			sumImgW = pageWidth - 2*paddingLeft, sumImgH = pageHeight - paddingTop - 2*paddingLeft;
-			doc.addImage(sumImgData, 'PNG', paddingLeft, paddingTop, sumImgW,sumImgH);
+			var left = sumImgW/5;
+			var top = sumImgH/5;
+			var width = sumImgW*4/5;
+			var height = sumImgH*4/5;
+			
+			doc.addImage(sumRowDendroData, 'PNG', paddingLeft, paddingTop+top+height*(summaryTotalHeight-summaryMatrixHeight)/summaryTotalHeight, sumImgW/5,height*summaryMatrixHeight/summaryTotalHeight);
+			doc.addImage(sumColDendroData, 'PNG', paddingLeft+left+width*(summaryTotalWidth-summaryMatrixWidth)/summaryTotalWidth, paddingTop, width*summaryMatrixWidth/summaryTotalWidth,sumImgH/5);
+			doc.addImage(sumImgData, 'PNG', paddingLeft+left, paddingTop+top, sumImgW*.8,sumImgH*.8);
 			doc.addPage();
 			createHeader();
 			detImgW = pageWidth - 2*paddingLeft - longestRowLabelUnits, detImgH = pageHeight - paddingTop - longestColLabelUnits;
@@ -81,67 +109,69 @@ function getPDF(){
 	}
 
 	// labels
-	var detClient2PdfWRatio = detCanvas.clientWidth/detImgW;  // scale factor to place the labels in their proper locations
-	var detClient2PdfHRatio = detCanvas.clientHeight/detImgH;
-	// row labels and col class bar labels (basically stolen from DetailHeatMapDisplay.js
-	var headerSize = paddingTop;
-	var colHeight = calculateTotalClassBarHeight("column") + detailDendroHeight;
-	if (colHeight > 0) {
-		headerSize += detImgH * (colHeight / (detailDataViewHeight + colHeight));
-	}
-	var skip = (detImgH - headerSize) / dataPerCol;
-	var fontSize = Math.min(skip - 2, 11);
-	doc.setFontSize(fontSize);
-	for (var i = 0; i < allLabels.length; i++){
-		var label = allLabels[i];
-		if (label.getAttribute("axis") == "Row"){
-			doc.text(label.offsetLeft/detClient2PdfWRatio+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop+fontSize, label.innerHTML, null);
-		} else if (label.getAttribute("axis") == "ColumnCovar"){ // change font for class bars
-			var scale =  detImgH / (detailDataViewWidth + calculateTotalClassBarHeight("row")+detailDendroWidth);
-			var colClassBarConfig = heatMap.getColClassificationConfig();
-			var classBar0 = colClassBarConfig[Object.keys(colClassBarConfig)[0]];
-			var tempFontSize = fontSize;
-			fontSize = Math.min((classBar0.height - paddingHeight) * scale, 11);
-			doc.setFontSize(fontSize);
-			doc.text(label.offsetLeft/detClient2PdfWRatio+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop+fontSize/2, label.innerHTML, null);
-			fontSize = tempFontSize
-			doc.setFontSize(fontSize);
+	if (mapsToShow !== "S"){
+		var detClient2PdfWRatio = detCanvas.clientWidth/detImgW;  // scale factor to place the labels in their proper locations
+		var detClient2PdfHRatio = detCanvas.clientHeight/detImgH;
+		// row labels and col class bar labels (basically stolen from DetailHeatMapDisplay.js
+		var headerSize = 0;
+		var colHeight = calculateTotalClassBarHeight("column") + detailDendroHeight;
+		if (colHeight > 0) {
+			headerSize += detImgH * (colHeight / (detailDataViewHeight + colHeight));
 		}
-	}
-	
-	// col labels and row class bar labels
-	headerSize = 0;
-	var rowHeight = calculateTotalClassBarHeight("row") + detailDendroWidth;
-	if (rowHeight > 0) {
-		headerSize = detImgW * (rowHeight / (detailDataViewWidth + rowHeight));
-	}
-	skip = (detImgW - headerSize) / dataPerRow;
-	fontSize = Math.min(skip - 2, 11);
-	doc.setFontSize(fontSize);
-	for (var i = 0; i < allLabels.length; i++){
-		var label = allLabels[i];
-		if (label.getAttribute("axis") == "Column"){
-			doc.text(label.offsetLeft/detClient2PdfWRatio-fontSize+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop, label.innerHTML, null, 270);
-		} else if (label.getAttribute("axis") == "RowCovar"){
-			var scale =  detImgW / (detailDataViewWidth + calculateTotalClassBarHeight("row")+detailDendroWidth);
-			var rowClassBarConfig = heatMap.getRowClassificationConfig();
-			var classBar0 = rowClassBarConfig[Object.keys(rowClassBarConfig)[0]];
-			var tempFontSize = fontSize;
-			fontSize = Math.min((classBar0.height - paddingHeight) * scale, 11);
-			doc.setFontSize(fontSize);
-			doc.text(label.offsetLeft/detClient2PdfWRatio-fontSize/2+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop, label.innerHTML, null, 270);
-			fontSize = tempFontSize
-			doc.setFontSize(fontSize);
+		var skip = (detImgH - headerSize) / dataPerCol;
+		var fontSize = Math.min(skip , 11);
+		doc.setFontSize(getRowFontSize());
+		for (var i = 0; i < allLabels.length; i++){
+			var label = allLabels[i];
+			if (label.getAttribute("axis") == "Row"){
+				doc.text(label.offsetLeft/detClient2PdfWRatio+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop+fontSize, label.innerHTML, null);
+			} else if (label.getAttribute("axis") == "ColumnCovar"){ // change font for class bars
+				var scale =  detImgH / (detailDataViewWidth + calculateTotalClassBarHeight("row")+detailDendroWidth);
+				var colClassBarConfig = heatMap.getColClassificationConfig();
+				var classBar0 = colClassBarConfig[Object.keys(colClassBarConfig)[0]];
+				var tempFontSize = fontSize;
+				fontSize = Math.min((classBar0.height - paddingHeight) * scale, 11);
+				doc.setFontSize(fontSize);
+				doc.text(label.offsetLeft/detClient2PdfWRatio+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop+fontSize/2, label.innerHTML, null);
+				fontSize = tempFontSize
+				doc.setFontSize(fontSize);
+			}
 		}
-	}
+		
+		// col labels and row class bar labels
+		headerSize = 0;
+		var rowHeight = calculateTotalClassBarHeight("row") + detailDendroWidth;
+		if (rowHeight > 0) {
+			headerSize = detImgW * (rowHeight / (detailDataViewWidth + rowHeight));
+		}
+		skip = (detImgW - headerSize) / dataPerRow;
+		fontSize = Math.min(skip , 11);
+		doc.setFontSize(getColFontSize());
+		for (var i = 0; i < allLabels.length; i++){
+			var label = allLabels[i];
+			if (label.getAttribute("axis") == "Column"){
+				doc.text(label.offsetLeft/detClient2PdfWRatio-fontSize+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop, label.innerHTML, null, 270);
+			} else if (label.getAttribute("axis") == "RowCovar"){
+				var scale =  detImgW / (detailDataViewWidth + calculateTotalClassBarHeight("row")+detailDendroWidth);
+				var rowClassBarConfig = heatMap.getRowClassificationConfig();
+				var classBar0 = rowClassBarConfig[Object.keys(rowClassBarConfig)[0]];
+				var tempFontSize = fontSize;
+				fontSize = Math.min((classBar0.height - paddingHeight) * scale, 11);
+				doc.setFontSize(fontSize);
+				doc.text(label.offsetLeft/detClient2PdfWRatio-fontSize/2+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop, label.innerHTML, null, 270);
+				fontSize = tempFontSize
+				doc.setFontSize(fontSize);
+			}
+		}
 	 
+	}
 	// class bar legends
 	var classBarHeaderSize = 20; // these are font sizes
 	var classBarTitleSize = 15;
 	var classBarLegendTextSize = 10;
 	var classBarFigureW = 150; // figure dimensions, unless discrete with 15+ categories
-	var classBarFigureH = 150;
-	var topSkip = classBarFigureH + classBarHeaderSize; 
+	var classBarFigureH = 140;
+	var topSkip = classBarFigureH + classBarHeaderSize+10; 
 	var condenseClassBars = isChecked('pdfInputCondensed');
 	paddingLeft = 5, paddingTop = headerHeight+classBarHeaderSize + 5; // reset the top and left coordinates
 	
@@ -213,20 +243,39 @@ function getPDF(){
 		doc.rect(5, header.clientHeight+10, pageWidth-10, 2, "FD");
 	}
 	
+	function getColFontSize(){
+		var headerSize = 0;
+		var rowHeight = calculateTotalClassBarHeight("row") + detailDendroWidth;
+		if (rowHeight > 0) {
+			headerSize = detCanvas.clientWidth * (rowHeight / (detailDataViewWidth + rowHeight));
+		}
+		var skip = (detCanvas.clientWidth - headerSize) / dataPerRow;
+		var fontSize = Math.min(skip-2, 11);
+		return fontSize;
+	}
+	
+	function getRowFontSize(){
+		var headerSize = 0;
+		var colHeight = calculateTotalClassBarHeight("column") + detailDendroHeight;
+		if (colHeight > 0) {
+			headerSize = detCanvas.clientHeight * (colHeight / (detailDataViewHeight + colHeight));
+		}
+		var skip = (detCanvas.clientHeight - headerSize) / dataPerCol;
+		var fontSize = Math.min(skip-2, 11);
+		return fontSize;
+	}
+	
 	/**********************************************************************************
 	 * FUNCTION - getBarGraphForContinousClassBar: places the classBar legend using the
 	 * variables leftOff and topOff, which are updated after every classBar legend.
 	 * inputs: classBar object, colorMap object, and string for name
 	 **********************************************************************************/
 	function getBarGraphForContinuousClassBar(classBar, colorMap,name){
-		if (doc.getStringUnitWidth(name)*classBarLegendTextSize > classBarFigureW){
-			doc.text(leftOff, topOff , name.substring(0,30), null);
-		} else {
-			doc.text(leftOff, topOff , name, null);
-		}
+		var splitTitle = doc.splitTextToSize(name, classBarFigureW);
+		doc.text(leftOff, topOff, splitTitle);
 		var thresholds = colorMap.getContinuousThresholdKeys();
 		var numThresholds = thresholds.length-1; // the last threshold repeats for some reason :\
-		var barHeight = !condenseClassBars ? classBarFigureH/(thresholds.length) : 10;		
+		var barHeight = !condenseClassBars ? (classBarFigureH-(splitTitle.length-1)*classBarLegendTextSize*2)/(thresholds.length) : 10;		
 		// get the number N in each threshold
 		var counts = {}, maxCount = 0, maxLabelLength = doc.getStringUnitWidth("Missing Value")*classBarLegendTextSize;
 		// get the continuous thresholds and find the counts for each bucket
@@ -250,7 +299,7 @@ function getPDF(){
 			maxLabelLength = Math.max(maxLabelLength, doc.getStringUnitWidth(val.length)*classBarLegendTextSize);
 		}
 		
-		var bartop = topOff+5; // top location of first bar
+		var bartop = topOff+5 + (splitTitle.length-1)*classBarLegendTextSize*2;
 		var missingCount = classBar.values.length; // start at total number of labels and work down
 		var value;
 		for (var j = 0; j < thresholds.length-1; j++){
@@ -297,7 +346,7 @@ function getPDF(){
 		if (leftOff + classBarFigureW > pageWidth){ // if we'll go off the width of the page...
 			leftOff = 10; // ...reinitialize the left side
 			topOff += topSkip; // ... and move the next figure to the line below
-			topSkip  = classBarFigureH + classBarHeaderSize; // return class bar height to original value in case it got changed in this row
+			topSkip  = classBarFigureH + classBarHeaderSize + 10; // return class bar height to original value in case it got changed in this row
 			if (topOff + classBarFigureH > pageHeight && !isLastClassBarToBeDrawn(classBar)){ // if we'll go off the bottom of the page...
 				doc.addPage();
 				createHeader(); // ...create a new page and reinitialize the top
@@ -313,13 +362,10 @@ function getPDF(){
 	 * inputs: classBar object, colorMap object, and string for name
 	 **********************************************************************************/
 	function getBarGraphForDiscreteClassBar(classBar, colorMap,name){
-		if (doc.getStringUnitWidth(name)*classBarLegendTextSize > classBarFigureW){
-			doc.text(leftOff, topOff , name.substring(0,30), null);
-		} else {
-			doc.text(leftOff, topOff , name, null);
-		}
+		var splitTitle = doc.splitTextToSize(name, classBarFigureW);
+		doc.text(leftOff, topOff, splitTitle);
 		var thresholds = colorMap.getThresholds();
-		var barHeight = !condenseClassBars ? Math.max(classBarFigureH/(thresholds.length+1),10) : 10;
+		var barHeight = !condenseClassBars ? Math.max((classBarFigureH-(splitTitle.length-1)*classBarLegendTextSize*2)/(thresholds.length+1),10) : 10;
 		var counts = {}, maxCount = 0, maxLabelLength = doc.getStringUnitWidth("Missing Value")*classBarLegendTextSize;
 		// get the number N in each threshold
 		for(var i = 0; i< classBar.values.length; i++) {
@@ -331,7 +377,7 @@ function getPDF(){
 			maxLabelLength = Math.max(maxLabelLength, doc.getStringUnitWidth(val.length)*classBarLegendTextSize);
 		}
 			
-		var bartop = topOff+5;
+		var bartop = topOff+5 + (splitTitle.length-1)*classBarLegendTextSize*2;
 		// NOTE: missingCount will contain all elements that are not accounted for in the thresholds
 		// ie: thresholds = [type1, type2, type3], typeX will get included in the missingCount
 		var missingCount = classBar.values.length;
@@ -380,11 +426,11 @@ function getPDF(){
 		if (leftOff + classBarFigureW > pageWidth){ // if the next class bar figure will go beyond the width of the page...
 			leftOff = 10; // ...reset leftOff...
 			topOff += topSkip; // ... and move the next figure to the line below
-			topSkip  = classBarFigureH + classBarHeaderSize; // return class bar height to original value in case it got changed in this row
+			topSkip  = classBarFigureH + classBarHeaderSize + 10; // return class bar height to original value in case it got changed in this row
 			if (topOff + classBarFigureH > pageHeight && !isLastClassBarToBeDrawn(classBar)){ // if the next class bar goes off the page vertically...
 				doc.addPage(); // ... make a new page and reset topOff
 				createHeader();
-				topOff = paddingTop + 10;
+				topOff = paddingTop + 5;
 			}
 		}
 	}

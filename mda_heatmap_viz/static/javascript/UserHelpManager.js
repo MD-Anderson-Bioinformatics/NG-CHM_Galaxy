@@ -34,11 +34,16 @@ function userHelpOpen(e){
     	var colLabels = heatMap.getColLabels().labels;
     	var helpContents = document.createElement("TABLE");
     	setTableRow(helpContents, ["<u>"+"Data Details"+"</u>", "&nbsp;"], 2);
-    	setTableRow(helpContents,["&nbsp;Value:", heatMap.getValue(MatrixManager.DETAIL_LEVEL,row,col).toFixed(5)]);
+    	var matrixValue = heatMap.getValue(MatrixManager.DETAIL_LEVEL,row,col);
+    	if (matrixValue >= max_values) {
+    		matrixValue = "Missing Value";
+    	} else {
+    		matrixValue = matrixValue.toFixed(5);
+    	}
+    	setTableRow(helpContents,["&nbsp;Value:", matrixValue]);
     	setTableRow(helpContents,[ "&nbsp;Row:", rowLabels[row-1]]);
     	setTableRow(helpContents,["&nbsp;Column:", colLabels[col-1]]);
     	helpContents.insertRow().innerHTML = formatBlankRow();
-    	var rowCtr = 8;
     	var writeFirstCol = true;
     	var pos = col;
 		var classBars = heatMap.getRowClassificationData(); 
@@ -51,7 +56,6 @@ function userHelpOpen(e){
 					displayName = key.substring(0,20) + "...";
 				}
 	    		setTableRow(helpContents,["&nbsp;&nbsp;&nbsp;"+displayName+":"+"</u>", classBars[key].values[pos-1]]);	    		
-	    		rowCtr++;
 	    	}
     	}
     	helpContents.insertRow().innerHTML = formatBlankRow();
@@ -65,22 +69,24 @@ function userHelpOpen(e){
 					displayName = key.substring(0,20) + "...";
 				}
 	    		setTableRow(helpContents,["&nbsp;&nbsp;&nbsp;"+displayName+":"+"</u>", classBars[key].values[pos-1]]);	    		
-	    		rowCtr++;
 	    	}
     	}
         helptext.style.display="inherit";
     	helptext.appendChild(helpContents);
     	locateHelpBox(e, helptext);
     } else if (isOnObject(e,"rowClass") || isOnObject(e,"colClass")) {
-    	var pos, value;
+    	var pos, value, label;
     	var hoveredBar, hoveredBarColorScheme;                                                     //coveredWidth = 0, coveredHeight = 0;
     	if (isOnObject(e,"colClass")) {
+        	var col = Math.floor(currentCol + (mapLocX/rowElementSize)*getSamplingRatio('col'));
+        	var colLabels = heatMap.getColLabels().labels;
+        	label = colLabels[col-1];
     		var coveredHeight = detCanvas.clientHeight*detailDendroHeight/detCanvas.height
     		pos = Math.floor(currentCol + (mapLocX/rowElementSize));
     		var classBarsConfig = heatMap.getColClassificationConfig(); 
-			var keys = Object.keys(classBarsConfig);
-			for (var i = keys.length-1; i >= 0; i--) {
-				var key = keys[i];
+    		var classBarsConfigOrder = heatMap.getColClassificationOrder();
+			for (var i = 0; i <  classBarsConfigOrder.length; i++) {
+				var key = classBarsConfigOrder[i];
     			var currentBar = classBarsConfig[key];
     			if (currentBar.show === 'Y') {
 	        		coveredHeight += detCanvas.clientHeight*currentBar.height/detCanvas.height;
@@ -93,11 +99,16 @@ function userHelpOpen(e){
     		}
         	var colorMap = heatMap.getColorMapManager().getColorMap("col",hoveredBar);
     	} else {
-    		var coveredWidth = detCanvas.clientHeight*detailDendroWidth/detCanvas.height
+    		var row = Math.floor(currentRow + (mapLocY/colElementSize)*getSamplingRatio('row'));
+        	var rowLabels = heatMap.getRowLabels().labels;
+        	label = rowLabels[row-1];
+    		var coveredWidth = detCanvas.clientWidth*detailDendroWidth/detCanvas.width
     		pos = Math.floor(currentRow + (mapLocY/colElementSize));
     		var classBarsConfig = heatMap.getRowClassificationConfig(); 
-    		for (var key in classBarsConfig){
-    			var currentBar = classBarsConfig[key];
+    		var classBarsConfigOrder = heatMap.getRowClassificationOrder();
+			for (var i = 0; i <  classBarsConfigOrder.length; i++) {
+				var key = classBarsConfigOrder[i];
+				var currentBar = classBarsConfig[key];
     			if (currentBar.show === 'Y') {
 	        		coveredWidth += detCanvas.clientWidth*currentBar.height/detCanvas.width;
 	        		if (coveredWidth >= e.layerX){
@@ -139,8 +150,8 @@ function userHelpOpen(e){
 		if (hoveredBar.length > 20){
 			displayName = displayName.substring(0,20) + "...";
 		}
-
-    	setTableRow(helpContents, ["Class: ", "&nbsp;"+displayName]);
+		setTableRow(helpContents, ["Label: ", "&nbsp;"+label]);
+    	setTableRow(helpContents, ["Covariate: ", "&nbsp;"+displayName]);
     	setTableRow(helpContents, ["Value: ", "&nbsp;"+value]);
     	helpContents.insertRow().innerHTML = formatBlankRow();
     	var rowCtr = 3 + thresholds.length;
@@ -394,55 +405,172 @@ function showSearchError(type){
 }
 
 /**********************************************************************************
+ * FUNCTION - saveHeatMapChanges: This function handles all of the tasks necessary 
+ * display a modal window whenever the user requests to save heat map changes.  
+ **********************************************************************************/
+function saveHeatMapChanges() {
+	initMessageBox();
+	setMessageBoxHeader("Save Heat Map");
+	//Have changes been made?
+	if (heatMap.getUnAppliedChanges()) {
+		if ((heatMap.isFileMode()) || (staticPath !== "")) {
+			if (staticPath !== "") {
+				text = "<br>Changes to the heatmap cannot be saved in the Galaxy history.  Your modifications to the heatmap may be written to a downloaded NG-CHM file.";
+			} else {
+				text = "<br>You have elected to save changes made to this NG-CHM heat map file.<br><br>You may save them to a new NG-CHM file that may be opened using the NG-CHM File Viewer application.<br><br>";
+			}
+			setMessageBoxText(text);
+			setMessageBoxButton(1, "images/saveNgchm.png", "Save To NG-CHM File", "heatMap.saveHeatMapToNgchm");
+			setMessageBoxButton(4, "images/closeButton.png", "Cancel Save", "messageBoxCancel");
+		} else {
+			// If so, is read only?
+			if (heatMap.isReadOnly()) {
+				text = "<br>You have elected to save changes made to this READ-ONLY heat map file. READ-ONLY files cannot be updated.<br><br>However, you may save these changes to an NG-CHM file that may be opened using the NG-CHM File Viewer application.<br><br>";
+				setMessageBoxText(text);
+				setMessageBoxButton(1, "images/saveNgchm.png", "Save To NG-CHM File", "heatMap.saveHeatMapToNgchm");
+				setMessageBoxButton(4, "images/closeButton.png", "Cancel Save", "messageBoxCancel");
+			} else {
+				text = "<br>You have elected to save changes made to this heat map.<br><br>You have the option to save these changes to the original map OR to save them to an NG-CHM file that may be opened using the NG-CHM File Viewer application.<br><br>";
+				setMessageBoxText(text);
+				setMessageBoxButton(1, "images/saveNgchm.png", "Save To NG-CHM File", "heatMap.saveHeatMapToNgchm");
+				setMessageBoxButton(2, "images/saveOriginal.png", "Save Original Heat Map", "heatMap.saveHeatMapToServer");
+				setMessageBoxButton(3, "images/closeButton.png", "Cancel Save", "messageBoxCancel");
+			}
+		}
+	} else {
+		if ((heatMap.isFileMode()) || (staticPath !== "")) {
+			if (staticPath !== "") {
+				text = "<br>There are no changes to save to this Galaxy heat map file at this time.<br><br>";
+			} else {
+				text = "<br>There are no changes to save to this NG-CHM heat map file at this time.<br><br>";
+			}
+			setMessageBoxText(text);
+			setMessageBoxButton(4, "images/closeButton.png", "OK", "messageBoxCancel");
+		} else {
+			text = "<br>There are no changes to save to this heat map at this time.<br><br>However, you may save the map as an NG-CHM file that may be opened using the NG-CHM File Viewer application.<br><br>";
+			setMessageBoxText(text);
+			setMessageBoxButton(1, "images/saveNgchm.png", "Save To NG-CHM File", "heatMap.saveHeatMapToNgchm");
+			setMessageBoxButton(4, "images/closeButton.png", "Cancel Save", "messageBoxCancel");
+		}
+	}
+	document.getElementById('msgBox').style.display = '';
+}
+
+/**********************************************************************************
  * FUNCTION - zipSaveNotification: This function handles all of the tasks necessary 
  * display a modal window whenever a zip file is being saved. The textId passed in
  * instructs the code to display either the startup save OR preferences save message.  
  **********************************************************************************/
-function zipSaveNotification(textId) {
-	var zipopentext = document.getElementById('zipSaveOpen');
-	var zippreftext = document.getElementById('zipSavePref');
-	var ziprotext = document.getElementById('zipSaveRo');
-	var zipfileapp = document.getElementById('zipFileAppButton');
-	if (textId === 1) {
-		zipopentext.style.display = '';
-		ziprotext.style.display = 'none';
-		zippreftext.style.display = 'none';
-		zipfileapp.style.display = 'none';
-	} else if (textId === 2) {
-		zipopentext.style.display = 'none';
-		ziprotext.style.display = 'none';
-		zippreftext.style.display = '';
-		if (staticPath === "")
-			zipfileapp.style.display = 'none';
-		else
-			zipfileapp.style.display = '';
+function zipSaveNotification(autoSave) {
+	var text;
+	initMessageBox();
+	setMessageBoxHeader("NG-CHM File Save");
+	if (autoSave) {
+		text = "<br>The NG-CHM archive file that you have just opened contains out dated heat map configuration information and is being updated.<br><br>In order to avoid the need for this update in the future, you will want to replace the NG-CHM file that you opened with the new file.";
 	} else {
-		zipopentext.style.display = 'none';
-		ziprotext.style.display = '';
-		zippreftext.style.display = 'none';
-		zipfileapp.style.display = '';
+		text = "<br>You have just saved a heat map as a NG-CHM file.<br><br>In order to see your saved changes, you will want to open this new file using the NG-CHM File Viewer application."
+		setMessageBoxButton(1, "images/getZipViewer.png", "Download NG-CHM Viewer App", "zipRequestAppDownload");
 	}
-	var zippanel = document.getElementById('zipFileSavePanel');
-	zippanel.style.top = 150;
-	zippanel.style.left = 300;
-	zippanel.style.display = 'block';
+	setMessageBoxText(text);
+	setMessageBoxButton(3, "images/closeButton.png", "", "messageBoxCancel");
+	document.getElementById('msgBox').style.display = '';
 }
-function zipCancelButton(){
-	var zippanel = document.getElementById('zipFileSavePanel');
-	zippanel.style.display = 'none';
-}
+
+/**********************************************************************************
+ * FUNCTION - zipRequestAppDownload: This function handles all of the tasks necessary 
+ * display a modal window whenever an NG-CHM File Viewer Application download is 
+ * requested.  
+ **********************************************************************************/
 function zipRequestAppDownload(){
-	zipCancelButton();
-	var zippanel = document.getElementById('downloadFileModeApp');
-	zippanel.style.top = 150;
-	zippanel.style.left = 300;
-	zippanel.style.display = 'block';
+	var text;
+	initMessageBox();
+	setMessageBoxHeader("Download NG-CHM File Viewer Application");
+	setMessageBoxText("<br>The NG-CHM File Viewer application may be used to open NG-CHM files. Press the Download button to get the NG-CHM File Viewer application.<br><br>When the download completes, extract the contents to a location of your choice and click on the extracted chm.html file to begin viewing NG-CHM heatmap file downloads.<br><br>");
+	setMessageBoxButton(1, "images/downloadButton.png", "Download App", "zipAppDownload");
+	setMessageBoxButton(3, "images/closeButton.png", "", "messageBoxCancel");
+	document.getElementById('msgBox').style.display = '';
 }
-function zipAppDownCancel(){
-	var zippanel = document.getElementById('downloadFileModeApp');
-	zippanel.style.display = 'none';
-}
+
 function zipAppDownload(){
-	zipAppDownCancel();
+	var dlButton = document.getElementById('msgBoxBtnImg_1');
+	dlButton.style.display = 'none';
 	heatMap.downloadFileApplication();
 }
+
+/**********************************************************************************
+ * FUNCTION - unappliedChangeNotification: This function handles all of the tasks necessary 
+ * display a modal window whenever an unapplied change notification is required when
+ * attempting to split screens after preferences have been applied.  
+ **********************************************************************************/
+function unappliedChangeNotification() {
+	var text;
+	initMessageBox();
+	setMessageBoxHeader("Split Screen Preference Conflict");
+	if (heatMap.isReadOnly()) {
+		text = "<br>There are un-applied preference changes that prevent the split-screen process from completing.<br><br>Since this is a READ-ONLY heatmap, you will need to reload the map without preference changes to access split screen mode.";
+	} else {
+		text = "<br>There are un-applied preference changes that prevent the split-screen process from completing.<br><br>You will need to either save them or cancel the process before the screen may be split.";
+		setMessageBoxButton(1, "images/prefSave.png", "Save Unapplied Changes", "unappliedChangeSave");
+	} 
+	setMessageBoxText(text);
+	setMessageBoxButton(3, "images/prefCancel.png", "", "messageBoxCancel");
+	document.getElementById('msgBox').style.display = '';
+}
+
+/**********************************************************************************
+ * FUNCTION - unappliedChangeSave: This function performs a heatmap preferences 
+ * save when the user chooses to save unapplied changes when performing a split
+ * screen operation.  
+ **********************************************************************************/
+function unappliedChangeSave() {
+	var success = heatMap.saveHeatMapToServer();
+	if (success === "true") {
+		heatMap.setUnAppliedChanges(false);
+		detailSplit();
+	}
+	initMessageBox();
+}
+
+/**********************************************************************************
+ * FUNCTIONS - MESSAGE BOX FUNCTIONS
+ * 
+ * We use a generic message box for most of the modal request windows in the 
+ * application.  The following functions support this message box:
+ * 1. initMessageBox - Initializes and hides the message box panel
+ * 2. setMessageBoxHeader - Places text in the message box header bar.
+ * 3. setMessageBoxText - Places text in the message box body.
+ * 4. setMessageBoxButton - Configures and places a button on the message box.
+ * 5. messageBoxCancel - Closes the message box when a Cancel is requested.  
+ **********************************************************************************/
+function initMessageBox() {
+	document.getElementById('msgBox').style.display = 'none';
+	document.getElementById('msgBoxBtnImg_1').style.display = 'none';
+	document.getElementById('msgBoxBtnImg_2').style.display = 'none';
+	document.getElementById('msgBoxBtnImg_3').style.display = 'none';
+	document.getElementById('msgBoxBtnImg_4').style.display = 'none';
+	document.getElementById('msgBoxBtnImg_1')['onclick'] = null;
+	document.getElementById('msgBoxBtnImg_2')['onclick'] = null;
+	document.getElementById('msgBoxBtnImg_3')['onclick'] = null;
+	document.getElementById('msgBoxBtnImg_4')['onclick'] = null;
+}
+function setMessageBoxHeader(headerText) {
+	var msgBoxHdr = document.getElementById('msgBoxHdr');
+	msgBoxHdr.innerHTML = headerText;
+}
+function setMessageBoxText(text) {
+	var msgBoxTxt = document.getElementById('msgBoxTxt');
+	msgBoxTxt.innerHTML = text;
+}
+function setMessageBoxButton(buttonId, imageSrc, altText, onClick) {
+	var buttonImg = document.getElementById('msgBoxBtnImg_'+buttonId);
+	buttonImg.style.display = '';
+	buttonImg.src = staticPath + imageSrc;
+	buttonImg.alt = altText;
+	var fn = eval("(function() {"+onClick+"();})");
+	buttonImg.onclick=fn;
+}
+
+function messageBoxCancel(){
+	initMessageBox();
+}
+

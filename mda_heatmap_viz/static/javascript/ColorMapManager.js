@@ -51,7 +51,7 @@ function ColorMap(colorMapObj){
     	conThresh.push(bottomThresh);
     	//Calculate and create "interim" 8 thresholds
     	for (var i = 1; i <= 8; i++){
-	    	conThresh.push(bottomThresh+Math.floor(threshSize*i));
+	    	conThresh.push(bottomThresh+threshSize*i);
     	}
     	//Add last threshold from original threshold list
     	conThresh.push(thresholds[thresholds.length - 1]);  
@@ -89,7 +89,7 @@ function ColorMap(colorMapObj){
 	this.getColor = function(value){
 		var color;
 	
-		if (isNaN(value)){
+		if (value >= max_values){
 			color = rgbaMissingColor;
 		}else if(value <= thresholds[0]){
 			color = rgbaColors[0]; // return color for lowest threshold if value is below range
@@ -186,9 +186,39 @@ function ColorMap(colorMapObj){
 	    } : null;
 	}
 
+	function hexToRgb(hex) {
+	    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+	    return result ? {
+	        r: parseInt(result[1], 16),
+	        g: parseInt(result[2], 16),
+	        b: parseInt(result[3], 16)
+	    } : null;
+	}
 	this.getHexToRgba = function(hex){
 		return hexToRgba(hex);
 	}
+	
+	this.getColorLuminance = function(color) {
+		var rgb = hexToRgb(color);
+	    if (!rgb) {
+	    	return null;
+	    } else {
+	        return 0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b;
+	    }
+	}	
+	
+	this.isColorDark = function(rgb) {
+	    if (!rgb) {
+	    	return false;
+	    } else {
+	    	var luminanceVal = 0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b;
+	       if (luminanceVal < 60) {
+	    	   return false;
+	       } else {
+	    	   return true;
+	       }
+	    }
+	}	
 	
 	this.getRgbToHex = function(rgb) {
 		var a = rgb.a

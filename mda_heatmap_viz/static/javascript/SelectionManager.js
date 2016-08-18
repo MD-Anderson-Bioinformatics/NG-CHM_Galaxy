@@ -17,9 +17,8 @@ dataPerCol=null;      // How many columns in the current selection
 selectedStart=0;      // If dendrogram selection is used to limit ribbon view - which position to start selection.
 selectedStop=0;       // If dendrogram selection is used to limit ribbon view - which position is last of selection.
 var searchItems={};   // Valid labels found from a user search
-
-                      //isSub will be set to true if windows are split and this is the child.
-isSub = getURLParameter('sub') == 'true';  
+                      
+isSub = getURLParameter('sub') == 'true';  //isSub will be set to true if windows are split and this is the child.
 hasSub = false;       //hasSub set to true if windows are split and this is the parent.
 
 
@@ -66,18 +65,15 @@ function updateSelection() {
 function changeMode(newMode) {
 	
 	if (!hasSub) {
-		if (newMode == 'RIBBONH')
-			detailHRibbon();
-		if (newMode == 'RIBBONV')
-			detailVRibbon();
-		if (newMode == 'NORMAL')
-			detailNormal();
+		callDetailDrawFunction(newMode);
 	} else {
+		mode = newMode;
 		localStorage.removeItem('event');
 		localStorage.setItem('selectedStart', '' + selectedStart);
 		localStorage.setItem('selectedStop', '' + selectedStop);
 		localStorage.setItem('mode', newMode);
 		localStorage.setItem('event', 'changeMode');
+		localStorage.setItem('selected', JSON.stringify(searchItems));
 	}
 }
 
@@ -235,12 +231,7 @@ function handleLocalStorageEvent(evt) {
 	var type = localStorage.getItem('event');
 
 	if (type == 'changePosition') {
-		currentRow = Number(localStorage.getItem('currentRow'));
-		currentCol = Number(localStorage.getItem('currentCol'));
-		dataPerRow = Number(localStorage.getItem('dataPerRow'));
-		dataPerCol = Number(localStorage.getItem('dataPerCol'));
-		selectedStart = Number(localStorage.getItem('selectedStart'));
-		selectedStop = Number(localStorage.getItem('selectedStop'));
+		getLocalStorageValues();
 		if (mode != localStorage.getItem('mode') && selectedStart == 0 && selectedStop == 0){
 			clearDendroSelection();
 		}
@@ -251,35 +242,27 @@ function handleLocalStorageEvent(evt) {
 				summaryInit();
 			}
 			// if the selection changes, redraw the selection marks
-			if (JSON.stringify(searchItems) !== localStorage.getItem('selected')){
-				searchItems = JSON.parse(localStorage.getItem('selected'));
-				clearSelectionMarks();
-				drawRowSelectionMarks();
-				drawColSelectionMarks();
-			}
+			searchItems = JSON.parse(localStorage.getItem('selected'));
+			clearSelectionMarks();
+			drawRowSelectionMarks();
+			drawColSelectionMarks();
 			// Redraw the yellow selection box.
 			drawLeftCanvasBox ();
 		} 
 		if (isSub) {
-			// Redraw detail view based on selection. 
-			heatMap.setReadWindow(getLevelFromMode(MatrixManager.DETAIL_LEVEL),getCurrentDetRow(),getCurrentDetCol(),getCurrentDetDataPerCol(),getCurrentDetDataPerRow());
-			drawDetailHeatMap();
+			callDetailDrawFunction(mode);
 		} 
-	} else if ((type == 'zoomIn') && (isSub)) {
+	} else if (type == 'zoomIn'){
 		detailDataZoomIn();
-	} else if ((type == 'zoomOut') && (isSub)) {
+	} else if (type == 'zoomOut') {
 		detailDataZoomOut();
 	} else if ((type == 'changeMode') && (isSub))	{
 		clearDendroSelection();
 		var newMode = localStorage.getItem('mode');
 		selectedStart = Number(localStorage.getItem('selectedStart'));
 		selectedStop = Number(localStorage.getItem('selectedStop'));
-		if (newMode == 'RIBBONH')
-			detailHRibbon();
-		if (newMode == 'RIBBONV')
-			detailVRibbon();
-		if (newMode == 'NORMAL')
-			detailNormal();		
+		searchItems = JSON.parse(localStorage.getItem('selected'));
+		callDetailDrawFunction(newMode);
 	} else if ((type == 'join') && hasSub) {
 		hasSub=false;
 		detailJoin();
@@ -291,6 +274,29 @@ function handleLocalStorageEvent(evt) {
  * storage when first setting up the detail chm to get current mode and selection settings.
  ***********************************************************************************************/ 
 function initFromLocalStorage() {
+	getLocalStorageValues();
+	if (heatMap.showColDendrogram("DETAIL")) {
+		summaryColumnDendro = new SummaryColumnDendrogram(); 
+	} 
+	if (heatMap.showRowDendrogram("DETAIL")) {
+		summaryRowDendro = new SummaryRowDendrogram();
+	}
+	heatMap.configureFlick();
+	var nameDiv = document.getElementById("mapName");
+	nameDiv.innerHTML = "<b>Map Name:</b>&nbsp;&nbsp;"+heatMap.getMapInformation().name;
+	callDetailDrawFunction(mode);
+}
+
+function callDetailDrawFunction(modeVal) {
+	if (modeVal == 'RIBBONH' || modeVal == 'RIBBONH_DETAIL')
+		detailHRibbon();
+	if (modeVal == 'RIBBONV' || modeVal == 'RIBBONV_DETAIL')
+		detailVRibbon();
+	if (modeVal == 'NORMAL') {
+		detailNormal();	
+	}
+}
+function getLocalStorageValues() {
 	currentDl = localStorage.getItem('currentDl');
 	currentRow = Number(localStorage.getItem('currentRow'));
 	currentCol = Number(localStorage.getItem('currentCol'));
@@ -300,26 +306,11 @@ function initFromLocalStorage() {
 	selectedStop = Number(localStorage.getItem('selectedStop'));
 	searchItems = JSON.parse(localStorage.getItem('selected'));
 	mode = localStorage.getItem('mode');
-	if (heatMap.showColDendrogram("DETAIL")) {
-		buildDendroMatrix('col');
-	} 
-	if (heatMap.showRowDendrogram("DETAIL")) {
-		buildDendroMatrix('row');
-	}
+
 	heatMap.configureFlick();
 
-	dataBoxHeight = (DETAIL_SIZE_NORMAL_MODE-detailDataViewBoarder)/dataPerCol;
-	dataBoxWidth = (DETAIL_SIZE_NORMAL_MODE-detailDataViewBoarder)/dataPerRow;
-	var nameDiv = document.getElementById("mapName");
-		nameDiv.innerHTML = "<b>Map Name:</b>&nbsp;&nbsp;"+heatMap.getMapInformation().name;
-
-	
-	if (mode == 'RIBBONH')
-		detailHRibbon();
-	if (mode == 'RIBBONV')
-		detailVRibbon();
-	if (mode == 'NORMAL')
-		detailNormal();		
+	dataBoxHeight = (DETAIL_SIZE_NORMAL_MODE-detailDataViewBorder)/dataPerCol;
+	dataBoxWidth = (DETAIL_SIZE_NORMAL_MODE-detailDataViewBorder)/dataPerRow;
 }
 
 /************************************************************************************************
@@ -357,7 +348,9 @@ function checkColumn() {
     if (((mode == 'RIBBONH') || (mode=='RIBBONH_DETAIL')) && selectedStart!= 0) currentCol = selectedStart;
     //Check column against detail boundaries
     var numCols = heatMap.getNumColumns(MatrixManager.DETAIL_LEVEL);
-    if (currentCol > ((numCols + 1) - dataPerRow)) currentCol = (numCols + 1) - dataPerRow;
+    if (currentCol > ((numCols + 1) - dataPerRow)) {
+    	currentCol = (numCols + 1) - dataPerRow;
+    }
 }
 
 /**********************************************************************************
@@ -369,20 +362,12 @@ function checkColumn() {
  **********************************************************************************/
 function setCurrentRowFromSum(sumRow) {
 	// Up scale current summary row to detail equivalent
-	var rowSummaryRatio = heatMap.getRowSummaryRatio(MatrixManager.SUMMARY_LEVEL);
-	if (rowSummaryRatio > 1) {
-		currentRow = (sumRow*rowSummaryRatio);
-	} else {
-		currentRow = sumRow;
-	}
+	currentRow = (sumRow*heatMap.getRowSummaryRatio(MatrixManager.SUMMARY_LEVEL));
+	checkRow();
 }
 function setCurrentColFromSum(sumCol) {
-	var colSummaryRatio = heatMap.getColSummaryRatio(MatrixManager.SUMMARY_LEVEL);
-	if (colSummaryRatio > 1) {
-		currentCol = (sumCol*colSummaryRatio);
-	} else {
-		currentCol = sumCol;
-	}
+	currentCol = (sumCol*heatMap.getColSummaryRatio(MatrixManager.SUMMARY_LEVEL));
+	checkColumn();
 }
 
 /**********************************************************************************
@@ -413,14 +398,14 @@ function getCurrentSumCol() {
  * leftCanvasBox on that side of the screen.
  **********************************************************************************/
 function getCurrentSumDataPerRow() {
-	var rowSummaryRatio = heatMap.getRowSummaryRatio(MatrixManager.SUMMARY_LEVEL);
+	var rowSummaryRatio = heatMap.getColSummaryRatio(MatrixManager.SUMMARY_LEVEL);
 	// Summary data per row for  using the summary ration for that level
 	var	sumDataPerRow = Math.floor(dataPerRow/rowSummaryRatio);
 	return sumDataPerRow;
 }
 // Follow similar methodology for Column as is used in above row based function
 function getCurrentSumDataPerCol() {
-	var colSummaryRatio = heatMap.getColSummaryRatio(MatrixManager.SUMMARY_LEVEL);
+	var colSummaryRatio = heatMap.getRowSummaryRatio(MatrixManager.SUMMARY_LEVEL);
 	var	sumDataPerCol = Math.floor(dataPerCol/colSummaryRatio);
 	return sumDataPerCol;
 }
@@ -457,7 +442,7 @@ function getCurrentDetCol() {
  **********************************************************************************/
 function getCurrentDetDataPerRow() {
 	// make sure dataPerCol is the correct value. split screen can cause issues with values updating properly.
-	if (dataPerRow !== (detailDataViewWidth -2)/dataBoxWidth) dataPerRow = (detailDataViewWidth -2)/dataBoxWidth;
+//	if (dataPerRow !== (detailDataViewWidth -2)/dataBoxWidth || dataPerRow !== ) dataPerRow = (detailDataViewWidth -2)/dataBoxWidth;
 	var	detDataPerRow = dataPerRow;
 	if (mode == 'RIBBONH') {
 		var rate = heatMap.getColSummaryRatio(MatrixManager.RIBBON_HOR_LEVEL);
@@ -468,7 +453,7 @@ function getCurrentDetDataPerRow() {
 // Follow similar methodology for Column as is used in above row based function
 function getCurrentDetDataPerCol() {
 	// make sure dataPerCol is the correct value. split screen can cause issues with values updating properly.
-	if (dataPerCol !== (detailDataViewHeight -2)/dataBoxHeight) dataPerCol = (detailDataViewHeight -2)/dataBoxHeight;
+//	if (dataPerCol !== (detailDataViewHeight -2)/dataBoxHeight) dataPerCol = (detailDataViewHeight -2)/dataBoxHeight;
 	var	detDataPerCol = dataPerCol;
 	if (mode == 'RIBBONV') {
 		var rate = heatMap.getRowSummaryRatio(MatrixManager.RIBBON_VERT_LEVEL);
@@ -546,6 +531,16 @@ function flickToggleOn() {
 	flickViewsOff.style.display="none";
 	flickViewsOn.style.display='';
 }
+function openFileToggle() {
+	var fileButton = document.getElementById('fileButton');
+	if (fileButton.style.display === 'none') {
+		fileButton.style.display = '';
+	} else {
+		fileButton.style.display = 'none';
+	}
+}
+
+
 
 /************************************************************************************************
  * FUNCTION: flickToggleOff - Closes (hides) the flick control.
@@ -618,7 +613,7 @@ function flickChange(fromList) {
 	} else {
 		localStorage.setItem('currentDl', '' + currentDl);
 	}
-	detailInit();
+	drawDetailHeatMap();
 }
 
 

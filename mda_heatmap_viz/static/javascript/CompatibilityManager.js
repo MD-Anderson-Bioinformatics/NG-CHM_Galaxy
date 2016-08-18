@@ -1,19 +1,20 @@
 // This string contains the entire configuration.json file.  This was previously located in a JSON file stored with the application code
 // but has been placed here at the top of the CompatibilityManager class so that the configuration can be utilized in File Mode.
-var jsonConfigStr = "{\"row_configuration\": {\"classifications\": {\"show\": \"Y\",\"height\": 15},\"organization\": {\"agglomeration_method\": \"unknown\","+
+var jsonConfigStr = "{\"row_configuration\": {\"classifications\": {\"show\": \"Y\",\"height\": 15},\"classifications_order\": 1,\"organization\": {\"agglomeration_method\": \"unknown\","+
 			"\"order_method\": \"unknown\",\"distance_metric\": \"unknown\"},\"dendrogram\": {\"show\": \"ALL\",\"height\": \"100\"}},"+
-			"\"col_configuration\": {\"classifications\": {\"show\": \"Y\",\"height\": 15},"+
+			"\"col_configuration\": {\"classifications\": {\"show\": \"Y\",\"height\": 15},\"classifications_order\": 1,"+ 
 		    "\"organization\": {\"agglomeration_method\": \"unknown\",\"order_method\": \"unknown\",\"distance_metric\": \"unknown\"},"+
 		    "\"dendrogram\": {\"show\": \"ALL\",\"height\": \"100\"}},\"data_configuration\": {\"map_information\": {\"data_layer\": {"+
-		    "\"name\": \"Data Layer\",\"grid_show\": \"Y\",\"grid_color\": \"#FFFFFF\"},\"name\": \"CHM Name\",\"description\": \""+
-		    "Full length description of this heatmap\",\"read_only\": \"N\",\"version_id\": \"1.0.0\"}}}";
+		    "\"name\": \"Data Layer\",\"grid_show\": \"Y\",\"grid_color\": \"#FFFFFF\",\"selection_color\": \"#00FF38\"},\"name\": \"CHM Name\",\"description\": \""+
+		    "Full length description of this heatmap\",\"summary_width\": \"50\",\"summary_height\": \"100\",\"detail_width\": \"50\",\"detail_height\": \"100\",\"read_only\": \"N\",\"version_id\": \"1.0.0\"}}}";
 
+var classOrderStr = ".classifications_order";
 /**********************************************************************************
  * FUNCTION - CompatibilityManager: The purpose of the compatibility manager is to 
  * find any standard configuration items that might be missing from the configuration 
  * of the heat map that is currrently being opened.  There is a "current" configuration
- * default file (configuration.json) stored in the projects WebContent folder. At
- * startup this file is loaded by chm.html.  
+ * default file (configuration.json) stored as a string variable at the top of this
+ * javascript file.   
  * 
  * This function retrieves that JSON object and constructs a comparison object tree 
  * (jsonpath/default value).  Then another comparison object tree is created from 
@@ -37,6 +38,13 @@ function CompatibilityManager(mapConfig){
 	//config items in the heatmap's config obj tree.
 	for (var key in configObj) {
 		var searchItem = key;
+
+		//Check to see if we are processing one of the 2 classifications_order entries
+		var classOrderFound = false;
+		if (searchItem.includes(classOrderStr)) {
+    		searchItem += ".0";
+			classOrderFound = true;
+		}
 		var searchValue = configObj[key];
 		var found = false;
 		for (var key in mapObj) {
@@ -46,21 +54,23 @@ function CompatibilityManager(mapConfig){
 			}
 		}
 		//If config object not found in heatmap config, add object with default
-		if (found === false) {
-			var searchPath = searchItem.substring(1, searchItem.lastIndexOf("."));
-			var newItem = searchItem.substring(searchItem.lastIndexOf(".")+1, searchItem.length);
-			var parts = searchPath.split(".");
-			var obj = mapConfig;
-			for (i=0;i<parts.length;i++) {
-				obj = obj[parts[i]];
-			}
-			obj[newItem] = searchValue;
+		if (!found) {
+	    	if (!classOrderFound) {
+				var searchPath = searchItem.substring(1, searchItem.lastIndexOf("."));
+				var newItem = searchItem.substring(searchItem.lastIndexOf(".")+1, searchItem.length);
+				var parts = searchPath.split(".");
+				var obj = mapConfig;
+				for (i=0;i<parts.length;i++) {
+					obj = obj[parts[i]];
+				}
+				obj[newItem] = searchValue;
+	    	}
 			foundUpdate = true;
 		}
 	}
 	//If any new configs were added to the heatmap's config, save the config file.
 	if (foundUpdate === true) {
-		var success = heatMap.saveHeatMapProperties(1);
+		var success = heatMap.autoSaveHeatMap();
 	}
 }
 
@@ -113,7 +123,7 @@ function buildConfigComparisonObject(obj, stack, configObj, mapConfig) {
 	                } else {
 						configObj[jsonPath] = obj[property];
 	                }
-                } else {
+               } else {
 					configObj[jsonPath] = obj[property];
                 }
             }

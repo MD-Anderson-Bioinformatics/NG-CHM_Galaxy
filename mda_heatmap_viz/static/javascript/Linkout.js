@@ -27,12 +27,13 @@ function createLabelMenus(){
 		createLabelMenu('ColumnCovar');
 		createLabelMenu('Row');
 		createLabelMenu('RowCovar');
+		createLabelMenu('Matrix');
 		getDefaultLinkouts();
 	}
 }
 
 function labelHelpClose(axis){
-	var labelMenu = document.getElementById(axis + 'LabelMenu');
+	var labelMenu = axis !== "Matrix" ? document.getElementById(axis + 'LabelMenu') : document.getElementById("MatrixMenu");
     var tableBody = labelMenu.getElementsByTagName("TBODY")[0];
     var tempClass = tableBody.className;
     var newTableBody = document.createElement('TBODY');
@@ -44,14 +45,17 @@ function labelHelpClose(axis){
 }
 
 function labelHelpOpen(axis, e){
-	var labelMenu = document.getElementById(axis + 'LabelMenu');
-	var labelMenuTable = document.getElementById(axis + 'LabelMenuTable');
-    var axisLabelsLength = getSearchLabelsByAxis(axis).length;
+	var labelMenu =  axis !== "Matrix" ? document.getElementById(axis + 'LabelMenu') : document.getElementById("MatrixMenu");
+	var labelMenuTable = axis !== "Matrix" ? document.getElementById(axis + 'LabelMenuTable') : document.getElementById('MatrixMenuTable');
+    var axisLabelsLength = axis !== "Matrix" ? getSearchLabelsByAxis(axis).length : getSearchLabelsByAxis("Row").length +  getSearchLabelsByAxis("Column").length;
     var header = labelMenu.getElementsByClassName('labelMenuHeader')[0];
     var row = header.getElementsByTagName('TR')[0];
-    if (axisLabelsLength > 0){
-    	row.innerHTML = "Selected " + axis.replace("Covar"," Classification") + " : " + axisLabelsLength;
+    if (axisLabelsLength > 0 && axis !== "Matrix"){
+    	row.innerHTML = "Selected " + axis.replace("Covar"," Classification") + "s : " + axisLabelsLength;
     	labelMenuTable.getElementsByTagName("TBODY")[0].style.display = 'inherit';
+    	populateLabelMenu(axis,axisLabelsLength);
+    } else if (axisLabelsLength > 0 && axis == "Matrix"){
+    	row.innerHTML = "Selected Rows: " + getSearchLabelsByAxis("Row").length + "<br>Selected Columns: " + getSearchLabelsByAxis("Column").length;
     	populateLabelMenu(axis,axisLabelsLength);
     } else {
     	row.innerHTML = "Please select a " + axis.replace("Covar"," Classification");
@@ -66,19 +70,19 @@ function labelHelpOpen(axis, e){
 }
 
 function createLabelMenu(axis){ // creates the divs for the label menu
-	var labelMenu = getDivElement(axis + 'LabelMenu');
+	var labelMenu = axis !== "Matrix" ? getDivElement(axis + 'LabelMenu') : getDivElement(axis + 'Menu');
 	document.body.appendChild(labelMenu);
 	labelMenu.style.position = 'absolute';
 	labelMenu.classList.add('labelMenu');
 	var topDiv = document.createElement("DIV");
 	topDiv.classList.add("labelMenuCaption");
-	topDiv.innerHTML = axis.replace("Covar"," Classification") + ' Label Menu:';
+	topDiv.innerHTML = axis !== "Matrix" ? axis.replace("Covar"," Classification") + ' Label Menu:' : axis + ' Menu';
 	var closeMenu = document.createElement("IMG");
 	closeMenu.src = staticPath +"images/closeButton.png";
 	closeMenu.classList.add('labelMenuClose')
 	closeMenu.addEventListener('click', function(){labelHelpClose(axis)},false);
 	var table = document.createElement("TABLE");
-	table.id = axis + 'LabelMenuTable';
+	table.id = axis !== "Matrix" ? axis + 'LabelMenuTable' : axis+'MenuTable';
 	var tableHead = table.createTHead();
 	tableHead.classList.add('labelMenuHeader');
 	var row = tableHead.insertRow();
@@ -92,9 +96,9 @@ function createLabelMenu(axis){ // creates the divs for the label menu
 }
 
 function populateLabelMenu(axis, axisLabelsLength){ // adds the row linkouts and the column linkouts to the menus
-	var table = document.getElementById(axis + 'LabelMenuTable');
+	var table = axis !== "Matrix" ? document.getElementById(axis + 'LabelMenuTable') : document.getElementById("MatrixMenuTable");
 	var labelType = axis == "Row" ? heatMap.getRowLabels()["label_type"] : 
-					axis == "Column" ? heatMap.getColLabels()["label_type"] : axis == "ColumnCovar" ? "ColumnCovar" : "RowCovar";
+					axis == "Column" ? heatMap.getColLabels()["label_type"] : axis == "ColumnCovar" ? "ColumnCovar" : axis == "RowCovar"  ? "RowCovar" : "Matrix";
 	for (i = 0; i < linkouts[labelType].length; i++){
 		var clickable;
 		if (labelType == "ColumnCovar" && getSearchLabelsByAxis("Column").length == 0){
@@ -163,6 +167,7 @@ function getDefaultLinkouts(){
 	addLinkout("Copy bar data for selected labels", "ColumnCovar", linkouts.MULTI_SELECT, linkouts.VISIBLE_LABELS,copyPartialClassBarToClipBoard,null,1);
 	addLinkout("Copy bar data for all labels", "RowCovar", linkouts.MULTI_SELECT, linkouts.VISIBLE_LABELS,copyEntireClassBarToClipBoard,null,0);
 	addLinkout("Copy bar data for selected labels", "RowCovar", linkouts.MULTI_SELECT, linkouts.VISIBLE_LABELS,copyPartialClassBarToClipBoard,null,1);
+	addLinkout("Copy selected items to clipboard", "Matrix", linkouts.MULTI_SELECT, linkouts.VISIBLE_LABELS,copySelectionToClipboard,null,1);
 }
 
 function linkout (title, inputType, selectType, reqAttributes, callback){ // the linkout object
@@ -223,4 +228,9 @@ function copyPartialClassBarToClipBoard(labels,axis){
 		}
 		newDoc.write("<br>");
 	}
+}
+
+function copySelectionToClipboard(labels,axis){
+	console.log(labels,axis);
+	window.open("","",'width=335,height=330,resizable=1').document.write("Rows: " + labels["Row"].join(", ") + "<br><br> Columns: " + labels["Column"].join(", "));
 }

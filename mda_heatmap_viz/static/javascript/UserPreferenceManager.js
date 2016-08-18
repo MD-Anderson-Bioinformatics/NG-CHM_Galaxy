@@ -4,8 +4,6 @@
  **********************************************************************************/
 
 //Global variables for preference processing
-var maxRows = 0;
-var helpRowSize = 0;
 var bkpColorMaps = null;
 var filterVal;
 var searchPerformed = false;
@@ -41,19 +39,17 @@ var searchPerformed = false;
  * Processing for this function is documented in detail in the body of the function.
  **********************************************************************************/
 function editPreferences(e,errorMsg){
-	maxRows = 0;
 	userHelpClose();
 
 	// If helpPrefs element already exists, the user is pressing the gear button
 	// when preferences are already open. Disregard.
-	var helpExists = document.getElementById('prefsPanel');
+	var helpExists = document.getElementById('rowsColsprefs');
 	if ((isSub) || (helpExists !== null)) {
 		return;
 	}
 
 	//If first time thru, save the dataLayer colorMap
 	//This is done because the colorMap must be edited to add/delete breakpoints while retaining their state
-	//var colorMap = heatMap.getColorMapManager().getColorMap("data","dl1"); //TODO - Modify when multiple data layers (flick) are added
 	if (bkpColorMaps === null) {
 		bkpColorMaps = new Array();
 		var dataLayers = heatMap.getDataLayers();
@@ -61,77 +57,37 @@ function editPreferences(e,errorMsg){
 			bkpColorMaps.push(heatMap.getColorMapManager().getColorMap("data",key));
 		}
 	} 
+	var prefspanel = document.getElementById("prefsPanel");
+	var prefprefs = document.getElementById("prefPrefs");
 
-	//Create a "master" DIV for displaying edit preferences
-	var prefspanel = getDivElement("prefsPanel");
-	document.getElementsByTagName('body')[0].appendChild(prefspanel);
-	
-	//Create a one cell table and populate the header and tab elements in the first 3 table rows
-	var prefContents = document.createElement("TABLE");
-	var headDiv = document.createElement('div');
-	headDiv.className = 'prefsHeader';
-	headDiv.id = 'prefsHeader';
-	prefspanel.appendChild(headDiv);
-	headDiv.textContent = 'Heat Map Display Properties';
-	
-	addBlankRow(prefContents)
-	prefContents.insertRow().innerHTML = "<td style='line-height:30px;'>&nbsp;</td>";
-	prefContents.insertRow().innerHTML = "<td style='border-bottom-style:solid;border-bottom-width:2px;position: relative;'><div id='prefTab_buttons' style='position: absolute; bottom: 0;' align='left'><img id='prefRowsCols_btn' src='" + staticPath + "images/rowsColsOn.png' alt='Edit Rows & Columns' onclick='showRowsColsPrefs();' align='top'/>&nbsp;<img id='prefLayer_btn' src='" + staticPath + "images/dataLayersOff.png' alt='Edit Data Layers' onclick='showLayerPrefs();' align='top'/>&nbsp;<img id='prefClass_btn' src='" + staticPath+ "images/covariateBarsOff.png' alt='Edit Classifications' onclick='showClassPrefs();' align='top'/></div></td>";
-	//Initialize rowCtr variable
-	var rowCtr = 3;
+	if (errorMsg !== null) {
+		var prefBtnsDiv = document.getElementById('prefActions');
+		prefBtnsDiv.innerHTML=errorMsg[2]+"<br/><br/><img id='prefApply_btn' src='" + staticPath + "images/applyChangesButton.png' alt='Apply changes' onclick='prefsApplyButton();' align='top'/>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<img id='prefCancel_btn' src='" + staticPath + "images/cancelChangesButton.png' alt='Cancel changes' onclick='prefsCancelButton();' align='top'/>";
+	} else {
+		//Create and populate row & col preferences DIV and add to parent DIV
+		var rowcolprefs = setupRowColPrefs(e, prefprefs);
+		prefprefs.appendChild(rowcolprefs);
 
-	//Create a parent DIV as a container for breakpoint and classification edit display
-	var prefprefs = getDivElement("prefprefs"); 
+		//Create and populate classifications preferences DIV and add to parent DIV
+		var classprefs = setupClassPrefs(e, prefprefs);
+		prefprefs.appendChild(classprefs);
+		
+		//Create and populate breakpoint preferences DIV and add to parent DIV
+		var layerprefs = setupLayerPrefs(e, prefprefs);
+		prefprefs.appendChild(layerprefs);
 
-	//Create and populate row & col preferences DIV and add to parent DIV
-	var rowcolprefs = setupRowColPrefs(e, prefprefs);
-	rowcolprefs.style.display="none";
-	prefprefs.appendChild(rowcolprefs);
-
-	//Create and populate classifications preferences DIV and add to parent DIV
-	var classprefs = setupClassPrefs(e, prefprefs);
-	classprefs.style.display="none";
-	prefprefs.appendChild(classprefs);
-	
-	//Create and populate breakpoint preferences DIV and add to parent DIV
-	var layerprefs = setupLayerPrefs(e, prefprefs);
-	layerprefs.style.display="none";
-	prefprefs.appendChild(layerprefs);
-
-	// Set DIV containing both class and break DIVs to visible and append to prefspanel table
-	prefprefs.style.display="block";
-	var row1 = prefContents.insertRow();
-	var row1Cell = row1.insertCell(0);
-	row1Cell.appendChild(prefprefs);
-	
-	//If error message exists add table row to prefspanel table containing error message
-	if (errorMsg != null) {
-		setErrorRow(prefContents, errorMsg[2]);
+		// Set DIV containing both class and break DIVs to visible and append to prefspanel table
+		prefprefs.style.display="block";
+		prefspanel.appendChild(prefprefs);
+		
+		var prefBtnsDiv = document.createElement('div');
+		prefBtnsDiv.id='prefActions';
+		prefBtnsDiv.innerHTML="<img id='prefApply_btn' src='" + staticPath + "images/applyChangesButton.png' alt='Apply changes' onclick='prefsApplyButton();' align='top'/>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<img id='prefCancel_btn' src='" + staticPath + "images/cancelChangesButton.png' alt='Cancel changes' onclick='prefsCancelButton();' align='top'/>";
+		prefspanel.appendChild(prefBtnsDiv);
 	}
+	prefspanel.style.display= '';
+	prefsResize();
 
-	var prefButtons = document.createElement("TABLE");
-	//Add Cancel, Apply, and Save buttons to bottom of prefspanel table
-	var buttons = "<img id='prefCancel_btn' src='" + staticPath + "images/prefCancel.png' alt='Cancel changes' onclick='prefsCancelButton();' align='top'/>&nbsp;<img id='prefApply_btn' src='" + staticPath + "images/prefApply.png' alt='Apply changes' onclick='prefsApplyButton();' align='top'/>";
-	buttons = buttons + "&nbsp;<img id='prefSave_btn' src='" + staticPath + "images/prefSave.png' alt='Save changes' onclick='prefsSaveButton();' align='top'/>";
-	setTableRow(prefButtons,["<div id='pref_buttons' align='right'>"+buttons+"</div>"]);
-	rowCtr++;
-	prefprefs.appendChild(prefButtons);
-
-	//Add prefspanel table to the main preferences DIV and set position and display
-	prefspanel.appendChild(prefContents);
-    prefspanel.style.position = "absolute";
-	prefspanel.style.top = e.offsetTop + 15;
-	prefspanel.style.display="inherit";
-
-	//maxRows has been loaded with a count of the datalayer/class panel with the most rows
-	//add to this the number of rows added during construction of prefspanel table.
-	maxRows = maxRows+rowCtr;
-	//Retrieve maximum row height size used in various preferences DIVs
-	helpRowSize = parseFloat(getStyle(prefspanel, 'font-size' ), 10)*1.45;
-	//Use the two above numbers to apply sizing to all of the preferences DIVs.
-	setPrefsDivSizing();
-	prefspanel.style.left = document.getElementById("mdaServiceHeader").clientWidth  - (parseInt(layerprefs.style.width,10)+25);
-	
 	//If errors exist and they are NOT on the currently visible DIV (dataLayer1),
 	//hide the dataLayers DIV, set the tab to "Covariates", and open the appropriate
 	//covariate bar DIV.
@@ -148,31 +104,26 @@ function editPreferences(e,errorMsg){
 		searchPerformed = false;
 		showClassPrefs();
 	} else {
-		showLayerBreak();
+		showLayerBreak(currentDl);
 		showRowsColsPrefs();
 	}
+	errorMsg = null;
 
 }
 
 /**********************************************************************************
- * FUNCTION - setPrefsDivSizing: The purpose of this function is to resize the
- * various DIVs inside the preferences dialog.  It is called when the dialog is 
- * first opened and whenever data layer breakpoints are added (if necessary).
+ * FUNCTION - prefsResize: The purpose of this function is to handle the resizing
+ * of the preferences panel when the window is resized.
  **********************************************************************************/
-//TODO - This can be improved as the current sizing is not exact.
-function setPrefsDivSizing() {
-	var rowsColsprefs = document.getElementById("rowsColsPrefs");
-	var layerprefs = document.getElementById("layerPrefs");
-	var classprefs = document.getElementById("classPrefs");
-	var helprefs = document.getElementById("prefsPanel");
-	var prefHeight = maxRows*helpRowSize;
-	var prefWidth = 400;
-	rowsColsprefs.style.width = prefWidth;
-	rowsColsprefs.style.height = prefHeight;
-	layerprefs.style.width = prefWidth;
-	layerprefs.style.height = prefHeight;
-	classprefs.style.width = prefWidth;
-	classprefs.style.height = prefHeight;
+function prefsResize() {
+	var prefprefs = document.getElementById('prefPrefs');
+	if (window.innerHeight > 730) {
+		prefprefs.style.height = "88%";
+	} else if (window.innerHeight > 500) {
+		prefprefs.style.height = "80%";
+	} else {
+		prefprefs.style.height = "70%";
+	}
 }
 
 /**********************************************************************************
@@ -257,11 +208,27 @@ function prefsCancelButton() {
 			i++;
 		}
 	}
-	var prefspanel = document.getElementById('prefsPanel');
-	filterVal = null;
-	if (prefspanel){
-		prefspanel.remove();
-	}
+	removeSettingsPanels();
+	//Hide the preferences panel
+	document.getElementById('prefsPanel').style.display= 'none';
+	searchPerformed = false;
+}
+
+function removeSettingsPanels() {
+	
+	//Remove all panels that are content specific before closing
+	var pActions = document.getElementById("prefActions");
+	pActions.parentNode.removeChild(pActions);
+	
+	var rcPrefs = document.getElementById("rowsColsPrefs");
+	rcPrefs.parentNode.removeChild(rcPrefs);
+	
+	var lPrefs = document.getElementById("layerPrefs");
+	lPrefs.parentNode.removeChild(lPrefs);
+	
+	var cPrefs = document.getElementById("classPrefs");
+	cPrefs.parentNode.removeChild(cPrefs);
+
 }
 
 /**********************************************************************************
@@ -279,34 +246,12 @@ function prefsApplyButton() {
 	//Perform validations of all user-entered data layer and covariate bar
 	//preference changes.
 	var errorMsg = prefsValidate();
-	prefsApply();
 	if (errorMsg !== null) {
 		prefsError(errorMsg);
 	} else { 
+		prefsApply();
 		heatMap.setUnAppliedChanges(true);
 		prefsSuccess();
-	}
-}
-
-/**********************************************************************************
- * FUNCTION - prefsSaveButton: The purpose of this function is to perform all processing
- * necessary to permanently save user preference changes.  This will result in 
- * changes to the JSON files that are used to configure heat map presentation.
- **********************************************************************************/
-function prefsSaveButton() {
-	var mode = heatMap.mode;
-	var errorMsg = prefsValidate();
-	prefsApply();
-	if (errorMsg !== null) {
-		prefsError(errorMsg);
-	} else { 
-		var success = heatMap.saveHeatMapProperties(2);
-		heatMap.setUnAppliedChanges(false);
-		if (success === "false") {
-			prefsError(["dl1", "layerPrefs", "ERROR: Preferences failed to save. Use Apply or Cancel to continue."]);
-		} else {
-			prefsSuccess();
-		}
 	}
 }
 
@@ -321,7 +266,8 @@ function prefsSuccess() {
 	//and formally apply all changes to the heat map, re-draw, and exit preferences.
 	bkpColorMaps = null;
 	summaryInit();
-	detailInit();
+	//detailInit();
+	drawDetailHeatMap();
 	changeMode('NORMAL');
 	prefsCancelButton();
 }
@@ -335,10 +281,6 @@ function prefsError(errorMsg) {
 	//If a validation error exists, re-present the user preferences
 	//dialog with the error message displayed in red. 
 	filterVal = null;
-	var prefspanel = document.getElementById('prefsPanel');
-	if (prefspanel){
-		prefspanel.remove();
-	}
 	editPreferences(document.getElementById('gear_btn'),errorMsg);
 }
 
@@ -348,7 +290,7 @@ function prefsError(errorMsg) {
  **********************************************************************************/
 function prefsApply() {
 	// Apply Row & Column Preferences
-	var rowDendroConfig = heatMap.getRowDendroConfig();
+	var rowDendroConfig = heatMap.getRowDendroConfig();   
 	var rowOrganization = heatMap.getRowOrganization();
 	var rowOrder = rowOrganization['order_method'];
 	if (rowOrder === "Hierarchical") {
@@ -381,12 +323,21 @@ function prefsApply() {
 		heatMap.setClassificationPrefs(key,"col",showElement.checked,heightElement.value);
 		prefsApplyBreaks(key,"col");
 	}
+	// Apply Sizing Preferences
+	var sumSize = document.getElementById("summaryWidthPref").value;
+	var detSize = document.getElementById("detailWidthPref").value;
+	var heightSize = document.getElementById("mapHeightPref").value;
+	heatMap.getMapInformation().summary_width = sumSize;
+	heatMap.getMapInformation().detail_width = detSize;
+	heatMap.getMapInformation().summary_height = heightSize;
+	heatMap.getMapInformation().detail_height = heightSize;
 	// Apply Data Layer Preferences
 	var dataLayers = heatMap.getDataLayers();
 	for (var key in dataLayers){
 		var showGrid = document.getElementById(key+'_gridPref');
 		var gridColor = document.getElementById(key+'_gridColorPref');
-		heatMap.setLayerGridPrefs(key, showGrid.checked,gridColor.value)
+		var selectionColor = document.getElementById(key+'_selectionColorPref');
+		heatMap.setLayerGridPrefs(key, showGrid.checked,gridColor.value,selectionColor.value)
 		prefsApplyBreaks(key,"data");
 	}
 }
@@ -399,25 +350,6 @@ function prefsApply() {
  **********************************************************************************/
 function prefsValidate() {
 	var errorMsg = null;
-	//Loop thru all covariate classfication bars validating all break colors
-	var rowClassBars = heatMap.getRowClassificationConfig();
-	for (var key in rowClassBars){
-		var keyrow = key+"_row";
-		var currClassBar = rowClassBars[key];
-		var showElement = document.getElementById(keyrow+"_showPref");
-		var heightElement = document.getElementById(keyrow+"_heightPref");
-		errorMsg = prefsValidateBreakColors(key,"row","classPrefs");
-		if (errorMsg !== null) return errorMsg;
-	}
-	var colClassBars = heatMap.getColClassificationConfig();
-	for (var key in colClassBars){
-		var keycol = key+"_col";
-		var currClassBar = rowClassBars[key];
-		var showElement = document.getElementById(keycol+"_showPref");
-		var heightElement = document.getElementById(keycol+"_heightPref");
-		errorMsg = prefsValidateBreakColors(key,"col","classPrefs");
-		if (errorMsg !== null) break;
-	}
 	//Validate all breakpoints and colors for the main data layer
 	if (errorMsg === null) {
 		var dataLayers = heatMap.getDataLayers();
@@ -425,13 +357,8 @@ function prefsValidate() {
 			errorMsg = prefsValidateBreakPoints(key,"layerPrefs");
 			if (errorMsg != null) break;
 		}
-		if (errorMsg === null) {
-			for (var key in dataLayers){
-				errorMsg = prefsValidateBreakColors(key,"data","layerPrefs");
-				if (errorMsg != null) break;
-			}
-		}
 	}
+	
 	return errorMsg;
 }
 
@@ -475,6 +402,7 @@ function prefsValidateBreakPoints(colorMapName,prefPanel) {
 	if (dupeBreak) {
 		errorMsg =  [colorMapName, prefPanel, "ERROR: Duplicate data layer breakpoint found above"];
 	}
+	
 	return errorMsg;
 }
 
@@ -508,6 +436,7 @@ function prefsValidateBreakColors(colorMapName,type, prefPanel) {
 	if (dupeColor) {
 		return [key, prefPanel, "ERROR: Duplicate color setting found above"];
 	}
+	
 	return null;
 }
 
@@ -569,6 +498,7 @@ function getNewBreakColors(colorMapName, type, pos, action) {
 			newColors.push(colorElement.value);
 		}
 	}
+	
 	return newColors;
 }
 
@@ -602,6 +532,7 @@ function getNewBreakThresholds(colorMapName, pos, action) {
 			newThresholds.push(breakElement.value);
 		}
 	}
+	
 	return newThresholds;
 }
 
@@ -656,10 +587,9 @@ function setupLayerPrefs(e, prefprefs){
 	for (var key in dataLayers){
 		var breakprefs = setupLayerBreaks(e, key);
 		breakprefs.style.display="none";
-		breakprefs.style.width = 300;
 		layerprefs.appendChild(breakprefs);
 	}
-	maxRows = maxRows+3;
+
 	return layerprefs;
 }
 
@@ -673,7 +603,6 @@ function setupLayerBreaks(e, mapName){
 	var colors = colorMap.getColors();
 	var helpprefs = getDivElement("breakPrefs_"+mapName);
 	var prefContents = document.createElement("TABLE"); 
-	var rowCtr = 0;
 	var dataLayers = heatMap.getDataLayers();
 	var layer = dataLayers[mapName];
 	var gridShow = "<input name='"+mapName+"_gridPref' id='"+mapName+"_gridPref' type='checkbox' ";
@@ -682,9 +611,9 @@ function setupLayerBreaks(e, mapName){
 	}
 	gridShow = gridShow+ " >";
 	var gridColorInput = "<input class='spectrumColor' type='color' name='"+mapName+"_gridColorPref' id='"+mapName+"_gridColorPref' value='"+layer.grid_color+"'>"; 
+	var selectionColorInput = "<input class='spectrumColor' type='color' name='"+mapName+"_selectionColorPref' id='"+mapName+"_selectionColorPref' value='"+layer.selection_color+"'>"; 
 	addBlankRow(prefContents, 2)
 	setTableRow(prefContents, ["&nbsp;<u>Breakpoint</u>", "<u><b>Color</b></u>","&nbsp;"]); 
-	rowCtr = 3;
 	for (var j = 0; j < thresholds.length; j++) {
 		var threshold = thresholds[j];    
 		var color = colors[j];
@@ -699,7 +628,6 @@ function setupLayerBreaks(e, mapName){
 		} else {
 			setTableRow(prefContents, [breakPtInput,  colorInput, addButton+ delButton]);
 		}
-		rowCtr++;
 	} 
 	addBlankRow(prefContents)
 	setTableRow(prefContents, ["&nbsp;Missing Color:",  "<input class='spectrumColor' type='color' name='"+mapName+"_missing_colorPref' id='"+mapName+"_missing_colorPref' value='"+colorMap.getMissingColor()+"'>"]);
@@ -717,13 +645,10 @@ function setupLayerBreaks(e, mapName){
 	setTableRow(prefContents, ["&nbsp;Blue Red",  "&nbsp;<b>Rainbow</b>","&nbsp;<b>Green Red</b>"]);
 	addBlankRow(prefContents, 3)
 	setTableRow(prefContents, ["&nbsp;Grid Lines:", gridColorInput, "<b>Show:&nbsp;&nbsp;</b>"+gridShow]); 
-	rowCtr+= 13;
-	if (rowCtr > maxRows) {
-		maxRows = rowCtr;
-	}
-	helpprefs.style.height = rowCtr;
-	helpprefs.style.width = 30;
+	setTableRow(prefContents, ["&nbsp;Selection Color:", selectionColorInput]); 
+	helpprefs.style.height = prefContents.rows.length;;
 	helpprefs.appendChild(prefContents);
+	
 	return helpprefs;
 }	
 
@@ -825,13 +750,6 @@ function addLayerBreak(pos,colorMapName) {
 	var colorMap = heatMap.getColorMapManager().getColorMap("data",colorMapName);
 	var newThresholds = getNewBreakThresholds(colorMapName, pos, "add");
 	var newColors = getNewBreakColors(colorMapName, "data", pos, "add");
-	//Calculate new size of data layers panel and reset size of the 
-	// entire preferences dialog (if necessary)
-	var layerRows = newThresholds.length+helpRowSize;
-	maxRows = Math.max(maxRows,layerRows);
-	setPrefsDivSizing();
-	//Apply new arrays for thresholds and colors to the datalayer
-	//and reload the colormap.
 	colorMap.setThresholds(newThresholds);
 	colorMap.setColors(newColors);
 	reloadLayerBreaksColorMap(colorMapName, colorMap);
@@ -871,7 +789,6 @@ function reloadLayerBreaksColorMap(colorMapName, colorMap) {
 	var layerprefs = getDivElement("layerPrefs");
 	var breakPrefs = setupLayerBreaks(e, colorMapName, colorMapName);
 	breakPrefs.style.display="block";
-	breakPrefs.style.width = 300;
 	layerPrefs.appendChild(breakPrefs);
 }
 
@@ -897,13 +814,15 @@ function reloadLayerBreaksColorMap(colorMapName, colorMap) {
  **********************************************************************************/
 function setupClassPrefs(e, prefprefs){
 	var rowClassBars = heatMap.getRowClassificationConfig();
+	var rowClassBarsOrder = heatMap.getRowClassificationOrder();
 	var colClassBars = heatMap.getColClassificationConfig();
+	var colClassBarsOrder = heatMap.getColClassificationOrder();
 	var classprefs = getDivElement("classPrefs");
 	var prefContents = document.createElement("TABLE");
 	addBlankRow(prefContents);
 	var filterInput = "<input name='all_searchPref' id='all_searchPref'>";
 	var filterButton = "<img id='all_searchPref_btn' src='" + staticPath + "images/filterClassButton.png' alt='Filter Covariates' onclick='filterClassPrefs(true);' align='top'/>";
-	var searchClasses = filterInput+"&nbsp;&nbsp;"+filterButton;
+	var searchClasses = filterInput+"&nbsp;&nbsp;"+filterButton+"&emsp;&emsp;";
 	setTableRow(prefContents,[searchClasses], 4, 'right');
 	addBlankRow(prefContents,2);
 	var classSelect = "<select name='classPref_list' id='classPref_list' onchange='showClassBreak();'></select>"
@@ -911,30 +830,31 @@ function setupClassPrefs(e, prefprefs){
 	addBlankRow(prefContents);
 	classprefs.appendChild(prefContents);
 	var i = 0;
-	for (var key in rowClassBars){
+	for (var i = 0; i < rowClassBarsOrder.length;i++){
+		var key = rowClassBarsOrder[i];
 		var currentClassBar = rowClassBars[key];
 		if (filterShow(key)) {
 			var breakprefs = setupClassBreaks(e, key, "row", currentClassBar);
 			breakprefs.style.display="none";
-			breakprefs.style.width = 300;
+			//breakprefs.style.width = 300;
 			classprefs.appendChild(breakprefs);
 		}
-		i++;
 	}
-	for (var key in colClassBars){
+	for (var i = 0; i < colClassBarsOrder.length;i++){
+		var key = colClassBarsOrder[i];
 		var currentClassBar = colClassBars[key];
 		if (filterShow(key)) {
 			var breakprefs = setupClassBreaks(e, key, "col", currentClassBar);
 			breakprefs.style.display="none";
-			breakprefs.style.width = 300;
+			//breakprefs.style.width = 300;
 			classprefs.appendChild(breakprefs);
 		}
-		i++;
 	}
 	// Append a DIV panel for all of the covariate class bars 
 	var allPrefs = setupAllClassesPrefs(); 
 	allPrefs.style.display="block";
 	classprefs.appendChild(allPrefs);
+	
 	return classprefs;
 }
 
@@ -945,56 +865,55 @@ function setupClassPrefs(e, prefprefs){
  **********************************************************************************/
 function setupAllClassesPrefs(){
 	var allprefs = getDivElement("breakPrefs_ALL");
+	allprefs.style.height="100px";
 	var prefContents = document.createElement("TABLE");
 	prefContents.id = "tableAllClasses";
-	var rowCtr = 0;
 	addBlankRow(prefContents);
 	var colShowAll = "<input name='all_showPref' id='all_showPref' type='checkbox' onchange='showAllBars();'> ";
 	setTableRow(prefContents,["&nbsp;<u>"+"Classification"+"</u>", "<b><u>"+"Position"+"</u></b>", colShowAll+"<b><u>"+"Show"+"</u></b>", "<b><u>"+"Height"+"</u></b>"]);
-	rowCtr=2;
 	var checkState = true;
 	var rowClassBars = heatMap.getRowClassificationConfig();
-	for (var key in rowClassBars){
+	var rowClassBarsOrder = heatMap.getRowClassificationOrder();
+	for (var i = 0;  i < rowClassBarsOrder.length; i++){
+		var key = rowClassBarsOrder[i];
 		var currentClassBar = rowClassBars[key];
 		var keyrow = key+"_row";
 		if (filterShow(key)) {
-			var colShow = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input name='"+keyrow+"_showPref' id='"+keyrow+"_showPref' type='checkbox' onchange='setShowAll();'";
+			var colShow = "&emsp;&emsp;<input name='"+keyrow+"_showPref' id='"+keyrow+"_showPref' type='checkbox' onchange='setShowAll();'";
 			if (currentClassBar.show == 'Y') {
 				colShow = colShow+"checked"
 			}
 			colShow = colShow+ " >";
-			var colHeight = "<input name='"+keyrow+"_heightPref' id='"+keyrow+"_heightPref' value='"+currentClassBar.height+"' maxlength='2' size='2'>";
+			var colHeight = "<input name='"+keyrow+"_heightPref' id='"+keyrow+"_heightPref' value='"+currentClassBar.height+"' maxlength='2' size='2'>&emsp;";
 			var displayName = key;
 			if (key.length > 20){
 				displayName = key.substring(0,20) + "...";
 			}
 			setTableRow(prefContents,["&nbsp;&nbsp;"+displayName,"Row",colShow,colHeight]); 
-			rowCtr++;
 		}
 	}
 	var colClassBars = heatMap.getColClassificationConfig();
-	for (var key in colClassBars){
+	var colClassBarsOrder = heatMap.getColClassificationOrder();
+	for (var i = 0; i < colClassBarsOrder.length; i++){
+		var key = colClassBarsOrder[i];
 		var currentClassBar = colClassBars[key];
 		var keycol = key+"_col";
 		if (filterShow(key)) {
-			var colShow = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input name='"+keycol+"_showPref' id='"+keycol+"_showPref' type='checkbox' onchange='setShowAll();'";
+			var colShow = "&emsp;&emsp;<input name='"+keycol+"_showPref' id='"+keycol+"_showPref' type='checkbox' onchange='setShowAll();'";
 			if (currentClassBar.show == 'Y') {
 				colShow = colShow+"checked"
 			}
 			colShow = colShow+ " >";
-			var colHeight = "<input name='"+keycol+"_heightPref' id='"+keycol+"_heightPref' value='"+currentClassBar.height+"' maxlength='2' size='2'>";
+			var colHeight = "<input name='"+keycol+"_heightPref' id='"+keycol+"_heightPref' value='"+currentClassBar.height+"' maxlength='2' size='2'>&emsp;";
 			var displayName = key;
 			if (key.length > 20){
 				displayName = key.substring(0,20) + "...";
 			}
 			setTableRow(prefContents,["&nbsp;&nbsp;"+displayName,"Col",colShow,colHeight]); 
-			rowCtr++;
 		}
 	}
 	allprefs.appendChild(prefContents);
-	if (rowCtr > maxRows) {
-		maxRows = rowCtr;
-	}
+
 	return allprefs;
 }	
 
@@ -1018,7 +937,6 @@ function setupClassBreaks(e, key, barType, classBar){
 	setTableRow(prefContents,["&nbsp;Bar Type: ","<b>"+typ+"</b>"]);
 	addBlankRow(prefContents, 3);
 	setTableRow(prefContents, ["&nbsp;<u>Category</u>","<b><u>"+"Color"+"</b></u>"]); 
-	var rowCtr = 7;
 	for (var j = 0; j < thresholds.length; j++) {
 		var threshold = thresholds[j];
 		var color = colors[j];
@@ -1026,7 +944,6 @@ function setupClassBreaks(e, key, barType, classBar){
 		var colorId = keyRC+"_color"+j;
 		var colorInput = "<input class='spectrumColor' type='color' name='"+colorId+"_colorPref' id='"+colorId+"_colorPref' value='"+color+"'>"; 
 		setTableRow(prefContents, ["&nbsp;&nbsp;"+threshold, colorInput]);
-		rowCtr++;
 	} 
 	addBlankRow(prefContents);
 	setTableRow(prefContents, ["&nbsp;Missing Color:",  "<input class='spectrumColor' type='color' name='"+keyRC+"_missing_colorPref' id='"+keyRC+"_missing_colorPref' value='"+colorMap.getMissingColor()+"'>"]);
@@ -1047,13 +964,9 @@ function setupClassBreaks(e, key, barType, classBar){
 		setTableRow(prefContents, [greyscale,rainbow,redBlackGreen]);
 		setTableRow(prefContents, ["&nbsp;Greyscale",  "&nbsp;<b>Rainbow</b>","&nbsp;<b>Green Red</b>"]);
 	}
-	rowCtr += 8;
-	if (rowCtr > maxRows) {
-		maxRows = rowCtr;
-	}
-	helpprefs.style.height = rowCtr;
-	helpprefs.style.width = 30;
+	helpprefs.style.height = prefContents.rows.length;;
 	helpprefs.appendChild(prefContents);
+
 	return helpprefs;
 }	
 
@@ -1084,6 +997,7 @@ function showAllBars(){
 			colShow.checked = checkState;
 		}
 	}
+	
 	return;
 }	
 
@@ -1119,6 +1033,7 @@ function setShowAll(){
 	}
 	var showAllBox = document.getElementById('all_showPref');
 	showAllBox.checked = checkState;
+	
 	return;
 }	
 
@@ -1210,11 +1125,14 @@ function filterAllClassesTable(hiddenItems) {
 function addClassPrefOptions() {
 	var rowClassBars = heatMap.getRowClassificationConfig();
 	var colClassBars = heatMap.getColClassificationConfig();
+	var rowClassBarsOrder = heatMap.getRowClassificationOrder();
+	var colClassBarsOrder = heatMap.getColClassificationOrder();
 	var classSelect = document.getElementById('classPref_list');
 	var hiddenOpts = new Array();
 	classSelect.options.length = 0;
 	classSelect.options[classSelect.options.length] = new Option('ALL', 'ALL');
-	for (var key in rowClassBars) {
+	for (var i=0; i < rowClassBarsOrder.length;i++){
+		var key = rowClassBarsOrder[i];
 		var keyrow = key+"_row";
 		var displayName = key;
 		if (key.length > 20){
@@ -1226,7 +1144,8 @@ function addClassPrefOptions() {
 			hiddenOpts.push(displayName);
 		}
 	}
-	for (var key in colClassBars){
+	for (var i=0; i < colClassBarsOrder.length;i++){
+		var key = colClassBarsOrder[i];
 		var keycol = key+"_col";
 		var displayName = key;
 		if (key.length > 20){
@@ -1238,6 +1157,7 @@ function addClassPrefOptions() {
 			hiddenOpts.push(displayName);
 		}
 	}
+	
 	return hiddenOpts;
 }
 
@@ -1256,8 +1176,8 @@ function filterShow(key) {
 	} else {
 		filterShow = true;
 	}
-	return filterShow;
 	
+	return filterShow;
 }
 
 /*===================================================================================
@@ -1294,7 +1214,6 @@ function setupRowColPrefs(e, prefprefs){
 	setTableRow(prefContents,["&nbsp;&nbsp;Total Rows:",heatMap.getTotalRows()]);
 	setTableRow(prefContents,["&nbsp;&nbsp;Labels Type:",rowLabels['label_type']]);
 	setTableRow(prefContents,["&nbsp;&nbsp;Ordering Method:",rowOrder]);
-	var rowCtr = 11;
 	var dendroShowOptions = "<option value='ALL'>Summary and Detail</option><option value='SUMMARY'>Summary Only</option><option value='NONE'>Hide</option></select>";
 	var dendroHeightOptions = "<option value='50'>50%</option><option value='75'>75%</option><option value='100'>100%</option><option value='125'>125%</option><option value='150'>150%</option><option value='200'>200%</option><option value='300'>300%</option></select>";
 	if (rowOrder === "Hierarchical") {
@@ -1306,12 +1225,10 @@ function setupRowColPrefs(e, prefprefs){
 		var rowDendroHeightSelect = "<select name='rowDendroHeightPref' id='rowDendroHeightPref'>"
 		rowDendroHeightSelect = rowDendroHeightSelect+dendroHeightOptions;
 		setTableRow(prefContents,["&nbsp;&nbsp;Dendrogram Height:",rowDendroHeightSelect]); 
-		rowCtr += 4;
 	}  
 	addBlankRow(prefContents,2);
 	setTableRow(prefContents,["COLUMN INFORMATION:"], 2);
 	addBlankRow(prefContents);
-	rowCtr += 4;
 	
 	var colLabels = heatMap.getColLabels();
 	var colOrganization = heatMap.getColOrganization();
@@ -1319,7 +1236,6 @@ function setupRowColPrefs(e, prefprefs){
 	setTableRow(prefContents,["&nbsp;&nbsp;Total Columns:",heatMap.getTotalCols()]);
 	setTableRow(prefContents,["&nbsp;&nbsp;Labels Type:",colLabels['label_type']]);
 	setTableRow(prefContents,["&nbsp;&nbsp;Ordering Method:",colOrder]);
-	rowCtr += 3;
 	if (colOrder === "Hierarchical") {
 		setTableRow(prefContents,["&nbsp;&nbsp;Agglomeration Method:",colOrganization['agglomeration_method']]);
 		setTableRow(prefContents,["&nbsp;&nbsp;Distance Metric:",colOrganization['distance_metric']]);
@@ -1329,12 +1245,18 @@ function setupRowColPrefs(e, prefprefs){
 		colDendroHeightSelect = colDendroHeightSelect+dendroHeightOptions;
 		setTableRow(prefContents,["&nbsp;&nbsp;Show Dendrogram:",colDendroShowSelect]);
 		setTableRow(prefContents,["&nbsp;&nbsp;Dendrogram Height:",colDendroHeightSelect]);
-		rowCtr += 4;
 	}
-	if (rowCtr > maxRows) {
-		maxRows = rowCtr;
-	}
+	addBlankRow(prefContents,2);
+	setTableRow(prefContents,["MAP SIZING:"]);
+	var sumWidth = Math.round(document.getElementById('summary_chm').offsetWidth/(.96*document.getElementById('container').offsetWidth)*100);
+	var detWidth = Math.round(document.getElementById('detail_chm').offsetWidth/(.96*document.getElementById('container').offsetWidth)*100);
+	var mapHeight = Math.round(document.getElementById('detail_chm').clientHeight/container.clientHeight*100);
+	setTableRow(prefContents,["&nbsp;&nbsp;Summary Width:","<input type=\"text\" name=\"summaryWidthPref\" id=\"summaryWidthPref\" style=\"width:40px\" value=\"" + sumWidth+"\">%"]);
+	setTableRow(prefContents,["&nbsp;&nbsp;Detail Width:","<input type=\"text\" name=\"detailWidthPref\" id=\"detailWidthPref\" style=\"width:40px\" value=\"" + detWidth + "\">%"]);
+	setTableRow(prefContents,["&nbsp;&nbsp;Map Height:","<input type=\"text\" name=\"mapHeightPref\" id=\"mapHeightPref\" style=\"width:40px\" value=\"" + mapHeight + "\">%"]);
+	
 	rowcolprefs.appendChild(prefContents);
+
 	return rowcolprefs;
 }
 
@@ -1360,8 +1282,10 @@ function showDendroSelections() {
 			option.value = '10';
 			rowHeightPref.add(option);
 			rowHeightPref.disabled = true;
+			rowHeightPref.value = option.value;
+		} else {
+			rowHeightPref.value = rowDendroConfig.height;
 		}
-		rowHeightPref.value = rowDendroConfig.height;
 	}
 	var colOrganization = heatMap.getColOrganization();
 	var colOrder = colOrganization['order_method'];
@@ -1380,8 +1304,10 @@ function showDendroSelections() {
 			option.value = '10';
 			colHeightPref.add(option);
 			colHeightPref.disabled = true;
+			colHeightPref.value = option.value;
+		} else {
+			colHeightPref.value = colDendroConfig.height;
 		}
-		colHeightPref.value = colDendroConfig.height;
 	}
 }
 

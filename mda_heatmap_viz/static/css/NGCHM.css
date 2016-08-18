@@ -2,6 +2,10 @@
 /**
  *  */
 
+::selection {
+    color: none;
+    background: none;
+}
 
 body, html {
     font-family: sans-serif;
@@ -39,6 +43,11 @@ div.mdaServiceHeaderLogo img
 	height: 54px;
 }
 
+#container{
+	display: flex;
+	height: 90%;
+}
+
 #divider{
 	height: 82%;
 	width: 5px;
@@ -49,13 +58,27 @@ div.mdaServiceHeaderLogo img
 	cursor: ew-resize;
 }
 
+#detSizer{
+	height: 5px;
+	width: 5px;
+	/* margin-right:3px; */
+	margin-bottom:-10px;
+	bottom:17%;
+	right:8%;
+	vertical-align:bottom;
+	display:inline-block;
+	background: #666666;
+	cursor: nwse-resize;
+	/* float:right; */
+}
+
 #summary_chm {
     height:auto;
     min-height: 50px;
     max-height: 100%;
     width:48%;
     min-width: 100px;
-    max-width: 80%;
+    /* max-width: 80%; */
     vertical-align:top;
     margin-left: 3px;
     display:inline-block;
@@ -63,9 +86,38 @@ div.mdaServiceHeaderLogo img
 }
 
 #summary_canvas {
-    height:82%;
-    width:98%;
+	position:absolute;
+    /* height:68.3%; */
+    /* width:78%; */
 	zIndex:1;
+	image-rendering: pixelated;
+	image-rendering: -moz-crisp-edges;
+	/* float:right;
+	margin-right:2%; */
+}
+
+#summary_box_canvas {
+	position:absolute;
+	pointer-events: none;
+}
+
+#detail_box_canvas {
+	position:absolute;
+	pointer-events: none;
+}
+
+
+
+#column_dendro_canvas{
+	position:absolute;
+	/* float:right; */
+	/* margin-right:2%; */
+}
+
+
+#row_dendro_canvas{
+	position: absolute;
+	/* left:4%; */
 }
 
 #classBarLabels{
@@ -77,14 +129,17 @@ div.mdaServiceHeaderLogo img
 #detail_chm {
     height:auto;
     width:48%;
+    min-height: 50px;
+    max-height: 100%;
     min-width: 100px;
-    max-width: 80%;
+    /* max-width: 90%; */
     vertical-align:top;
     display:inline-block;
 }
 
 #detail_canvas {
-    height:82%;
+	position:absolute;
+	height:82%;
     width:90%;
 	zIndex:1;
 }
@@ -117,12 +172,7 @@ div.mdaServiceHeaderLogo img
 
 #pdf_gear{
 	display: inline-block;
-	width: 60px;
 	margin-top: 10px;
-}
-
-#chmFile {
-	display: none
 }
 
 #helptext {
@@ -159,12 +209,6 @@ div.mdaServiceHeaderLogo img
     white-space: nowrap;
 }
 
-#prefprefs {
-	position: relative;
-    display: inline-block;
-}
-
-
 .input-color {
     position: relative;
 }
@@ -183,7 +227,8 @@ div.mdaServiceHeaderLogo img
 
 table {
     width: 100%;
-    border-spacing: 1px;
+    max-height: 500px;
+    border-spacing: 3px;
 }
 
 td {
@@ -320,7 +365,44 @@ th.breakpointContainer {
     border-collapse: collapse;    
 }
 
-#prefsPanel, #pdfPrefsPanel, #zipFileSavePanel, #unappliedChangeSavePanel, #downloadFileModeApp {
+#prefsPanel {
+	height: 100%;
+	width: 420px;
+	overflow: none;
+	position: fixed;
+	top: 0;
+	right: 0;
+	background-color: #CBDBF6; 
+}
+
+#prefTabButtons {
+	align: top;
+	border-bottom-width: 2px;
+	border-bottom-color: #0843c1;
+	border-bottom-style: solid;
+}
+
+#prefPrefs {
+	position: relative;
+    display: inline-block;
+    height: 88%;
+    overflow: auto;
+    overflow-x: hidden;
+}
+
+#prefActions {
+	position: absolute;
+	bottom: 5;
+	left: 32;
+	align: right;
+	background-color: #CBDBF6; 
+    font-family: Arial;
+    font-weight: bold;
+    text-align: center;
+    color: red;
+}
+
+#pdfPrefsPanel, #msgBox {
     margin: 5px !important;
     padding: 2px 2px 2px 2px !important;
     border: 1px solid #1a1a1a;
@@ -337,7 +419,8 @@ th.breakpointContainer {
     box-shadow: 5px 5px 5px #777777;
     white-space: nowrap;
 }
-#prefsHeader, #pdfPrefsHeader{
+
+#prefsHeader, #pdfPrefsHeader, #msgBoxHdr{
     display: table;
     font-size: 18px;
     font-weight: bold;
@@ -347,10 +430,24 @@ th.breakpointContainer {
     height: 30px;
     line-height: 30px;
     text-align: center;
-    border-top-left-radius: 15px;
-    border-top-right-radius: 15px;
     background: #CBD1EA;
 }
+
+#pdfPrefsHeader, #msgBoxHdr{
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+}
+
+.prefSubPanel{
+	width: inherit;
+	vertical-align: top;
+	height: 99%;
+	background-color: #CBDBF6; 
+    display: none;
+    overflow: none;
+    border: 2px solid #CBDBF6;
+}
+
 
 .hide{
 

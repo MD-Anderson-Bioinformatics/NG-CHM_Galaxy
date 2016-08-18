@@ -43,3 +43,19 @@ function returnToHome() {
 		window.open(collectionhomeurl,"_self")
 	}
 }
+
+/**********************************************************************************
+ * FUNCTION - ReverseObject: The purpose of this function is to reverse the order
+ * of key elements in an object.
+ **********************************************************************************/
+function reverseObject(Obj){
+    var TempArr = [];
+    var NewObj = [];
+    for (var Key in Obj){
+        TempArr.push(Key);
+    }
+    for (var i = TempArr.length-1; i >= 0; i--){
+        NewObj[TempArr[i]] = [];
+    }
+    return NewObj;
+}
