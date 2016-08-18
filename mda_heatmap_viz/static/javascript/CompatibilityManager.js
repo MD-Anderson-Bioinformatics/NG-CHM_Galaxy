@@ -34,6 +34,7 @@ function CompatibilityManager(mapConfig){
 	//Construct comparison object tree from the heatmap's configuration
 	var mapObj = {}
 	buildConfigComparisonObject(mapConfig, '', mapObj);
+	
 	//Loop thru the default configuration object tree searching for matching
 	//config items in the heatmap's config obj tree.
 	for (var key in configObj) {
@@ -49,13 +50,13 @@ function CompatibilityManager(mapConfig){
 		var found = false;
 		for (var key in mapObj) {
 			if (key === searchItem) {
-				found = true;
-				break;
+					found = true;
+					break;
 			}
 		}
 		//If config object not found in heatmap config, add object with default
 		if (!found) {
-	    	if (!classOrderFound) {
+	    	if (!classOrderFound) { 
 				var searchPath = searchItem.substring(1, searchItem.lastIndexOf("."));
 				var newItem = searchItem.substring(searchItem.lastIndexOf(".")+1, searchItem.length);
 				var parts = searchPath.split(".");
@@ -64,14 +65,39 @@ function CompatibilityManager(mapConfig){
 					obj = obj[parts[i]];
 				}
 				obj[newItem] = searchValue;
+				foundUpdate = true;
+	    	} else {
+	    		//If we are processing for missing classification order, check to see if there
+	    		//are any classifications defined before requiring an update.
+	    		if (hasClasses(mapConfig, searchItem)) {
+	    			foundUpdate = true;
+	    		}
 	    	}
-			foundUpdate = true;
 		}
 	}
 	//If any new configs were added to the heatmap's config, save the config file.
 	if (foundUpdate === true) {
 		var success = heatMap.autoSaveHeatMap();
 	}
+}
+
+/**********************************************************************************
+ * FUNCTION - hasClasses: The purpose of this function is determine, IF column or
+ * row classifications exist in the current config.  The reason for this is that
+ * if classification_order is NOT found, we only need to update the auto save 
+ * the heatmap's config if classifications exist.
+ * *******************************************************************************/
+function hasClasses(config, item) {
+	if (item.includes(".row_configuration.")) {
+		if (Object.keys(config.row_configuration.classifications).length > 0) {
+			return true;
+		}
+	} else {
+		if (Object.keys(config.col_configuration.classifications).length > 0) {
+			return true;
+		}
+	}
+	return false;
 }
 
 /**********************************************************************************

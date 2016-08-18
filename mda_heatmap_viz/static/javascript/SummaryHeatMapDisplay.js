@@ -247,11 +247,14 @@ function onMouseDownCanvas (evt) {
 	evt.preventDefault();
 	evt.stopPropagation();	
 	sumCanvas = document.getElementById('summary_canvas');
-	sumCanvas.style.cursor="crosshair";
+	var boxY = ((colClassBarHeight)/canvas.height * box_canvas.height);
 	var sumOffsetX = evt.touches ? evt.touches[0].offsetX : evt.offsetX;
 	var sumOffsetY = evt.touches ? evt.touches[0].offsetY : evt.offsetY;
 	var sumRow = canvasToMatrixRow(getCanvasY(sumOffsetY));
 	var sumCol = canvasToMatrixCol(getCanvasX(sumOffsetX));
+	if ((sumRow > 0) && (sumCol > 0)) {
+		sumCanvas.style.cursor="crosshair";
+	}
 	clickStartRow = (sumRow*heatMap.getRowSummaryRatio(MatrixManager.SUMMARY_LEVEL));
 	clickStartCol = (sumCol*heatMap.getColSummaryRatio(MatrixManager.SUMMARY_LEVEL));
 }
@@ -440,10 +443,10 @@ function drawLeftCanvasBox() {
 		var adjustedStop = selectedStop / summaryRatio;
 		boxX = (((rowClassBarWidth - 1) / canvas.width) * box_canvas.width) + 1;
 		boxY = ((colClassBarHeight)/canvas.height * box_canvas.height);
-		boxW = ((adjustedStart+1) / canvas.width) * box_canvas.width;
+		boxW = ((adjustedStart) / canvas.width) * box_canvas.width;
 		boxH = box_canvas.height-boxY;
 		ctx.fillRect(boxX,boxY,boxW,boxH); 
-		boxX = (((rowClassBarWidth+adjustedStop - 1) / canvas.width) * box_canvas.width) + 1;
+		boxX = (((rowClassBarWidth+adjustedStop) / canvas.width) * box_canvas.width) + 1;
 		boxW = (((canvas.width-adjustedStop)+1) / canvas.width) * box_canvas.width;
 		ctx.fillRect(boxX,boxY,boxW,boxH); 
 	} else if (mode.startsWith('RIBBONV')  && selectedStart > 0) {
@@ -451,9 +454,9 @@ function drawLeftCanvasBox() {
 		var adjustedStart = selectedStart / summaryRatio;
 		var adjustedStop = selectedStop / summaryRatio;
 		boxX = ((rowClassBarWidth / canvas.width) * box_canvas.width);
-		boxY = ((colClassBarHeight)/canvas.height * box_canvas.height);
+		boxY = ((colClassBarHeight - 1)/canvas.height * box_canvas.height);
 		var boxW = box_canvas.width-boxX;
-		var boxH = ((adjustedStart+1) / canvas.height) * box_canvas.height;
+		var boxH = ((adjustedStart) / canvas.height) * box_canvas.height;
 		ctx.fillRect(boxX,boxY,boxW,boxH); 
 		var boxY = ((colClassBarHeight+adjustedStop)/canvas.height * box_canvas.height);
 		var boxH = (((canvas.height-adjustedStop)+1) / canvas.height) * box_canvas.height;

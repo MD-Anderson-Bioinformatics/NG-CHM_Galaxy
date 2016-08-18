@@ -161,7 +161,7 @@ function SummaryColumnDendrogram(){
 				if (dendroMatrix[i][j] == 2){colgl.fillRect(x,y,2,2);} 
 				if (xRatio >= 1 && dendroMatrix[i][j+1] == 2){
 					var fill = 1;
-					while(fill<xRatio){colgl.fillRect(x+fill,y,1,1),fill++;}
+					while(fill<xRatio){colgl.fillRect(x+fill,y,2,2),fill++;}
 				}
 			}
 		}
@@ -432,7 +432,7 @@ function SummaryRowDendrogram(){
 				if (dendroMatrix[i][j] == 2){rowgl.fillRect(x,y,2,2);}
 				if (yRatio >= 1 && dendroMatrix[i][j+1] == 2){
 					var fill = 1;
-					while(fill<yRatio){rowgl.fillRect(x,y+fill,1,1),fill++;}
+					while(fill<yRatio){rowgl.fillRect(x,y+fill,2,2),fill++;}
 				}
 			}
 		}

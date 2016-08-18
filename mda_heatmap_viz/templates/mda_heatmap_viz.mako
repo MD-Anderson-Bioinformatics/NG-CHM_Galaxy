@@ -209,9 +209,9 @@
          </table>
       </div>
       <div id="prefsPanel" style="display: none;">
-         <div id="prefsHeader">Heat Map Display Properties<img id="redX_btn" src="images/redX.png" alt="Cancel changes" onclick="prefsCancelButton();" align="right"></div>
+         <div id="prefsHeader">Heat Map Display Properties<img id="redX_btn" src="/plugins/visualizations/mda_heatmap_viz/static/images/redX.png" alt="Cancel changes" onclick="prefsCancelButton();" align="right"></div>
          <div style="height: 20px;"></div>
-         <div id="prefTabButtons">&nbsp;<img id="prefRowsCols_btn" src="images/rowsColsOn.png" alt="Edit Rows &amp; Columns" onclick="showRowsColsPrefs();" align="top">&nbsp;<img id="prefLayer_btn" src="images/dataLayersOff.png" alt="Edit Data Layers" onclick="showLayerPrefs();" 	align="top">&nbsp;<img id="prefClass_btn" src="images/covariateBarsOff.png" alt="Edit Classifications" onclick="showClassPrefs();" align="top"></div>
+         <div id="prefTabButtons">&nbsp;<img id="prefRowsCols_btn" src="/plugins/visualizations/mda_heatmap_viz/static/images/rowsColsOn.png" alt="Edit Rows &amp; Columns" onclick="showRowsColsPrefs();" align="top">&nbsp;<img id="prefLayer_btn" src="/plugins/visualizations/mda_heatmap_viz/static/images/dataLayersOff.png" alt="Edit Data Layers" onclick="showLayerPrefs();" 	align="top">&nbsp;<img id="prefClass_btn" src="/plugins/visualizations/mda_heatmap_viz/static/images/covariateBarsOff.png" alt="Edit Classifications" onclick="showClassPrefs();" align="top"></div>
          <div id="prefPrefs" class="prefSubPanel" style="display: block; height: 70"></div>
       </div>
    </BODY >

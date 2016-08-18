@@ -870,7 +870,7 @@ function setupAllClassesPrefs(){
 	prefContents.id = "tableAllClasses";
 	addBlankRow(prefContents);
 	var colShowAll = "<input name='all_showPref' id='all_showPref' type='checkbox' onchange='showAllBars();'> ";
-	setTableRow(prefContents,["&nbsp;<u>"+"Classification"+"</u>", "<b><u>"+"Position"+"</u></b>", colShowAll+"<b><u>"+"Show"+"</u></b>", "<b><u>"+"Height"+"</u></b>"]);
+	setTableRow(prefContents,["&nbsp;<u>"+"Covariate"+"</u>", "<b><u>"+"Position"+"</u></b>", colShowAll+"<b><u>"+"Show"+"</u></b>", "<b><u>"+"Height"+"</u></b>"]);
 	var checkState = true;
 	var rowClassBars = heatMap.getRowClassificationConfig();
 	var rowClassBarsOrder = heatMap.getRowClassificationOrder();
