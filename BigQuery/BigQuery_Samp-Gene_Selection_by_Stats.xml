@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<tool id="BigQuery_Samp-Gene_Selection_by_Stats" name="Select Sample-Gene Pairs from NGCHM" version="1.8.2" >
+  <description> based on Gene StdDev Outliers against Study Cohort</description>
+  <command interpreter="python">BigQuery_Gene_Selection_by_Stats.py  '$cohortName' '$input2' $study $Table_type $stat_type $SD_Value $Samp_Type '$outfile'  </command>
+  <inputs>
+    <param name="cohortName" size="20" type="text" value="genes" label="Label for Your resulting Sample-Gene cohort file that meets the Statistcal Calculations below"/>
+    <param format="tabular" name="input2" type="data" label="Sample or Participant BarCode File" help="Input file with one row for Either NGCHM Sample IDs or Participant IDs"/>
+	<param name="study" type="select"  label="Study" help="Study Name for Tissue">
+	<!--	<option value="ALL">All Participants</option> -->
+		<option value="ACC">ACC</option>
+		<option value="BLCA">BLCA</option>
+		<option value="BRCA">BRCA</option>
+		<option value="CESC">CESC</option>
+		<option value="CHOL">CHOL</option>
+		<option value="COAD">COAD</option>
+		<option value="CRC">CRC</option>
+		<option value="DLBC">DLBC</option>
+		<option value="ESCA">ESCA</option>
+		<option value="GBM">GBM</option>
+		<option value="HNSC">HNSC</option>
+		<option value="KICH">KICH</option>
+		<option value="KIRC">KIRC</option>
+		<option value="KIRP">KIRP</option>
+		<option value="LAML">LAML</option>
+		<option value="LGG">LGG</option>
+		<option value="LIHC">LIHC</option>
+		<option value="LUAD">LUAD</option>
+		<option value="LUSC">LUSC</option>
+		<option value="MESO">MESO</option>
+		<option value="OV">OV</option>
+		<option value="PAAD">PAAD</option>
+		<option value="PCPG">PCPG</option>
+		<option value="PRAD">PRAD</option>
+		<option value="READ">READ</option>
+		<option value="SARC">SARC</option>
+		<option value="SKCM">SKCM</option>
+		<option value="STAD">STAD</option>
+		<option value="TGCT">TGCT</option>
+		<option value="THCA">THCA</option>
+		<option value="THYM">THYM</option>
+		<option value="UCEC">UCEC</option>
+		<option value="UCS">UCS</option>
+		<option value="UVM">UVM</option>	
+	</param>
+	<param name="Table_type" type="select"  label="TableType" help="Gene and Participant and Sample Metadata">
+		<option value="mRNA_UNC_HiSeq_RSEM">mRNA_UNC_HiSeq_RSEM - More data and mutually exclusive of BCGSC</option>
+		<option value="mRNA_BCGSC_HiSeq_RPKM">mRNA_BCGSC_HiSeq_RPKM - Less Data and mutually exclusive of UNC</option>
+<!--		<option value="miRNA_expression">miRNA_expression - requires only Participant input file</option>
+		<option value="Protein_RPPA_data">Protein_RPPA_data - requires Gene and Participant input files</option>
+		<option value="Somatic_Mutation_calls">Somatic_Mutation_calls - requires Gene and Participant input files</option>
+		<option value="Annotations">Annotations - requires only Participant input file</option>
+		<option value="Biospecimen_data">Biospecimen_data - requires only Participant input file</option>
+		<option value="Copy_Number_segments">Copy_Number_segments - requires only Participant input file</option>
+		<option value="DNA_Methylation_betas">DNA_Methylation_betas - requires only Participant input file</option> 
+	-->
+	</param>
+	<param name="Samp_Type" type="select"  label="Tumor or Normal" help="Used To Define Study-sample_type Gene cohort in Std Dev calculation used to filter gene Mean values for User supplied Participant cohort">
+		<option value="01">Normal</option>
+		<option value="10">Tumor</option>
+		<option value="20">Control</option>
+		<option value="99">All</option>
+	</param>
+ 	<param name="stat_type" type="select"  label="Statistic" help="Statistical Algorithm to apply to refine genes selected">
+		<option value="STDDEV_SAMP">Standard_Deviation based on Study and Sample Type select</option>
+	</param>
+ 	<param name="SD_Value" size="3" type="text" value="0.0" label="Cutoff in Standard Deviatons + or - the Mean of User Participant cohort Gene values must exceed that of Study-sample_type chort Mean">
+<!--      <param name="Num_Max_Value" size="6" type="text" value="0.0" label="MAXIMUM Value"/>
+      <param name="max_hits" size="4" type="text" value="10" label="Maximum returned hits" help="from highest to lowest from results" />
+-->
+	</param>
+</inputs>
+  <outputs>
+    <data format="tabular" type="data"  label="{$cohortName-$study-SampType$Samp_Type-$stat_type$SD_Value}" name="outfile"/>
+  </outputs>
+</tool>

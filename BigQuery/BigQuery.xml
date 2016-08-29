@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<tool id="BigQuery" name="Query NGCHM for MRNA expression values" version="1.5.9">
+  <description> using NGCHM Sample and Gene Lists</description>
+  <command interpreter="python">Big_Query_ISB_NGCHM.py  '$input1' '$input2' $study $Table_type '$outfile1'  </command>
+  <inputs>
+    <param format="tabular" name="input1" type="data" label="HGNC_gene_symbol Name File" help="Input file with one row for each NGCHM HGNC_gene_symbol  e.g. ALX3"/>
+    <param format="tabular" name="input2" type="data" label="Sample BarCode File" help="Input file with one row for each NGCHM Sample Barcode"/>
+	<param name="study" type="select"  label="Study" help="Study Name for Tissue">
+	<!--	<option value="ALL">All Samples</option> -->
+		<option value="ACC">ACC</option>
+		<option value="BLCA">BLCA</option>
+		<option value="BRCA">BRCA</option>
+		<option value="CESC">CESC</option>
+		<option value="CHOL">CHOL</option>
+		<option value="COAD">COAD</option>
+		<option value="CRC">CRC</option>
+		<option value="DLBC">DLBC</option>
+		<option value="ESCA">ESCA</option>
+		<option value="GBM">GBM</option>
+		<option value="HNSC">HNSC</option>
+		<option value="KICH">KICH</option>
+		<option value="KIRC">KIRC</option>
+		<option value="KIRP">KIRP</option>
+		<option value="LAML">LAML</option>
+		<option value="LGG">LGG</option>
+		<option value="LIHC">LIHC</option>
+		<option value="LUAD">LUAD</option>
+		<option value="LUSC">LUSC</option>
+		<option value="MESO">MESO</option>
+		<option value="OV">OV</option>
+		<option value="PAAD">PAAD</option>
+		<option value="PCPG">PCPG</option>
+		<option value="PRAD">PRAD</option>
+		<option value="READ">READ</option>
+		<option value="SARC">SARC</option>
+		<option value="SKCM">SKCM</option>
+		<option value="STAD">STAD</option>
+		<option value="TGCT">TGCT</option>
+		<option value="THCA">THCA</option>
+		<option value="THYM">THYM</option>
+		<option value="UCEC">UCEC</option>
+		<option value="UCS">UCS</option>
+		<option value="UVM">UVM</option>	
+	</param>
+	<param name="Table_type" type="select"  label="TableType" help="Use Gene plus Sample data to retrieve mRNA expression scores">
+		<option value="mRNA_UNC_HiSeq_RSEM">mRNA_UNC_HiSeq_RSEM - requires Gene and Sample barcode input files</option>
+		<option value="mRNA_BCGSC_HiSeq_RPKM">mRNA_BCGSC_HiSeq_RPKM - requires Gene and Sample barcode input files</option>
+<!--		<option value="miRNA_expression">miRNA_expression - requires only Sample barcode input file</option>
+		<option value="Protein_RPPA_data">Protein_RPPA_data - requires Gene and Sample barcode input files</option>
+		<option value="Somatic_Mutation_calls">Somatic_Mutation_calls - requires Gene and Sample barcode input files</option>
+		<option value="Annotations">Annotations - requires only Sample barcode input file</option>
+		<option value="Biospecimen_data">Biospecimen_data - requires only Sample barcode input file</option>
+		<option value="Copy_Number_segments">Copy_Number_segments - requires only Sample barcode input file</option>
+		<option value="DNA_Methylation_betas">DNA_Methylation_betas - requires only Sample barcode input file</option> 
+	-->
+	</param>
+  </inputs>
+  <outputs>
+    <data format="tabular" type="data"   label="${tool.name} on ${on_string}" name="outfile1"/>
+  </outputs>
+</tool>

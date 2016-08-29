@@ -1,0 +1,13 @@
+	<section id="MDAheatmap" name="TCGA_Heatmap Creation">
+		<tool file="MDA_Heatmaps/mda_heatmap_gen.xml" />
+<!--		<tool file="MDA_Heatmaps/MeanCenterMatrix.xml" />
+		<tool file="MDA_Heatmaps/NormalizeMatrix.xml" />   -->
+	</section>
+	<section id="BigQuery" name="Big Query">
+		<tool file="BigQuery/BigQuery_cohort_creation.xml" />
+		<tool file="BigQuery/BQSampleCovariateFile.xml" />
+		<tool file="BigQuery/BigQuery_SELF_Gene_Selection_by_Stats.xml" />
+		<tool file="BigQuery/BigQuery_Samp-Gene_Selection_by_Stats.xml" />
+		<tool file="BigQuery/BigQuery_ISB_Select_Cloud_Genes.xml" />
+		<tool file="BigQuery/BigQuery.xml" />
+	</section>

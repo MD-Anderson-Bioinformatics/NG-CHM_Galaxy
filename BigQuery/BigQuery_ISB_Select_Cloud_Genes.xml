@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<tool id="Big_Query_ISB_Select_Cloud_Genes" name="Select Genes from MDA " version="1.0.1" >
+  <description>Big Query Cloud Repository</description>
+  <command interpreter="python">Big_Query_ISB_Select_Cloud_Genes.py  '$cohortName' '$proj' '$dataset' '$table' '$selectcolname' '$selectcolval' '$outfile'  </command>
+  <inputs>
+    <param name="cohortName" size="20" type="text" value="genes" label="Label Your New Participant Cohort"/>
+
+	<param name="proj" type="select"  label="Big Query Project" help="Big Query Project (It must be publically accessible)">
+		<option value="ngchm-cloud-pilot">ngchm-cloud-pilot</option>
+	</param>
+
+	<param name="dataset" type="select"  label="Dataset" help="Dataset Name for Gene sets">
+		<option value="reference">reference</option>
+	</param>
+
+	<param name="table" type="select"  label="Table" help="Table name with Gene sets">
+		<option value="allonco">allonco</option>
+	</param>
+
+	<param name="selectcolname" type="select"  label="Gene Set Identifier Field Name" help="The field used to retrieve all Genes in a Set">
+		<option value="authority">authority</option>
+	</param>
+
+	<param name="selectcolval" type="select"  label="Gene Set Identifier Value" help="Key Value to retrieve the specific Genes in a Set">
+		<option value="atlas">atlas</option>
+		<option value="cangenes">cangenes</option>
+		<option value="cis">cis</option>
+		<option value="humanlymph">humanlymph</option>
+		<option value="miscellaneous">miscellaneous</option>
+		<option value="sanger">sanger</option>
+		<option value="Vogelstein">Vogelstein</option>
+		<option value="waldman">waldman</option>
+	</param>
+
+  </inputs>
+  <outputs>
+    <data format="tabular" type="data"  label="${selectcolval} gene list" name="outfile"/>
+  </outputs>
+</tool>

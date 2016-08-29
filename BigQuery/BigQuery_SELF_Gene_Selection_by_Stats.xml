@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<tool id="BigQuery_SELF_Gene_Selection_by_Stats" name="Statistically select Genes of interest" version="1.5.3" >
+  <description> based on gene values from an input NGCHM Sample or Participant list</description>
+  <command interpreter="python">BigQuery_SELF_Gene_Selection_by_Stats.py  '$cohortName' '$input2' $study $Table_type  '$outfile' $discrete_fields.Text_Fields $discrete_fields.Text_Value $keepNormal
+<!-- 
+      #for $op in $text_param
+        ${op.discrete_fields.Text_Fields}
+        ${op.discrete_fields.Text_Value}
+      #end for
+     
+      #for $opp in $num_param
+       ${opp.Num_Variable_Fields}
+       ${opp.Num_Min_Value}
+       ${opp.Num_Max_Value}
+      #end for
+-->
+  </command>
+  <inputs>
+    <param name="cohortName" size="20" type="text" value="genes" label="Label for Your New Gene Cohort that meets the Statistcal Calculations below"/>
+    <param format="tabular" name="input2" type="data" label="Sample or Participant BarCode File" help="Input file with one row for Either NGCHM Sample IDs or Participant IDs"/>
+	<param name="study" type="select"  label="Study" help="Study Name for Tissue">
+	<!--	<option value="ALL">All Participants</option> -->
+		<option value="ACC">ACC</option>
+		<option value="BLCA">BLCA</option>
+		<option value="BRCA">BRCA</option>
+		<option value="CESC">CESC</option>
+		<option value="CHOL">CHOL</option>
+		<option value="COAD">COAD</option>
+		<option value="CRC">CRC</option>
+		<option value="DLBC">DLBC</option>
+		<option value="ESCA">ESCA</option>
+		<option value="GBM">GBM</option>
+		<option value="HNSC">HNSC</option>
+		<option value="KICH">KICH</option>
+		<option value="KIRC">KIRC</option>
+		<option value="KIRP">KIRP</option>
+		<option value="LAML">LAML</option>
+		<option value="LGG">LGG</option>
+		<option value="LIHC">LIHC</option>
+		<option value="LUAD">LUAD</option>
+		<option value="LUSC">LUSC</option>
+		<option value="MESO">MESO</option>
+		<option value="OV">OV</option>
+		<option value="PAAD">PAAD</option>
+		<option value="PCPG">PCPG</option>
+		<option value="PRAD">PRAD</option>
+		<option value="READ">READ</option>
+		<option value="SARC">SARC</option>
+		<option value="SKCM">SKCM</option>
+		<option value="STAD">STAD</option>
+		<option value="TGCT">TGCT</option>
+		<option value="THCA">THCA</option>
+		<option value="THYM">THYM</option>
+		<option value="UCEC">UCEC</option>
+		<option value="UCS">UCS</option>
+		<option value="UVM">UVM</option>
+	</param>
+	<param name="keepNormal" type="select"  label="Keep Normal Samples" help="Normal Samples often have value of NA">
+		<option value="N" selected="selected">Remove Normal Samples</option>
+		<option value="Y">Keep Normal Samples in Matrix</option>
+	</param>
+	<param name="Table_type" type="select"  label="TableType" help="Gene and Participant and Sample Metadata">
+		<option value="mRNA_UNC_HiSeq_RSEM">mRNA_UNC_HiSeq_RSEM - More data and mutually exclusive of BCGSC</option>
+		<option value="mRNA_BCGSC_HiSeq_RPKM">mRNA_BCGSC_HiSeq_RPKM - Less Data and mutually exclusive of UNC</option>
+<!--		<option value="miRNA_expression">miRNA_expression - requires only Participant input file</option>
+		<option value="Protein_RPPA_data">Protein_RPPA_data - requires Gene and Participant input files</option>
+		<option value="Somatic_Mutation_calls">Somatic_Mutation_calls - requires Gene and Participant input files</option>
+		<option value="Annotations">Annotations - requires only Participant input file</option>
+		<option value="Biospecimen_data">Biospecimen_data - requires only Participant input file</option>
+		<option value="Copy_Number_segments">Copy_Number_segments - requires only Participant input file</option>
+		<option value="DNA_Methylation_betas">DNA_Methylation_betas - requires only Participant input file</option> 
+	-->
+	</param>
+<!--  old params
+ 	<param name="stat_type" type="select"  label="Statistic" help="Statistical Algorithm to apply to refine genes selected">
+		<option value="STDDEV_SAMP">Standard_Deviation based on Study and Sample Type select</option>
+	</param>
+ 	<param name="SD_Value" size="3" type="text" value="0.0" label="Cutoff in Standard Deviatons + or - the Mean of User Participant cohort Gene values must exceed that of Study-sample_type chort Mean">
+    <param name="Num_Max_Value" size="6" type="text" value="0.0" label="MAXIMUM Value"/>
+      <param name="max_hits" size="4" type="text" value="10" label="Maximum returned hits" help="from highest to lowest from results" />
+-->
+      <conditional name="discrete_fields">
+		<param name="Text_Fields" type="select" label="Statistical Query Field Choice" help="Percentile rangesfrom 0 common to 100 highest Outlier ">
+        	<option value='Stat_EMPTY' >Click cursor in middle of this text to see choices</option>
+       	 	<option value='Stat_STDDEV_SAMP' selected="true">Gene mRNA expression StdDev Percentile versus all Gene StdDevs for supplied Sample List</option>
+     	</param>
+        <when value="Stat_STDDEV_SAMP">
+            <param name="Text_Value" size="3" type="text" value="98.0"  label="Percentile cutoff for StdDev  100 is farthest Outlier" >
+            </param>
+        </when>
+     </conditional>
+  </inputs>
+  <outputs>
+    <data format="tabular" type="data"  label="{$cohortName-$study}" name="outfile"/>
+  </outputs>
+    <help>
+.. class:: warningmark
+
+Supplied Participant Barcodes are converted to their Sample Barcodes.  NOTE: Most Normal samples do NOT have mRNA expression info and will return NA
+
+.. class:: warningmark
+
+Only TGCA valid Participant or Sample Barcodes are allowed WITHOUT a header row for Column Titles
+It allows both Participant or Sample Barcodes mixed together
+The Database table mRNA_UNC_HiSeq_RSEM generally has more data
+-----
+
+
+.. class:: infomark
+
+**What it does**
+
+This tool takes a list of Sample Barcodes (converts Participant Barcodes if that is what is input) and obtains the sample Standard Deviation 
+for all TCGA genes in the database.  It normalizes the Standard Deviation for each gene based on the samples suppled. It manages a list of 
+Percentile ranks for how much the specific Gene X's Standard Deviation is relatively higher that the other gene SD values. 
+Depending on user Percentile Cutoff chosen one wil retrieve a Matrix of Sample Barcodes (columns) vs Genes (rows) with cell values of the
+actual Normalized Value or RPKM values (depending on the Table chosen) 
+Percentile 100 is the  gene values with the highest variability for the supplied sample.   0 retrieves the least variable.
+When no data is returned for a cell 'NA' is returned in the out matrix.
+
+-----
+
+**Example**
+
+Inputing Sample Barcodes TCGA-GV-A3QK-01A	TCGA-DK-A1A7-01A	TCGA-XF-AAME-01A	TCGA-E7-A97Q-10A
+and a study "BLCA"
+
+will produce something like following matrix::
+
+			TCGA-GV-A3QK-01A	TCGA-DK-A1A7-01A	TCGA-XF-AAME-01A	TCGA-E7-A97Q-10A
+	BUB1B		0.22			1000.24				0.35				40.51
+	HIST1H4I	0.02			1100.01				0.02				60.01
+	STK11		0.18			500.84				0.04				55.05
+	PCSK7		0.45			250.33				0.53				45.15
+	B2M			0.41			455.43				0.15				33.29
+	LIFR		0.14			678.01				0.32				44.12
+
+Author Bob Brown  InSilico Solutions  3 July 2016
+
+  </help>
+
+</tool>

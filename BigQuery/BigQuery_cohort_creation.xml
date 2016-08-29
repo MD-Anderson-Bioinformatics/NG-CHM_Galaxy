@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<tool id="BigQuery_cohort_creation" name="Define a NGCHM Participant or Sample cohort" version="3.4.2">
+  <description> using Clinical criteria</description>
+  <command interpreter="python">Big_Query_ISB_Create_Cohort.py   '$user_cohortname' '$Study_Cohort_Table'
+
+       #for $op in $text_param
+        ${op.discrete_fields.Text_Fields}
+        ${op.discrete_fields.Text_Value}
+      #end for
+      
+      #for $opp in $num_param
+       ${opp.Num_Variable_Fields}
+       ${opp.Num_Min_Value}
+       ${opp.Num_Max_Value}
+      #end for
+      
+ 	 '$Participant_cohort'  
+ 	 
+  </command> 
+	<stdio>
+      <exit_code range="1:" level="fatal" /> 
+	</stdio>
+  <inputs>
+    <param name="user_cohortname" size="20" type="text" value="" label="Label Your New Participant or Sample Cohort"/>
+	<param name="Study_Cohort_Table" type="select" value="Study_Cohort_Table" label="Study" help="Select a Study by clicking curson on ACC text">
+        <option value="empty">Click cursor in middle of this text to see choices</option>  -->
+        <option value="ACC">ACC</option>
+        <option value="BLCA">BLCA</option>
+        <option value="BRCA">BRCA</option>
+        <option value="CESC">CESC</option>
+        <option value="CHOL">CHOL</option>
+        <option value="COAD">COAD</option>
+        <option value="CRC">CRC</option>
+        <option value="DLBC">DLBC</option>
+        <option value="ESCA">ESCA</option>
+        <option value="GBM">GBM</option>
+        <option value="HNSC">HNSC</option>
+        <option value="KICH">KICH</option>
+        <option value="KIRC">KIRC</option>
+        <option value="KIRP">KIRP</option>
+        <option value="LAML">LAML</option>
+        <option value="LGG">LGG</option>
+        <option value="LIHC">LIHC</option>
+        <option value="LUAD">LUAD</option>
+        <option value="LUSC">LUSC</option>
+        <option value="MESO">MESO</option>
+        <option value="OV">OV</option>
+        <option value="PAAD">PAAD</option>
+        <option value="PCPG">PCPG</option>
+        <option value="PRAD">PRAD</option>
+        <option value="READ">READ</option>
+        <option value="SARC">SARC</option>
+        <option value="SKCM">SKCM</option>
+        <option value="STAD">STAD</option>
+        <option value="TGCT">TGCT</option>
+        <option value="THCA">THCA</option>
+        <option value="THYM">THYM</option>
+        <option value="UCEC">UCEC</option>
+        <option value="UCS">UCS</option>
+        <option value="UVM">UVM</option>	
+	</param>
+
+    <repeat name="text_param" title="Categorical Query Info">
+ <!--     <param name="Text_Fields" type="select" label="Categorical Query Fields" multiple="True" data_ref="input" help="Multi-select list - hold the appropriate key while clicking to select multiple columns">  -->
+      <conditional name="discrete_fields">
+		<param name="Text_Fields" type="select" label="Categorical Query Field Choice" help="">
+        	<option value='cat_EMPTY' selected="true">Click cursor in middle of this text to see choices</option>
+       	 	<option value='cat_SampleTypeCode'>Sample Cohort</option>
+       	 	<option value='cat_gender'>Gender</option>
+        	<option value='cat_race'>Race</option>
+        	<option value='cat_ethnicity'>Ethnicity</option>
+        	<option value='cat_clinical_stage'>Clinical Stage</option>
+        	<option value='cat_pathologic_stage'>Pathologic Stage</option>
+        	<option value='cat_vital_status'>Vital Status</option>
+        	<option value='cat_country'>Country</option>
+        	<option value='cat_ParticipantBarcode'>Participant Barcode -- format TCGA- {an}{an} -nnnn  where a=caps alpha, n=number {an} one or other no spaces</option>
+     	</param>
+        <when value="cat_ParticipantBarcode">
+            <param name="Text_Value" size="12" type="text" value="TCGA-xx-nnnn"  label="Participant Barcode value" >
+            </param>
+        </when>
+        <when value="cat_SampleTypeCode">
+            <param name="Text_Value" type="select" label="Sample Types" >
+        		<option value="10" >Tumor Only Samples</option>
+        		<option value="01" >Normal Only Samples</option>
+        		<option value="11" >Tumor and Normal Samples</option>
+        		<option value="20" >Control Samples</option>
+        		<option value="99" >All Samples</option>
+            </param>
+        </when>
+        <when value="cat_gender">
+            <param name="Text_Value" type="select" label="Gender Choices" >
+        		<option value="FEMALE" >FEMALE</option>
+        		<option value="MALE" >MALE</option>
+            </param>
+        </when>
+        <when value="cat_ethnicity">
+            <param name="Text_Value" type="select" label="Ethnicity Choices some values are blank" >
+        		<option value="HISPANIC_OR_LATINO" >HISPANIC OR LATINO</option>
+        		<option value="NOT_HISPANIC_OR_LATINO">NOT HISPANIC OR LATINO</option>
+        		<option value="NULL" selected="true">Null value</option>
+            </param>
+        </when>
+        <when value="cat_race">
+            <param name="Text_Value" type="select" label="Race Choices a few are blank values" >
+				<option value="AMERICAN_INDIAN_OR_ALASKA_NATIVE">AMERICAN INDIAN OR ALASKA NATIVE</option>
+				<option value="ASIAN">ASIAN</option>
+				<option value="BLACK_OR_AFRICAN_AMERICAN">BLACK OR AFRICAN AMERICAN</option>
+				<option value="NATIVE_HAWAIIAN_OR_OTHER_PACIFIC_ISLANDER">NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER</option>
+				<option value="WHITE">WHITE</option>            
+        		<option value="NULL">Null value</option>
+			</param>
+        </when>
+        <when value="cat_clinical_stage">
+            <param name="Text_Value" type="select" label="Clinical Stage Choices many are blank values" >
+        		<option value="" selected="true">Null value</option>
+				<option value="Stage_I">Stage I</option>
+				<option value="Stage_IA">Stage IA</option>
+				<option value="Stage_IA1">Stage IA1</option>
+				<option value="Stage_IA2">Stage IA2</option>
+				<option value="Stage_IB">Stage IB</option>
+				<option value="Stage_IB1">Stage IB1</option>
+				<option value="Stage_IB2">Stage IB2</option>
+				<option value="Stage_IC">Stage IC</option>
+				<option value="Stage_II">Stage II</option>
+				<option value="Stage_IIA">Stage IIA</option>
+				<option value="Stage_IIA1">Stage IIA1</option>
+				<option value="Stage_IIA2">Stage IIA2</option>
+				<option value="Stage_IIB">Stage IIB</option>
+				<option value="Stage_IIC">Stage IIC</option>
+				<option value="Stage_III">Stage III</option>
+				<option value="Stage_IIIA">Stage IIIA</option>
+				<option value="Stage_IIIB">Stage IIIB</option>
+				<option value="Stage_IIIC">Stage IIIC</option>
+				<option value="Stage_IIIC1">Stage IIIC1</option>
+				<option value="Stage_IIIC2">Stage IIIC2</option>
+				<option value="Stage_IS">Stage IS</option>
+				<option value="Stage_IV">Stage IV</option>
+				<option value="Stage_IVA">Stage IVA</option>
+				<option value="Stage_IVB">Stage IVB</option>
+				<option value="Stage_IVC">Stage IVC</option>            
+			</param>
+        </when>
+        <when value="cat_vital_status">
+            <param name="Text_Value" type="select" label="Vital Status Choices" >
+        		<option value="Alive" selected="true">Alive</option>
+        		<option value="Dead" >Dead</option>
+            </param>
+        </when>
+        <when value="cat_country">
+            <param name="Text_Value" type="select" label="Country Choices" >
+				<option value="Algeria">Algeria</option>
+				<option value="American_Samoa">American Samoa</option>
+				<option value="Australia">Australia</option>
+				<option value="Brazil">Brazil</option>
+				<option value="Bulgaria">Bulgaria</option>
+				<option value="Canada">Canada</option>
+				<option value="Croatia">Croatia</option>
+				<option value="Czech_Republic">Czech Republic</option>
+				<option value="France">France</option>
+				<option value="Georgia">Georgia</option>
+				<option value="Germany">Germany</option>
+				<option value="Israel">Israel</option>
+				<option value="Italy">Italy</option>
+				<option value="Korea_South">Korea South</option>
+				<option value="Moldova">Moldova</option>
+				<option value="Netherlands">Netherlands</option>
+				<option value="Nigeria">Nigeria</option>
+				<option value="Pakistan">Pakistan</option>
+				<option value="Poland">Poland</option>
+				<option value="Puerto_Rico">Puerto Rico</option>
+				<option value="Romania">Romania</option>
+				<option value="Russia">Russia</option>
+				<option value="Singapore">Singapore</option>
+				<option value="Spain">Spain</option>
+				<option value="Switzerland">Switzerland</option>
+				<option value="Ukraine">Ukraine</option>
+				<option value="United_Kingdom">United Kingdom</option>
+				<option value="United_States" selected="true">United States</option>
+				<option value="Vietnam">Vietnam</option>
+				<option value="Yemen">Yemen</option>            
+        	    <option value="NULL">Null value</option>
+			</param>
+        </when>
+        <when value="cat_pathologic_stage">
+            <param name="Text_Value" type="select" label="Pathologic Stage Choices several are blank values" >
+        	   <option value="NULL" selected="true">Null value</option>
+			   <option value="Stage_0">Stage 0</option>
+			   <option value="Stage_I">Stage I</option>
+			   <option value="Stage_IA">Stage IA</option>
+			   <option value="Stage_IB">Stage IB</option>
+			   <option value="Stage_II">Stage II</option>
+			   <option value="Stage_IIA">Stage IIA</option>
+			   <option value="Stage_IIB">Stage IIB</option>
+			   <option value="Stage_IIB">Stage IIB</option>
+			   <option value="Stage_IIC">Stage IIC</option>
+			   <option value="Stage_III">Stage III</option>
+			   <option value="Stage_IIIA">Stage IIIA</option>
+			   <option value="Stage_IIIB">Stage IIIB</option>
+			   <option value="Stage_IIIC">Stage IIIC</option>
+			   <option value="Stage_IS">Stage IS</option>
+			   <option value="Stage_IV">Stage IV</option>
+			   <option value="Stage_IVA">Stage IVA</option>
+			   <option value="Stage_IVB">Stage IVB</option>
+			   <option value="Stage_IVC">Stage IVC</option>
+			   <option value="Stage_X">Stage X</option>
+			   <option value="I_or_II_NOS">I or II NOS</option>
+            </param>
+        </when>
+      </conditional>     
+    </repeat>       
+
+    <repeat name="num_param" title="Continuous Query Info">
+   <!--   <param name="Num_Fields" type="select" numerical="True" label="Continuous Query Fields">   -->
+      <param name="Num_Variable_Fields"  type="select" label="Continuous Query Fields" help="">
+        <option value='num_EMPTY' selected="true">Click cursor in middle of this text to see choices</option>
+        <option value='num_BMI'>BMI percent -- range 11 to 415</option>
+        <option value='num_height'>Height in centimeters</option>
+        <option value='num_weight'>Weight in kilograms</option>
+        <option value='num_age_at_initial_pathologic_diagnosis'>Age at initial pathologic diagnosis -- range 10 to 90</option>
+        <option value='num_days_to_death'>Days to death -- range 0 to 11,000</option>
+      </param>
+	  <param name="Num_Min_Value" size="6" type="text" value="0.0" label="Minimum Value"/>
+      <param name="Num_Max_Value" size="6" type="text" value="0.0" label="MAXIMUM Value"/>
+    </repeat>   
+    
+  </inputs>
+  <outputs>
+    <data format="tabular" type="data"  label='${user_cohortname}' name="Participant_cohort"/>
+  </outputs>
+</tool>

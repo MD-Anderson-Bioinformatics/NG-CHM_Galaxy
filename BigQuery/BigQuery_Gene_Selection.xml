@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<tool id="BigQuery_Gene_Selection" name="Select Genes from NGCHM" version="2.0.2" >
+  <description> using a NGCHM Participant list</description>
+  <command interpreter="python">Big_Query_ISB_Select_Gene_Cohort.py  '$cohortName' '$input2' $study $Table_type '$outfile'  </command>
+  <inputs>
+    <param name="cohortName" size="20" type="text" value="genes" label="Label Your New Participant Cohort"/>
+    <param format="tabular" name="input2" type="data" label="Participant BarCode File" help="Input file with one row for each NGCHM Participant IDs"/>
+	<param name="study" type="select"  label="Study" help="Study Name for Tissue">
+	<!--	<option value="ALL">All Participants</option> -->
+		<option value="ACC">ACC</option>
+		<option value="BLCA">BLCA</option>
+		<option value="BRCA">BRCA</option>
+		<option value="CESC">CESC</option>
+		<option value="CHOL">CHOL</option>
+		<option value="COAD">COAD</option>
+		<option value="DLBC">DLBC</option>
+		<option value="ESCA">ESCA</option>
+		<option value="GBM">GBM</option>
+		<option value="HNSC">HNSC</option>
+		<option value="KICH">KICH</option>
+		<option value="KIRC">KIRC</option>
+		<option value="KIRP">KIRP</option>
+		<option value="LAML">LAML</option>
+		<option value="LGG">LGG</option>
+		<option value="LIHC">LIHC</option>
+		<option value="LUAD">LUAD</option>
+		<option value="LUSC">LUSC</option>
+		<option value="MESO">MESO</option>
+		<option value="OV">OV</option>
+		<option value="PAAD">PAAD</option>
+		<option value="PCPG">PCPG</option>
+		<option value="PRAD">PRAD</option>
+		<option value="READ">READ</option>
+		<option value="SARC">SARC</option>
+		<option value="SKCM">SKCM</option>
+		<option value="STAD">STAD</option>
+		<option value="TGCT">TGCT</option>
+		<option value="THCA">THCA</option>
+		<option value="THYM">THYM</option>
+		<option value="UCEC">UCEC</option>
+		<option value="UCS">UCS</option>
+		<option value="UVM">UVM</option>	
+	</param>
+	<param name="Table_type" type="select"  label="TableType" help="Gene and Participant and Sample Metadata">
+		<option value="mRNA_BCGSC_HiSeq_RPKM">mRNA_BCGSC_HiSeq_RPKM - Less Data and mutually exclusive of UNC</option>
+		<option value="mRNA_UNC_HiSeq_RSEM">mRNA_UNC_HiSeq_RSEM - More data and mutually exclusive of BCGSC</option>
+<!--		<option value="miRNA_expression">miRNA_expression - requires only Participant input file</option>
+		<option value="Protein_RPPA_data">Protein_RPPA_data - requires Gene and Participant input files</option>
+		<option value="Somatic_Mutation_calls">Somatic_Mutation_calls - requires Gene and Participant input files</option>
+		<option value="Annotations">Annotations - requires only Participant input file</option>
+		<option value="Biospecimen_data">Biospecimen_data - requires only Participant input file</option>
+		<option value="Copy_Number_segments">Copy_Number_segments - requires only Participant input file</option>
+		<option value="DNA_Methylation_betas">DNA_Methylation_betas - requires only Participant input file</option> 
+	-->
+	</param>
+  </inputs>
+  <outputs>
+    <data format="tabular" type="data"  label="${cohortName}" name="outfile"/>
+  </outputs>
+</tool>

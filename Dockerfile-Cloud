@@ -1,0 +1,73 @@
+##### BASE #####
+
+FROM bgruening/galaxy-stable
+#bb instead?? FROM https://odin.mdacc.tmc.edu/mcryan/NGCHM_Galaxy
+#FROM ngchm_galaxy
+
+##### APT-GET #####
+#RUN apt-get update
+
+#per http://blog.waqasjamal.com/2016/01/how-to-fix-error-importing-pyasn1.html fix decoder type error
+#RUN sudo pip install ndg-httpsclient
+
+#RUN apt-get -y install python-pip
+#RUN python-pip install python-pyasn1
+
+#RUN  mv  /etc/apt/sources.list /etc/apt/sources.list-save
+#ADD ./BigQuery/sources.list /etc/apt/
+#RUN  chmod 771  /etc/apt/sources.list
+
+# Create an environment variable for the correct distribution
+#RUN export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)"
+
+# Add the Cloud SDK distribution URI as a package source
+#RUN echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
+
+# Import the Google Cloud public key
+#RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+
+# Update and install the Cloud SDK
+##RUN apt-get update && apt-get install google-cloud-sdk
+#RUN apt-get install google-cloud-sdk
+
+#NOT Run gcloud init to get started
+##RUN gcloud init
+
+
+##### Place BigQuery software in Tools ++ BigQuery Library in /usr/share #####
+# The 2 Big Query credential file --Galaxy_ISB_NGCHM_BigQuery.json  and the NGCHM project -- Galaxy_ISB_NGCHM_BigQuery_Project_ID.txt 
+# files must be in the directory <user path>/Galaxy_NGCHM_BigQuery_Credentials   on the local machine
+
+ADD ./google-cloud-sdk/ /usr/local/lib/python2.7/dist-packages/google-cloud-sdk
+RUN  chmod -R 777 /usr/local/lib/python2.7/dist-packages/google-cloud-sdk
+RUN  export PATH=/usr/local/lib/python2.7/dist-packages/google-cloud-sdk/bin:$PATH
+
+ADD ./BigQuery/* /galaxy-central/tools/BigQuery/
+RUN  chmod 771 /galaxy-central/tools/BigQuery
+
+##### Place MDA and Insilico logo on the Welcome Page #####
+ADD ./BigQuery/MDA&InSilico_combined_logo.png /galaxy-central/tools/BigQuery/
+ADD ./BigQuery/welcome.html /galaxy-central/tools/BigQuery/
+RUN  chmod 775 /galaxy-central/static
+
+
+##### Place MDA software in Tools and Visualization directories #####
+ADD ./mda_heatmap_gen/* /galaxy-central/tools/MDA_Heatmaps/
+RUN  chmod +x /galaxy-central/tools/MDA_Heatmaps/heatmap.sh
+RUN  chmod 777 /galaxy-central/tools/MDA_Heatmaps
+
+COPY ./mda_heatmap_viz/  /galaxy-central/config/plugins/visualizations/mda_heatmap_viz/
+RUN  chmod 777 /galaxy-central/config/plugins/visualizations/mda_heatmap_viz/
+
+
+##### Modify Tool_Conf to include MDA Heatmap  new tool xml statements is in --> add_tools.xml file #####
+ADD ./add_tools.xml /galaxy-central/config/
+RUN sed -i -e '/<toolbox monitor="true">/r /galaxy-central/config/add_tools.xml'  \\
+/galaxy-central/config/tool_conf.xml.sample
+
+RUN  chmod 771 /galaxy-central/config/tool_conf.xml.sample
+
+
+#https://github.com/google/google-api-python-client   need  RESOURCE google-cloud-sdk  download installed under /usr/share/  
+#https://console.developers.google.com/projectselector/apis/credentials    you need a json  bigquery security file  and rename it GalaxyBigQuery.json
+

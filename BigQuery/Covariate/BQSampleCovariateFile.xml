@@ -1,0 +1,53 @@
+<tool id="BQSampleCovariateFile" name="Define Heatmap Covariate Files" version="1.4.2" force_history_refresh="True">
+  <description> using supplied Sample or Participant BarCodes</description>
+  <command interpreter="python">BQSampleCovariateFile.py  $user_cohortname '$Participant_cohort'  $Covariate_Type  "$__new_file_path__" "$outputfile.id" $outputfile
+      #for $op in $text_param
+        ${op.discrete_fields.Text_Fields}
+      #end for
+  </command> 
+	<stdio>
+      <exit_code range="1:" level="fatal" /> 
+	</stdio>
+  <inputs>
+    <param name="user_cohortname" size="10" type="text" value="" label="Label Your New Covariate Files"/>
+    <param format="tabular" name="Participant_cohort" type="data" label="Sample or Participant BarCode File" help="Input file with one row for Either NGCHM Sample IDs or Participant IDs"/>
+	<param name="Covariate_Type" type="select" value="" label="Type of Covariate Bars" help="Choose Sample or Gene covariate bar files">
+        <option value="S" selected="true">Participant-Sample</option> 
+        <option value="G" >Gene -- NOT implemented</option>
+	</param>
+	<repeat name="text_param" title="Select 1 or more Covariate Clinical Categories">
+<!--    	<when value="S">    -->
+		  <conditional name="discrete_fields">
+			<param name="Text_Fields" type="select" label="Covariate Bar Choices" help="">
+				<option value='cat_EMPTY' selected="true">Click cursor in middle of this text to see choices</option>
+				<option value='cat_SampleTypeCode'>Sample Cohort</option>
+				<option value='cat_gender'>Gender</option>
+				<option value='cat_race'>Race</option>
+				<option value='cat_ethnicity'>Ethnicity</option>
+				<option value='cat_clinical_stage'>Clinical Stage</option>
+				<option value='cat_pathologic_stage'>Pathologic Stage</option>
+				<option value='cat_vital_status'>Vital Status</option>
+				<option value='cat_country'>Country</option>
+				<option value='num_BMI'>BMI percent</option>
+				<option value='num_height'>Height in centimeters</option>
+				<option value='num_weight'>Weight in kilograms</option>
+				<option value='num_age_at_initial_pathologic_diagnosis'>Age at initial pathologic diagnosis</option>
+				<option value='num_days_to_death'>Days to death</option>
+			</param>
+		  </conditional>     
+<!--    		 </when>
+	     <when value="G">
+			<option value='gene_Junk'>Gene covariate bars are NOT implemented yet</option>		
+    	</when>  -->
+	</repeat>       
+  </inputs>
+  <outputs>
+     <data format="txt" name="outputfile" label="${tool.name} on ${on_string}"/>
+     <!-- <data format="tabular" name="covariate_bars"  />   
+     		 https://wiki.galaxyproject.org/Admin/Tools/Multiple%20Output%20Files#Variable_Static_Outputs_determined_by_parameter_values
+		<discover_datasets pattern="(?P&lt;*&gt;.+)\.txt" ext="tabular" directory="$GALAXY_ROOT_DIR/tools/BigQuery/Covariate/" visible="true" />   
+	</data>
+ <?xml version="1.0" encoding="UTF-8" ?>
+-->
+  </outputs>
+</tool>
