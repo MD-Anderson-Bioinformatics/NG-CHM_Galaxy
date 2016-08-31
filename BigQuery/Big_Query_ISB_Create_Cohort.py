@@ -78,7 +78,7 @@ import string
 #import math	 ##v33 for the log function
 
 ###================					============
-def queryDB(Study_Cohort_Table, param, ofile, query_request, project_id):
+def queryDB(Study_Cohort_Table, sample_type, param, ofile, query_request, project_id):
 
 	try:
 		error = False
@@ -91,6 +91,21 @@ def queryDB(Study_Cohort_Table, param, ofile, query_request, project_id):
 			queryString = ''
 			norm_tumor_low = '00'
 			norm_tumor_high= '99'
+#bb aug31 move sample type out of big select list into its own
+# Tumor types range from 01 - 09, normal types from 10 - 19 and control samples from 20 - 29. See Code Tables Report for a complete list of sample codes
+# IT IS DEFINED IN THE DB AS A STRING !!!!!!
+			sampleTypeRequest = True
+			if sample_type == '01':
+				norm_tumor_low = '00'
+				norm_tumor_high= '10'
+			elif sample_type == '10':
+				norm_tumor_low = '09'
+				norm_tumor_high= '20'
+			else: #both tumor and normal  param[i+1] == '11':
+				norm_tumor_low = '00'
+				norm_tumor_high= '20'
+
+
 			while i < len(param)-2 and not error:
 				#print '\n number param fields +outfile, i , list of params=', len(param)-2, i, param
 							  
@@ -98,22 +113,23 @@ def queryDB(Study_Cohort_Table, param, ofile, query_request, project_id):
 				if( str(param[i][0:4]) == 'cat_'):
 # Tumor types range from 01 - 09, normal types from 10 - 19 and control samples from 20 - 29. See Code Tables Report for a complete list of sample codes
 # IT IS DEFINED IN THE DB AS A STRING !!!!!!
-					if str(param[i]) == 'cat_SampleTypeCode' :	  # determine sample type in a different table need to translate values
-						sampleTypeRequest = True
-						if param[i+1] == '01':
-							norm_tumor_low = '00'
-							norm_tumor_high= '10'
-						elif param[i+1] == '10':
-							norm_tumor_low = '09'
-							norm_tumor_high= '20'
-						elif param[i+1] == '11':
-							norm_tumor_low = '00'
-							norm_tumor_high= '20'
-						elif param[i+1] == '20':
-							norm_tumor_low = '19'
-							norm_tumor_high= '30'
+# 					if str(param[i]) == 'cat_SampleTypeCode' :	  # determine sample type in a different table need to translate values
+# 						sampleTypeRequest = True
+# 						if param[i+1] == '01':
+# 							norm_tumor_low = '00'
+# 							norm_tumor_high= '10'
+# 						elif param[i+1] == '10':
+# 							norm_tumor_low = '09'
+# 							norm_tumor_high= '20'
+# 						elif param[i+1] == '11':
+# 							norm_tumor_low = '00'
+# 							norm_tumor_high= '20'
+# 						elif param[i+1] == '20':
+# 							norm_tumor_low = '19'
+# 							norm_tumor_high= '30'
+# 					elif (str(param[i]) != 'cat_EMPTY' and	str(param[i+1]) != 'Click cursor in middle of this text to see choices' and	 str(param[i+1]) != '' ):
 
-					elif (str(param[i]) != 'cat_EMPTY' and	str(param[i+1]) != 'Click cursor in middle of this text to see choices' and	 str(param[i+1]) != '' ):
+ 					if (str(param[i]) != 'cat_EMPTY' and	str(param[i+1]) != 'Click cursor in middle of this text to see choices' and	 str(param[i+1]) != '' ):
 						temp = param[i+1].replace('_',' ')	# get underscore out of search data values before query
 						if temp == 'NULL':
 							queryString =queryString+ ' PA.' +param[i][4:]+' is NULL AND '
@@ -137,10 +153,11 @@ def queryDB(Study_Cohort_Table, param, ofile, query_request, project_id):
 				queryString = queryString[0:-4]		 
 				saveLen = len(queryString)	  
 
-				if sampleTypeRequest:		 #then want sample barcodes		   
-					tempString = 'SELECT  BS.SampleBarcode FROM [isb-cgc:tcga_201607_beta.Clinical_data] as PA JOIN [isb-cgc:tcga_201607_beta.Biospecimen_data] as BS ' 
-				else:
-					tempString = 'SELECT  PA.ParticipantBarcode FROM [isb-cgc:tcga_201607_beta.Clinical_data] as PA JOIN [isb-cgc:tcga_201607_beta.Biospecimen_data] as BS '
+#bb aug31 				if sampleTypeRequest:		 #then want sample barcodes		   
+				tempString = 'SELECT  BS.SampleBarcode FROM [isb-cgc:tcga_201607_beta.Clinical_data] as PA JOIN [isb-cgc:tcga_201607_beta.Biospecimen_data] as BS ' 
+
+#bb aug31  				else:
+#					tempString = 'SELECT  PA.ParticipantBarcode FROM [isb-cgc:tcga_201607_beta.Clinical_data] as PA JOIN [isb-cgc:tcga_201607_beta.Biospecimen_data] as BS '
 				
 				tempString= tempString+ ' ON PA.ParticipantBarcode = BS.ParticipantBarcode WHERE ( PA.Study = "'+Study_Cohort_Table+ \
 					 '"		AND BS.SampleTypeCode > "'+str(norm_tumor_low) + '" AND BS.SampleTypeCode < "'+str(norm_tumor_high) + '" ' 
@@ -224,10 +241,10 @@ def main():
 	try:
 		ignore					  = sys.argv[1]
 		Study_Cohort_Table		  = sys.argv[2]
+		sample_type				  = sys.argv[3]
 
 		
 		ofile				   = sys.argv[len_sysarg-1]			   
-
 
 		credentials = GoogleCredentials.get_application_default()
 
@@ -260,7 +277,7 @@ def main():
 
 		query_request = bigquery_service.jobs()
 		
-		queryDB( Study_Cohort_Table, sys.argv[3:], ofile, query_request, project_id)
+		queryDB( Study_Cohort_Table, sample_type, sys.argv[4:], ofile, query_request, project_id)
 		
 		
 

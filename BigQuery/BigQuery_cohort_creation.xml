@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<tool id="BigQuery_cohort_creation" name="Define a NGCHM Participant or Sample cohort" version="3.4.2">
+<tool id="BigQuery_cohort_creation" name="Define a NGCHM Sample cohort" version="3.5.3">
   <description> using Clinical criteria</description>
-  <command interpreter="python">Big_Query_ISB_Create_Cohort.py   '$user_cohortname' '$Study_Cohort_Table'
+  <command interpreter="python">Big_Query_ISB_Create_Cohort.py   '$user_cohortname' '$Study_Cohort_Table' $Sample_type
 
        #for $op in $text_param
         ${op.discrete_fields.Text_Fields}
@@ -14,23 +14,21 @@
        ${opp.Num_Max_Value}
       #end for
       
- 	 '$Participant_cohort'  
+ 	 '$Sample_cohort'  
  	 
   </command> 
 	<stdio>
       <exit_code range="1:" level="fatal" /> 
 	</stdio>
   <inputs>
-    <param name="user_cohortname" size="20" type="text" value="" label="Label Your New Participant or Sample Cohort"/>
+    <param name="user_cohortname" size="20" type="text" value="" label="Label Your New Sample Cohort"/>
 	<param name="Study_Cohort_Table" type="select" value="Study_Cohort_Table" label="Study" help="Select a Study by clicking curson on ACC text">
-        <option value="empty">Click cursor in middle of this text to see choices</option>  -->
         <option value="ACC">ACC</option>
         <option value="BLCA">BLCA</option>
-        <option value="BRCA">BRCA</option>
+        <option value="BRCA" selected="true" >BRCA</option>
         <option value="CESC">CESC</option>
         <option value="CHOL">CHOL</option>
         <option value="COAD">COAD</option>
-        <option value="CRC">CRC</option>
         <option value="DLBC">DLBC</option>
         <option value="ESCA">ESCA</option>
         <option value="GBM">GBM</option>
@@ -59,13 +57,17 @@
         <option value="UCS">UCS</option>
         <option value="UVM">UVM</option>	
 	</param>
+	<param name="Sample_type" type="select" value="Sample_Type" label="Sample Type" help="Select the type of samples for analysis">
+        <option value="01" selected="true">Tumor</option>  -->
+        <option value="10">Normal</option>
+        <option value="11">Tumor and Normal</option>
+	</param>
 
     <repeat name="text_param" title="Categorical Query Info">
- <!--     <param name="Text_Fields" type="select" label="Categorical Query Fields" multiple="True" data_ref="input" help="Multi-select list - hold the appropriate key while clicking to select multiple columns">  -->
       <conditional name="discrete_fields">
 		<param name="Text_Fields" type="select" label="Categorical Query Field Choice" help="">
         	<option value='cat_EMPTY' selected="true">Click cursor in middle of this text to see choices</option>
-       	 	<option value='cat_SampleTypeCode'>Sample Cohort</option>
+<!--       	 	<option value='cat_SampleTypeCode'>Sample Cohort</option>    -->
        	 	<option value='cat_gender'>Gender</option>
         	<option value='cat_race'>Race</option>
         	<option value='cat_ethnicity'>Ethnicity</option>
@@ -73,16 +75,11 @@
         	<option value='cat_pathologic_stage'>Pathologic Stage</option>
         	<option value='cat_vital_status'>Vital Status</option>
         	<option value='cat_country'>Country</option>
-        	<option value='cat_ParticipantBarcode'>Participant Barcode -- format TCGA- {an}{an} -nnnn  where a=caps alpha, n=number {an} one or other no spaces</option>
      	</param>
-        <when value="cat_ParticipantBarcode">
-            <param name="Text_Value" size="12" type="text" value="TCGA-xx-nnnn"  label="Participant Barcode value" >
-            </param>
-        </when>
         <when value="cat_SampleTypeCode">
             <param name="Text_Value" type="select" label="Sample Types" >
-        		<option value="10" >Tumor Only Samples</option>
-        		<option value="01" >Normal Only Samples</option>
+        		<option value="01" >Tumor Only Samples</option>
+        		<option value="10" >Normal Only Samples</option>
         		<option value="11" >Tumor and Normal Samples</option>
         		<option value="20" >Control Samples</option>
         		<option value="99" >All Samples</option>
@@ -97,8 +94,7 @@
         <when value="cat_ethnicity">
             <param name="Text_Value" type="select" label="Ethnicity Choices some values are blank" >
         		<option value="HISPANIC_OR_LATINO" >HISPANIC OR LATINO</option>
-        		<option value="NOT_HISPANIC_OR_LATINO">NOT HISPANIC OR LATINO</option>
-        		<option value="NULL" selected="true">Null value</option>
+        		<option value="NOT_HISPANIC_OR_LATINO" selected="true">NOT HISPANIC OR LATINO</option>
             </param>
         </when>
         <when value="cat_race">
@@ -108,7 +104,6 @@
 				<option value="BLACK_OR_AFRICAN_AMERICAN">BLACK OR AFRICAN AMERICAN</option>
 				<option value="NATIVE_HAWAIIAN_OR_OTHER_PACIFIC_ISLANDER">NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER</option>
 				<option value="WHITE">WHITE</option>            
-        		<option value="NULL">Null value</option>
 			</param>
         </when>
         <when value="cat_clinical_stage">
@@ -184,8 +179,7 @@
         </when>
         <when value="cat_pathologic_stage">
             <param name="Text_Value" type="select" label="Pathologic Stage Choices several are blank values" >
-        	   <option value="NULL" selected="true">Null value</option>
-			   <option value="Stage_0">Stage 0</option>
+			   <option value="Stage_0" selected="true">Stage 0</option>
 			   <option value="Stage_I">Stage I</option>
 			   <option value="Stage_IA">Stage IA</option>
 			   <option value="Stage_IB">Stage IB</option>
@@ -226,6 +220,6 @@
     
   </inputs>
   <outputs>
-    <data format="tabular" type="data"  label='${user_cohortname}' name="Participant_cohort"/>
+    <data format="tabular" type="data"  label='${user_cohortname}' name="Sample_cohort"/>
   </outputs>
 </tool>

@@ -89,7 +89,7 @@ def sampleCovarFileCreate( userText, param, partSampBCFile, directory, outfileID
 			if len(tmp) == 12 :
 				queryString = queryString+ '"'+str(tmp)+'", '
 			else:
-				queryString = queryString+ '"'+str(tmp[0:11])+ '", '
+				queryString = queryString+ '"'+str(tmp[0:12])+ '", '
 
 		queryString=  queryString[0:-2] +' );'
 
@@ -163,11 +163,11 @@ def sampleCovarFileCreate( userText, param, partSampBCFile, directory, outfileID
 							#print 'found sample= length(covarFile)', partBC, skey, len(covarFile)
 							#debig fileptr.write( str(skey)+':\t'+str(rowValues[rowCnt][fileCnt+1])+'\n')
 							for fileCnt in range( len(covarFile)):	
-								#print ' wrote to file ',fileCnt, '-',skey+':\t'+rowValues[rowCnt][fileCnt+1]+'\n'
+								#print ' wrote to file ',fileCnt, '-',skey+'\t'+rowValues[rowCnt][fileCnt+1]+'\n'
 								if rowCnt < len(samplist)-1: 
-									covarFile[fileCnt].write( '"'+str(skey)+'":"'+str(rowValues[rowCnt][fileCnt+1])+'",\n')
+									covarFile[fileCnt].write( str(skey)+'\t'+str(rowValues[rowCnt][fileCnt+1])+',\n')
 								else:	
-									covarFile[fileCnt].write( '"'+str(skey)+'":"'+str(rowValues[rowCnt][fileCnt+1])+'"\n')
+									covarFile[fileCnt].write( str(skey)+'\t'+str(rowValues[rowCnt][fileCnt+1])+'\n')
 			else:
 				print '!!!!NO records returned !!!'
 				sys.exit(-1)

@@ -97,7 +97,8 @@ def queryDB(first, genelist, samplist, outfile, study, tableType, query_request,
 			for s in samplist:
 				count += 1
 				#sampgenedict[samplist[s]+'-'+genelist[g]] = 'undef'
-				sampgenedict[s+'-'+g] = 'N/A'
+				#aug31 bb sampgenedict[s+'-'+g] = 'N/A'
+				sampgenedict[s+'-'+g] = -1
 		if count == 0:
 			print '\nERROR -Gene name file or Sample/Participant Name file is empty'
 			error = 'true'
