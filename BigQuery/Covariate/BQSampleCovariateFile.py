@@ -140,7 +140,8 @@ def sampleCovarFileCreate( userText, param, partSampBCFile, directory, outfileID
 					filePtr= open(filePath,'w')	 # open file for each covariate bar
 #					 covarFile.append(open('./Covariate/'+userText+'-'+str(ckey)+'.txt','w'))  # open file for each covariate bar
 					covarFile.append(filePtr)
-					covarFile[-1].write( '{\n' )
+					
+					#bb sep1 covarFile[-1].write( '{\n' )
 					#out.write( ' covariate category '+ckey+ ' Filename '+filePath+"\n")
 					out.write( fileName+"\n")  # filename is in tmp directory and pulled into history !!!!
 					 
@@ -164,16 +165,16 @@ def sampleCovarFileCreate( userText, param, partSampBCFile, directory, outfileID
 							#debig fileptr.write( str(skey)+':\t'+str(rowValues[rowCnt][fileCnt+1])+'\n')
 							for fileCnt in range( len(covarFile)):	
 								#print ' wrote to file ',fileCnt, '-',skey+'\t'+rowValues[rowCnt][fileCnt+1]+'\n'
-								if rowCnt < len(samplist)-1: 
-									covarFile[fileCnt].write( str(skey)+'\t'+str(rowValues[rowCnt][fileCnt+1])+',\n')
-								else:	
+								if rowCnt < len(samplist): 
 									covarFile[fileCnt].write( str(skey)+'\t'+str(rowValues[rowCnt][fileCnt+1])+'\n')
+								#bb sep1 else:	
+									#covarFile[fileCnt].write( str(skey)+'\t'+str(rowValues[rowCnt][fileCnt+1])+'\n')
 			else:
 				print '!!!!NO records returned !!!'
 				sys.exit(-1)
 
 			for f in range(len(covarFile)):
-				covarFile[f].write( '}' )
+				#bb sep1 covarFile[f].write( '}' )
 				covarFile[f].close()  # open file for each covariate bar
 
 			print '\n',len(rowValues), ' result rows \n'
