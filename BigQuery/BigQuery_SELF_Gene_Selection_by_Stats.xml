@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<tool id="BigQuery_SELF_Gene_Selection_by_Stats" name="Statistically select Genes of interest" version="1.5.3" >
-  <description> based on gene values from an input NGCHM Sample or Participant list</description>
-  <command interpreter="python">BigQuery_SELF_Gene_Selection_by_Stats.py  '$cohortName' '$input2' $study $Table_type  '$outfile' $discrete_fields.Text_Fields $discrete_fields.Text_Value $keepNormal
+<tool id="BigQuery_SELF_Gene_Selection_by_Stats" name="Statistically select Genes of interest" version="1.5.7" >
+  <description> based on gene values from an input NGCHM Sample barcode file</description>
+  <command interpreter="python">BigQuery_SELF_Gene_Selection_by_Stats.py  '$cohortName' '$input2' $study $Table_type  '$outfile' $discrete_fields.Text_Fields $discrete_fields.Text_Value 'Y'
 <!-- 
       #for $op in $text_param
         ${op.discrete_fields.Text_Fields}
@@ -17,7 +17,7 @@
   </command>
   <inputs>
     <param name="cohortName" size="20" type="text" value="genes" label="Label for Your New Gene Cohort that meets the Statistcal Calculations below"/>
-    <param format="tabular" name="input2" type="data" label="Sample or Participant BarCode File" help="Input file with one row for Either NGCHM Sample IDs or Participant IDs"/>
+    <param format="tabular" name="input2" type="data" label="Sample BarCode File" help="Input file with one row for each NGCHM Sample barcode"/>
 	<param name="study" type="select"  label="Study" help="Study Name for Tissue">
 	<!--	<option value="ALL">All Participants</option> -->
 		<option value="ACC">ACC</option>
@@ -55,13 +55,17 @@
 		<option value="UCS">UCS</option>
 		<option value="UVM">UVM</option>
 	</param>
-	<param name="keepNormal" type="select"  label="Keep Normal Samples" help="Normal Samples often have value of NA">
-		<option value="N" selected="selected">Remove Normal Samples</option>
-		<option value="Y">Keep Normal Samples in Matrix</option>
-	</param>
+	
+<!-- assuming only samples now
+	<param name="keepNormal" type="select"  label="Keep All Participant Samples" help="If only Participant barcodes input- then keep Tumor or All Samples">
+		<option value="N" selected="selected">Remove Non Tumor Samples</option>
+		<option value="Y">Keep All Participant Samples in Matrix</option>
+	</param>   -->
+	
 	<param name="Table_type" type="select"  label="TableType" help="Gene and Participant and Sample Metadata">
 		<option value="mRNA_UNC_HiSeq_RSEM">mRNA_UNC_HiSeq_RSEM - More data and mutually exclusive of BCGSC</option>
 		<option value="mRNA_BCGSC_HiSeq_RPKM">mRNA_BCGSC_HiSeq_RPKM - Less Data and mutually exclusive of UNC</option>
+
 <!--		<option value="miRNA_expression">miRNA_expression - requires only Participant input file</option>
 		<option value="Protein_RPPA_data">Protein_RPPA_data - requires Gene and Participant input files</option>
 		<option value="Somatic_Mutation_calls">Somatic_Mutation_calls - requires Gene and Participant input files</option>
