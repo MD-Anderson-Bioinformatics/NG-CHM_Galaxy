@@ -3,10 +3,13 @@
  * for user preference editing. 
  **********************************************************************************/
 
+//Define Namespace for NgChm UserPreferenceManager
+NgChm.createNS('NgChm.UPM');
+
 //Global variables for preference processing
-var bkpColorMaps = null;
-var filterVal;
-var searchPerformed = false;
+NgChm.UPM.bkpColorMaps = null;
+NgChm.UPM.filterVal;
+NgChm.UPM.searchPerformed = false;
 
 /*===================================================================================
  *  COMMON PREFERENCE PROCESSING FUNCTIONS
@@ -38,23 +41,23 @@ var searchPerformed = false;
  * 
  * Processing for this function is documented in detail in the body of the function.
  **********************************************************************************/
-function editPreferences(e,errorMsg){
-	userHelpClose();
+NgChm.UPM.editPreferences = function(e,errorMsg) {
+	NgChm.UHM.userHelpClose();
 
 	// If helpPrefs element already exists, the user is pressing the gear button
 	// when preferences are already open. Disregard.
 	var helpExists = document.getElementById('rowsColsprefs');
-	if ((isSub) || (helpExists !== null)) {
+	if ((NgChm.SEL.isSub) || (helpExists !== null)) {
 		return;
 	}
 
 	//If first time thru, save the dataLayer colorMap
 	//This is done because the colorMap must be edited to add/delete breakpoints while retaining their state
-	if (bkpColorMaps === null) {
-		bkpColorMaps = new Array();
-		var dataLayers = heatMap.getDataLayers();
+	if (NgChm.UPM.bkpColorMaps === null) {
+		NgChm.UPM.bkpColorMaps = new Array();
+		var dataLayers = NgChm.heatMap.getDataLayers();
 		for (var key in dataLayers){
-			bkpColorMaps.push(heatMap.getColorMapManager().getColorMap("data",key));
+			NgChm.UPM.bkpColorMaps.push(NgChm.heatMap.getColorMapManager().getColorMap("data",key));
 		}
 	} 
 	var prefspanel = document.getElementById("prefsPanel");
@@ -62,18 +65,18 @@ function editPreferences(e,errorMsg){
 
 	if (errorMsg !== null) {
 		var prefBtnsDiv = document.getElementById('prefActions');
-		prefBtnsDiv.innerHTML=errorMsg[2]+"<br/><br/><img id='prefApply_btn' src='" + staticPath + "images/applyChangesButton.png' alt='Apply changes' onclick='prefsApplyButton();' align='top'/>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<img id='prefCancel_btn' src='" + staticPath + "images/cancelChangesButton.png' alt='Cancel changes' onclick='prefsCancelButton();' align='top'/>";
+		prefBtnsDiv.innerHTML=errorMsg[2]+"<br/><br/><img id='prefApply_btn' src='" + NgChm.staticPath + "images/applyChangesButton.png' alt='Apply changes' onclick='NgChm.UPM.prefsApplyButton();' align='top'/>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<img id='prefCancel_btn' src='" + NgChm.staticPath + "images/cancelChangesButton.png' alt='Cancel changes' onclick='NgChm.UPM.prefsCancelButton();' align='top'/>";
 	} else {
 		//Create and populate row & col preferences DIV and add to parent DIV
-		var rowcolprefs = setupRowColPrefs(e, prefprefs);
+		var rowcolprefs = NgChm.UPM.setupRowColPrefs(e, prefprefs);
 		prefprefs.appendChild(rowcolprefs);
 
 		//Create and populate classifications preferences DIV and add to parent DIV
-		var classprefs = setupClassPrefs(e, prefprefs);
+		var classprefs = NgChm.UPM.setupClassPrefs(e, prefprefs);
 		prefprefs.appendChild(classprefs);
 		
 		//Create and populate breakpoint preferences DIV and add to parent DIV
-		var layerprefs = setupLayerPrefs(e, prefprefs);
+		var layerprefs = NgChm.UPM.setupLayerPrefs(e, prefprefs);
 		prefprefs.appendChild(layerprefs);
 
 		// Set DIV containing both class and break DIVs to visible and append to prefspanel table
@@ -82,30 +85,31 @@ function editPreferences(e,errorMsg){
 		
 		var prefBtnsDiv = document.createElement('div');
 		prefBtnsDiv.id='prefActions';
-		prefBtnsDiv.innerHTML="<img id='prefApply_btn' src='" + staticPath + "images/applyChangesButton.png' alt='Apply changes' onclick='prefsApplyButton();' align='top'/>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<img id='prefCancel_btn' src='" + staticPath + "images/cancelChangesButton.png' alt='Cancel changes' onclick='prefsCancelButton();' align='top'/>";
+		prefBtnsDiv.innerHTML="<img id='prefApply_btn' src='" + NgChm.staticPath + "images/applyChangesButton.png' alt='Apply changes' onclick='NgChm.UPM.prefsApplyButton();' align='top'/>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<img id='prefCancel_btn' src='" + NgChm.staticPath + "images/cancelChangesButton.png' alt='Cancel changes' onclick='NgChm.UPM.prefsCancelButton();' align='top'/>";
 		prefspanel.appendChild(prefBtnsDiv);
 	}
 	prefspanel.style.display= '';
-	prefsResize();
+	NgChm.UPM.prefsResize();
 
 	//If errors exist and they are NOT on the currently visible DIV (dataLayer1),
 	//hide the dataLayers DIV, set the tab to "Covariates", and open the appropriate
 	//covariate bar DIV.
-	addClassPrefOptions();
-	showDendroSelections();
-	setShowAll();
+	NgChm.UPM.addClassPrefOptions();
+	NgChm.UPM.showDendroSelections();
+	NgChm.UPM.showLabelSelections();
+	NgChm.UPM.setShowAll();
 	if ((errorMsg != null) && (errorMsg[1] === "classPrefs")) {
-		showClassBreak(errorMsg[0]);
-		showClassPrefs();
+		NgChm.UPM.showClassBreak(errorMsg[0]);
+		NgChm.UPM.showClassPrefs();
 	} else if ((errorMsg != null) && (errorMsg[1] === "layerPrefs")){ 
-		showLayerBreak(errorMsg[0]);
-		showLayerPrefs();
-	} else if (searchPerformed){ 
-		searchPerformed = false;
-		showClassPrefs();
+		NgChm.UPM.showLayerBreak(errorMsg[0]);
+		NgChm.UPM.showLayerPrefs();
+	} else if (NgChm.UPM.searchPerformed){ 
+		NgChm.UPM.searchPerformed = false;
+		NgChm.UPM.showClassPrefs();
 	} else {
-		showLayerBreak(currentDl);
-		showRowsColsPrefs();
+		NgChm.UPM.showLayerBreak(NgChm.SEL.currentDl);
+		NgChm.UPM.showRowsColsPrefs();
 	}
 	errorMsg = null;
 
@@ -115,7 +119,7 @@ function editPreferences(e,errorMsg){
  * FUNCTION - prefsResize: The purpose of this function is to handle the resizing
  * of the preferences panel when the window is resized.
  **********************************************************************************/
-function prefsResize() {
+NgChm.UPM.prefsResize = function() {
 	var prefprefs = document.getElementById('prefPrefs');
 	if (window.innerHeight > 730) {
 		prefprefs.style.height = "88%";
@@ -127,15 +131,15 @@ function prefsResize() {
 }
 
 /**********************************************************************************
- * FUNCTION - showLayerPrefs: The purpose of this function is to perform the 
- * processing for the preferences tab when the user selects the "Data Layers" tab.
+ * FUNCTION - showRowsColsPrefs: The purpose of this function is to perform the 
+ * processing for the preferences tab when the user selects the "Rows & Cols" tab.
  **********************************************************************************/
-function showRowsColsPrefs() {
+NgChm.UPM.showRowsColsPrefs = function() {
 	//Turn off all tabs
-	hideAllPrefs();
+	NgChm.UPM.hideAllPrefs();
 	//Turn on layer prefs tab
 	var rowsColsBtn = document.getElementById("prefRowsCols_btn");
-	rowsColsBtn.setAttribute('src', staticPath + 'images/rowsColsOn.png');
+	rowsColsBtn.setAttribute('src', NgChm.staticPath + 'images/rowsColsOn.png');
 	var rowsColsDiv = document.getElementById("rowsColsPrefs");
 	rowsColsDiv.style.display="block";
 }
@@ -145,27 +149,27 @@ function showRowsColsPrefs() {
  * FUNCTION - showLayerPrefs: The purpose of this function is to perform the 
  * processing for the preferences tab when the user selects the "Data Layers" tab.
  **********************************************************************************/
-function showLayerPrefs() {
+NgChm.UPM.showLayerPrefs = function() {
 	//Turn off all tabs
-	hideAllPrefs();
+	NgChm.UPM.hideAllPrefs();
 	//Turn on layer prefs tab
 	var layerBtn = document.getElementById("prefLayer_btn");
-	layerBtn.setAttribute('src', staticPath + 'images/dataLayersOn.png');
+	layerBtn.setAttribute('src', NgChm.staticPath + 'images/dataLayersOn.png');
 	var layerDiv = document.getElementById("layerPrefs");
 	layerDiv.style.display="block";
-	showLayerBreak();
+	NgChm.UPM.showLayerBreak();
 }
 
 /**********************************************************************************
  * FUNCTION - showClassPrefs: The purpose of this function is to perform the 
  * processing for the preferences tab when the user selects the "Covariates" tab.
  **********************************************************************************/
-function showClassPrefs() {
+NgChm.UPM.showClassPrefs = function() {
 	//Turn off all tabs
-	hideAllPrefs();
+	NgChm.UPM.hideAllPrefs();
 	//Turn on classification prefs tab
 	var classBtn = document.getElementById("prefClass_btn");
-	classBtn.setAttribute('src', staticPath + 'images/covariateBarsOn.png');
+	classBtn.setAttribute('src', NgChm.staticPath + 'images/covariateBarsOn.png');
 	var classDiv = document.getElementById("classPrefs");
 	classDiv.style.display="block";
 }
@@ -175,17 +179,17 @@ function showClassPrefs() {
  * is called whenever a tab is clicked.  All tabs are set to hidden with their
  * image set to the "off" image.
  **********************************************************************************/
-function hideAllPrefs() {
+NgChm.UPM.hideAllPrefs = function() {
 	var classBtn = document.getElementById("prefClass_btn");
-	classBtn.setAttribute('src', staticPath + 'images/covariateBarsOff.png');
+	classBtn.setAttribute('src', NgChm.staticPath + 'images/covariateBarsOff.png');
 	var classDiv = document.getElementById("classPrefs");
 	classDiv.style.display="none";
 	var layerBtn = document.getElementById("prefLayer_btn");
-	layerBtn.setAttribute('src', staticPath + 'images/dataLayersOff.png');
+	layerBtn.setAttribute('src', NgChm.staticPath + 'images/dataLayersOff.png');
 	var layerDiv = document.getElementById("layerPrefs");
 	layerDiv.style.display="none";
 	var rowsColsBtn = document.getElementById("prefRowsCols_btn");
-	rowsColsBtn.setAttribute('src', staticPath + 'images/rowsColsOff.png');
+	rowsColsBtn.setAttribute('src', NgChm.staticPath + 'images/rowsColsOff.png');
 	var rowsColsDiv = document.getElementById("rowsColsPrefs");
 	rowsColsDiv.style.display="none";
 }
@@ -198,23 +202,28 @@ function hideAllPrefs() {
  * breakpoints, the backup colormap (saved when preferences are first opened) is re-
  * applied to the colorMapManager.  Then the preferences DIV is retrieved and removed.
  **********************************************************************************/
-function prefsCancelButton() {
-	if (bkpColorMaps !== null) {
-		var colorMapMgr = heatMap.getColorMapManager();
-		var dataLayers = heatMap.getDataLayers();
+NgChm.UPM.prefsCancelButton = function() {
+	if (NgChm.UPM.bkpColorMaps !== null) {
+		var colorMapMgr = NgChm.heatMap.getColorMapManager();
+		var dataLayers = NgChm.heatMap.getDataLayers();
 		var i = 0;
 		for (var key in dataLayers){
-			colorMapMgr.setColorMap(key, bkpColorMaps[i], "data");		
+			colorMapMgr.setColorMap(key, NgChm.UPM.bkpColorMaps[i], "data");		
 			i++;
 		}
 	}
-	removeSettingsPanels();
+	NgChm.UPM.removeSettingsPanels();
 	//Hide the preferences panel
 	document.getElementById('prefsPanel').style.display= 'none';
-	searchPerformed = false;
+	NgChm.UPM.searchPerformed = false;
+	NgChm.DET.canvas.focus();
 }
 
-function removeSettingsPanels() {
+/**********************************************************************************
+ * FUNCTION - removeSettingsPanels: The purpose of this function is to remove all 
+ * panels that are content specific before closing the preferences dialog.
+ **********************************************************************************/
+NgChm.UPM.removeSettingsPanels = function() {
 	
 	//Remove all panels that are content specific before closing
 	var pActions = document.getElementById("prefActions");
@@ -242,16 +251,17 @@ function removeSettingsPanels() {
  * these changes are not yet permanently  saved to the JSON files that are used to 
  * configure heat map presentation.
  **********************************************************************************/
-function prefsApplyButton() {
+NgChm.UPM.prefsApplyButton = function() {
 	//Perform validations of all user-entered data layer and covariate bar
 	//preference changes.
-	var errorMsg = prefsValidate();
+	var errorMsg = NgChm.UPM.prefsValidate();
 	if (errorMsg !== null) {
-		prefsError(errorMsg);
+		NgChm.UPM.prefsError(errorMsg);
 	} else { 
-		prefsApply();
-		heatMap.setUnAppliedChanges(true);
-		prefsSuccess();
+		NgChm.UPM.prefsApply();
+		NgChm.heatMap.setUnAppliedChanges(true);
+		NgChm.UPM.prefsSuccess();
+		NgChm.DET.canvas.focus();
 	}
 }
 
@@ -260,16 +270,15 @@ function prefsApplyButton() {
  * necessary when preferences are determined to be valid. It is shared by the
  * Apply and Save buttons.
  **********************************************************************************/
-function prefsSuccess() {
-	filterVal = null;
+NgChm.UPM.prefsSuccess = function() {
+	NgChm.UPM.filterVal = null;
 	//Remove the backup color map (used to reinstate colors if user cancels)
 	//and formally apply all changes to the heat map, re-draw, and exit preferences.
-	bkpColorMaps = null;
-	summaryInit();
-	//detailInit();
-	drawDetailHeatMap();
-	changeMode('NORMAL');
-	prefsCancelButton();
+	NgChm.UPM.bkpColorMaps = null;
+	NgChm.SUM.summaryInit();
+	NgChm.DET.drawDetailHeatMap();
+	NgChm.SEL.changeMode('NORMAL');
+	NgChm.UPM.prefsCancelButton();
 }
 
 /**********************************************************************************
@@ -277,29 +286,29 @@ function prefsSuccess() {
  * necessary when preferences are determined to be invalid. It is shared by the
  * Apply and Save buttons.
  **********************************************************************************/
-function prefsError(errorMsg) {
+NgChm.UPM.prefsError = function(errorMsg) {
 	//If a validation error exists, re-present the user preferences
 	//dialog with the error message displayed in red. 
-	filterVal = null;
-	editPreferences(document.getElementById('gear_btn'),errorMsg);
+	NgChm.UPM.filterVal = null;
+	NgChm.UPM.editPreferences(document.getElementById('gear_btn'),errorMsg);
 }
 
 /**********************************************************************************
- * FUNCTION - prefsSuccess: The purpose of this function is to apply all user
+ * FUNCTION - prefsApply: The purpose of this function is to apply all user
  * ColorMap preferences settings.  It is shared by the Apply and Save buttons.
  **********************************************************************************/
-function prefsApply() {
+NgChm.UPM.prefsApply = function() {
 	// Apply Row & Column Preferences
-	var rowDendroConfig = heatMap.getRowDendroConfig();   
-	var rowOrganization = heatMap.getRowOrganization();
+	var rowDendroConfig = NgChm.heatMap.getRowDendroConfig();   
+	var rowOrganization = NgChm.heatMap.getRowOrganization();
 	var rowOrder = rowOrganization['order_method'];
 	if (rowOrder === "Hierarchical") {
 		var rowDendroShowVal = document.getElementById("rowDendroShowPref").value;
 		rowDendroConfig.show = rowDendroShowVal;
 		rowDendroConfig.height = document.getElementById("rowDendroHeightPref").value;
 	}	
-	var colDendroConfig = heatMap.getColDendroConfig();
-	var colOrganization = heatMap.getColOrganization();
+	var colDendroConfig = NgChm.heatMap.getColDendroConfig();
+	var colOrganization = NgChm.heatMap.getColOrganization();
 	var colOrder = colOrganization['order_method'];
 	if (colOrder === "Hierarchical") {
 		var colDendroShowVal = document.getElementById("colDendroShowPref").value;
@@ -307,38 +316,41 @@ function prefsApply() {
 		colDendroConfig.height = document.getElementById("colDendroHeightPref").value;
 	}	
 	// Apply Covariate Bar Preferences
-	var rowClassBars = heatMap.getRowClassificationConfig();
+	var rowClassBars = NgChm.heatMap.getRowClassificationConfig();
 	for (var key in rowClassBars){
 		var keyrow = key+"_row";
 		var showElement = document.getElementById(keyrow+"_showPref");
 		var heightElement = document.getElementById(keyrow+"_heightPref");
-		heatMap.setClassificationPrefs(key,"row",showElement.checked,heightElement.value);
-		prefsApplyBreaks(key,"row");
+		NgChm.heatMap.setClassificationPrefs(key,"row",showElement.checked,heightElement.value);
+		NgChm.UPM.prefsApplyBreaks(key,"row");
 	}
-	var colClassBars = heatMap.getColClassificationConfig();
+	var colClassBars = NgChm.heatMap.getColClassificationConfig();
 	for (var key in colClassBars){
 		var keycol = key+"_col";
 		var showElement = document.getElementById(keycol+"_showPref");
 		var heightElement = document.getElementById(keycol+"_heightPref");
-		heatMap.setClassificationPrefs(key,"col",showElement.checked,heightElement.value);
-		prefsApplyBreaks(key,"col");
+		NgChm.heatMap.setClassificationPrefs(key,"col",showElement.checked,heightElement.value);
+		NgChm.UPM.prefsApplyBreaks(key,"col");
 	}
 	// Apply Sizing Preferences
 	var sumSize = document.getElementById("summaryWidthPref").value;
 	var detSize = document.getElementById("detailWidthPref").value;
 	var heightSize = document.getElementById("mapHeightPref").value;
-	heatMap.getMapInformation().summary_width = sumSize;
-	heatMap.getMapInformation().detail_width = detSize;
-	heatMap.getMapInformation().summary_height = heightSize;
-	heatMap.getMapInformation().detail_height = heightSize;
+	NgChm.heatMap.getMapInformation().summary_width = sumSize;
+	NgChm.heatMap.getMapInformation().detail_width = detSize;
+	NgChm.heatMap.getMapInformation().summary_height = heightSize;
+	NgChm.heatMap.getMapInformation().detail_height = heightSize;
+	NgChm.heatMap.getMapInformation().label_display_length = document.getElementById("labelSizePref").value;
+	NgChm.heatMap.getMapInformation().label_display_truncation = document.getElementById("labelTruncPref").value;
+	
 	// Apply Data Layer Preferences
-	var dataLayers = heatMap.getDataLayers();
+	var dataLayers = NgChm.heatMap.getDataLayers();
 	for (var key in dataLayers){
 		var showGrid = document.getElementById(key+'_gridPref');
 		var gridColor = document.getElementById(key+'_gridColorPref');
 		var selectionColor = document.getElementById(key+'_selectionColorPref');
-		heatMap.setLayerGridPrefs(key, showGrid.checked,gridColor.value,selectionColor.value)
-		prefsApplyBreaks(key,"data");
+		NgChm.heatMap.setLayerGridPrefs(key, showGrid.checked,gridColor.value,selectionColor.value)
+		NgChm.UPM.prefsApplyBreaks(key,"data");
 	}
 }
 
@@ -348,17 +360,68 @@ function prefsApply() {
  * message (string array containing error information) is created and returned to 
  * the prefsApply function. 
  **********************************************************************************/
-function prefsValidate() {
+NgChm.UPM.prefsValidate = function() {
 	var errorMsg = null;
+	errorMsg = NgChm.UPM.prefsValidateForNumeric();
 	//Validate all breakpoints and colors for the main data layer
 	if (errorMsg === null) {
-		var dataLayers = heatMap.getDataLayers();
+		var dataLayers = NgChm.heatMap.getDataLayers();
 		for (var key in dataLayers){
-			errorMsg = prefsValidateBreakPoints(key,"layerPrefs");
+			errorMsg = NgChm.UPM.prefsValidateBreakPoints(key,"layerPrefs");
 			if (errorMsg != null) break;
 		}
 	}
 	
+	return errorMsg;
+}
+
+
+/**********************************************************************************
+ * FUNCTION - prefsValidateInputBoxs: The purpose of this function is to validate 
+ * all user text input boxes that require positive numeric values. 
+ **********************************************************************************/
+NgChm.UPM.prefsValidateForNumeric = function() {
+	var errorMsg = null;
+	var rowClassBars = NgChm.heatMap.getRowClassificationConfig();
+	for (var key in rowClassBars) {
+		var elem = document.getElementById(key+"_row_heightPref");
+		var elemVal = elem.value;
+		if ((isNaN(elemVal)) || (parseInt(elemVal) < 0)) {
+			errorMsg =  ["ALL", "classPrefs", "ERROR: Bar heights must be between 0 and 99"];
+		    return errorMsg;
+		}
+	}
+	if (errorMsg === null) {
+		var colClassBars = NgChm.heatMap.getColClassificationConfig();
+		for (var key in colClassBars) {
+			var elem = document.getElementById(key+"_col_heightPref");
+			var elemVal = elem.value;
+			if ((isNaN(elemVal)) || (parseInt(elemVal) < 0)) {
+				errorMsg =  ["ALL", "classPrefs", "ERROR: Bar heights must be between 0 and 99"];
+				 return errorMsg;
+			}
+		}
+	}
+	if (errorMsg === null) {
+		var elem = document.getElementById("summaryWidthPref");
+		var elemVal = elem.value;
+		if ((isNaN(elemVal)) || (parseInt(elemVal) < 0) || (parseInt(elemVal) > 100)) {
+			errorMsg =  [null, "rowsColsPrefs", "ERROR: Summary Width % must be between 0 and 100"];
+			 return errorMsg;
+		}
+		var elem = document.getElementById("detailWidthPref");
+		var elemVal = elem.value;
+		if ((isNaN(elemVal)) || (parseInt(elemVal) < 0) || (parseInt(elemVal) > 100)) {
+			errorMsg =  [null, "rowsColsPrefs", "ERROR: Detail Width % must be between 0 and 100"];
+			 return errorMsg;
+		}
+		var elem = document.getElementById("mapHeightPref");
+		var elemVal = elem.value;
+		if ((isNaN(elemVal)) || (parseInt(elemVal) < 0) || (parseInt(elemVal) > 100)) {
+			errorMsg =  [null, "rowsColsPrefs", "ERROR: Map Height % must be between 0 and 100"];
+			 return errorMsg;
+		}
+	}
 	return errorMsg;
 }
 
@@ -368,10 +431,11 @@ function prefsValidate() {
  * first error is found, an error  message (string array containing error information) 
  * is created and returned to the prefsApply function. 
  **********************************************************************************/
-function prefsValidateBreakPoints(colorMapName,prefPanel) {
-	var colorMap = heatMap.getColorMapManager().getColorMap("data",colorMapName);
+NgChm.UPM.prefsValidateBreakPoints = function(colorMapName,prefPanel) {
+	var colorMap = NgChm.heatMap.getColorMapManager().getColorMap("data",colorMapName);
 	var thresholds = colorMap.getThresholds();
 	var colors = colorMap.getColors();
+	var charBreak = false;
 	var dupeBreak = false;
 	var breakOrder = false;
 	var prevBreakValue = -99999;
@@ -379,6 +443,12 @@ function prefsValidateBreakPoints(colorMapName,prefPanel) {
 	//Loop thru colormap thresholds and validate for order and duplicates
 	for (var i = 0; i < thresholds.length; i++) {
 		var breakElement = document.getElementById(colorMapName+"_breakPt"+i+"_breakPref");
+		//If current breakpoint is not numeric
+		if (isNaN(breakElement.value)) {
+			charBreak = true;
+			break;
+		}
+		
 		//If current breakpoint is not greater than previous, throw order error
 		if (parseInt(breakElement.value) < prevBreakValue) {
 			breakOrder = true;
@@ -396,11 +466,14 @@ function prefsValidateBreakPoints(colorMapName,prefPanel) {
 			}
 		}
 	}
+	if (charBreak) {
+		errorMsg =  [colorMapName, prefPanel, "ERROR: Data layer breakpoints must be numeric"];
+	}
 	if (breakOrder) {
 		errorMsg =  [colorMapName, prefPanel, "ERROR: Data layer breakpoints must be in order"];
 	}
 	if (dupeBreak) {
-		errorMsg =  [colorMapName, prefPanel, "ERROR: Duplicate data layer breakpoint found above"];
+		errorMsg =  [colorMapName, prefPanel, "ERROR: Duplicate data layer breakpoint found"];
 	}
 	
 	return errorMsg;
@@ -412,8 +485,8 @@ function prefsValidateBreakPoints(colorMapName,prefPanel) {
  * first error is found, an error  message (string array containing error information) 
  * is created and returned to the prefsApply function. 
  **********************************************************************************/
-function prefsValidateBreakColors(colorMapName,type, prefPanel) {
-	var colorMap = heatMap.getColorMapManager().getColorMap(type,colorMapName);
+NgChm.UPM.prefsValidateBreakColors = function(colorMapName,type, prefPanel) {
+	var colorMap = NgChm.heatMap.getColorMapManager().getColorMap(type,colorMapName);
 	var key = colorMapName;
 	if (type !== "data") {
 		key = key+"_"+type;
@@ -422,7 +495,7 @@ function prefsValidateBreakColors(colorMapName,type, prefPanel) {
 	var colors = colorMap.getColors();
 	var dupeColor = false;
 	for (var i = 0; i < colors.length; i++) {
-		var colorElement = document.getElementById(key+"_color"+i+"_colorPref");
+		c
 		for (var j = 0; j < thresholds.length; j++) {
 			var ce = document.getElementById(key+"_color"+j+"_colorPref"); 
 			if (i != j) {
@@ -444,22 +517,22 @@ function prefsValidateBreakColors(colorMapName,type, prefPanel) {
  * FUNCTION - prefsApplyBreaks: The purpose of this function is to apply all 
  * user entered changes to colors and breakpoints. 
  **********************************************************************************/
-function prefsApplyBreaks(colorMapName, type) {
-	var colorMap = heatMap.getColorMapManager().getColorMap(type,colorMapName);
+NgChm.UPM.prefsApplyBreaks = function(colorMapName, type) {
+	var colorMap = NgChm.heatMap.getColorMapManager().getColorMap(type,colorMapName);
 	var thresholds = colorMap.getThresholds();
 	var colors = colorMap.getColors();
-	var newColors = getNewBreakColors(colorMapName, type);
+	var newColors = NgChm.UPM.getNewBreakColors(colorMapName, type);
 	colorMap.setColors(newColors);
 	var key = colorMapName;
 	if (type === "data") {
-		var newThresholds = getNewBreakThresholds(colorMapName);
+		var newThresholds = NgChm.UPM.getNewBreakThresholds(colorMapName);
 		colorMap.setThresholds(newThresholds);
 	} else {
 		key = key+"_"+type;
 	}
 	var missingElement = document.getElementById(key+"_missing_colorPref");
 	colorMap.setMissingColor(missingElement.value);
-	var colorMapMgr = heatMap.getColorMapManager();
+	var colorMapMgr = NgChm.heatMap.getColorMapManager();
 	colorMapMgr.setColorMap(colorMapName, colorMap, type);
 }
 
@@ -472,8 +545,8 @@ function prefsApplyBreaks(colorMapName, type) {
  * addLayerBreak and deleteLayerBreak functions with parameters passed in for 
  * the position to add/delete and the action to be performed (add/delete).
  **********************************************************************************/
-function getNewBreakColors(colorMapName, type, pos, action) {
-	var colorMap = heatMap.getColorMapManager().getColorMap(type,colorMapName);
+NgChm.UPM.getNewBreakColors = function(colorMapName, type, pos, action) {
+	var colorMap = NgChm.heatMap.getColorMapManager().getColorMap(type,colorMapName);
 	var thresholds = colorMap.getThresholds();
 	var newColors = [];
 	var key = colorMapName;
@@ -511,8 +584,8 @@ function getNewBreakColors(colorMapName, type, pos, action) {
  * from the data layer addLayerBreak and deleteLayerBreak functions with parameters 
  * passed in for the position to add/delete and the action to be performed (add/delete).
  **********************************************************************************/
-function getNewBreakThresholds(colorMapName, pos, action) {
-	var colorMap = heatMap.getColorMapManager().getColorMap("data",colorMapName);
+NgChm.UPM.getNewBreakThresholds = function(colorMapName, pos, action) {
+	var colorMap = NgChm.heatMap.getColorMapManager().getColorMap("data",colorMapName);
 	var thresholds = colorMap.getThresholds();
 	var newThresholds = [];
 	for (var j = 0; j < thresholds.length; j++) {
@@ -543,7 +616,6 @@ function getNewBreakThresholds(colorMapName, pos, action) {
   *  configuration options:
   *  	- setupLayerPrefs
   *  	- setupLayerBreaks
-  *  	- setupLayerPrefs
   *     - addLayerBreak
   *     - deleteLayerBreak
   *     - reloadLayerBreaksColorMap
@@ -555,13 +627,13 @@ function getNewBreakThresholds(colorMapName, pos, action) {
  * data layers is presented and individual DIVs for each data layer, containing 
  * breakpoints/colors, are added.
  **********************************************************************************/
-function setupLayerPrefs(e, prefprefs){
-	var layerprefs = getDivElement("layerPrefs");
+NgChm.UPM.setupLayerPrefs = function(e, prefprefs) {
+	var layerprefs = NgChm.UHM.getDivElement("layerPrefs");
 	var prefContents = document.createElement("TABLE");
-	var dataLayers = heatMap.getDataLayers();
+	var dataLayers = NgChm.heatMap.getDataLayers();
 	var colorMapName = "dl1";
-	addBlankRow(prefContents);
-	var dlSelect = "<select name='dlPref_list' id='dlPref_list' onchange='showLayerBreak();'>"
+	NgChm.UHM.addBlankRow(prefContents);
+	var dlSelect = "<select name='dlPref_list' id='dlPref_list' onchange='NgChm.UPM.showLayerBreak();'>"
 	// Re-order options in datalayer order (which is lost on JSON save)
 	var dls = new Array(Object.keys(dataLayers).length);
 	var orderedKeys = new Array(Object.keys(dataLayers).length);
@@ -579,13 +651,13 @@ function setupLayerPrefs(e, prefprefs){
 		dlOptions += dls[i];
 	}
 	dlSelect += dlOptions+"</select>";  
-	setTableRow(prefContents,["&nbsp;Data Layer: ", dlSelect]);
-	addBlankRow(prefContents, 2)
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;Data Layer: ", dlSelect]);
+	NgChm.UHM.addBlankRow(prefContents, 2)
 	layerprefs.appendChild(prefContents);
-	addBlankRow(prefContents)
+	NgChm.UHM.addBlankRow(prefContents)
 	// Loop data layers, setting up a panel div for each layer
 	for (var key in dataLayers){
-		var breakprefs = setupLayerBreaks(e, key);
+		var breakprefs = NgChm.UPM.setupLayerBreaks(e, key);
 		breakprefs.style.display="none";
 		layerprefs.appendChild(breakprefs);
 	}
@@ -597,13 +669,13 @@ function setupLayerPrefs(e, prefprefs){
  * FUNCTION - setupLayerBreaks: The purpose of this function is to construct a DIV 
  * containing a list of breakpoints/colors for a given matrix data layer.
  **********************************************************************************/
-function setupLayerBreaks(e, mapName){
-	var colorMap = heatMap.getColorMapManager().getColorMap("data",mapName);
+NgChm.UPM.setupLayerBreaks = function(e, mapName) {
+	var colorMap = NgChm.heatMap.getColorMapManager().getColorMap("data",mapName);
 	var thresholds = colorMap.getThresholds();
 	var colors = colorMap.getColors();
-	var helpprefs = getDivElement("breakPrefs_"+mapName);
+	var helpprefs = NgChm.UHM.getDivElement("breakPrefs_"+mapName);
 	var prefContents = document.createElement("TABLE"); 
-	var dataLayers = heatMap.getDataLayers();
+	var dataLayers = NgChm.heatMap.getDataLayers();
 	var layer = dataLayers[mapName];
 	var gridShow = "<input name='"+mapName+"_gridPref' id='"+mapName+"_gridPref' type='checkbox' ";
 	if (layer.grid_show == 'Y') {
@@ -612,8 +684,8 @@ function setupLayerBreaks(e, mapName){
 	gridShow = gridShow+ " >";
 	var gridColorInput = "<input class='spectrumColor' type='color' name='"+mapName+"_gridColorPref' id='"+mapName+"_gridColorPref' value='"+layer.grid_color+"'>"; 
 	var selectionColorInput = "<input class='spectrumColor' type='color' name='"+mapName+"_selectionColorPref' id='"+mapName+"_selectionColorPref' value='"+layer.selection_color+"'>"; 
-	addBlankRow(prefContents, 2)
-	setTableRow(prefContents, ["&nbsp;<u>Breakpoint</u>", "<u><b>Color</b></u>","&nbsp;"]); 
+	NgChm.UHM.addBlankRow(prefContents, 2)
+	NgChm.UHM.setTableRow(prefContents, ["&nbsp;<u>Breakpoint</u>", "<u><b>Color</b></u>","&nbsp;"]); 
 	for (var j = 0; j < thresholds.length; j++) {
 		var threshold = thresholds[j];    
 		var color = colors[j];
@@ -621,37 +693,36 @@ function setupLayerBreaks(e, mapName){
 		var colorId = mapName+"_color"+j;
 		var breakPtInput = "&nbsp;&nbsp;<input name='"+threshId+"_breakPref' id='"+threshId+"_breakPref' value='"+threshold+"' maxlength='4' size='4'>";
 		var colorInput = "<input class='spectrumColor' type='color' name='"+colorId+"_colorPref' id='"+colorId+"_colorPref' value='"+color+"'>"; 
-		var addButton = "<img id='"+threshId+"_breakAdd' src='" + staticPath + "images/plusButton.png' alt='Add Breakpoint' onclick='addLayerBreak("+j+",\""+mapName+"\");' align='top'/>"
-		var delButton = "<img id='"+threshId+"_breakDel' src='" + staticPath + "images/minusButton.png' alt='Remove Breakpoint' onclick='deleteLayerBreak("+j+",\""+mapName+"\");' align='top'/>"
+		var addButton = "<img id='"+threshId+"_breakAdd' src='" + NgChm.staticPath + "images/plusButton.png' alt='Add Breakpoint' onclick='NgChm.UPM.addLayerBreak("+j+",\""+mapName+"\");' align='top'/>"
+		var delButton = "<img id='"+threshId+"_breakDel' src='" + NgChm.staticPath + "images/minusButton.png' alt='Remove Breakpoint' onclick='NgChm.UPM.deleteLayerBreak("+j+",\""+mapName+"\");' align='top'/>"
 		if (j === 0) {
-			setTableRow(prefContents, [breakPtInput, colorInput, addButton]);
+			NgChm.UHM.setTableRow(prefContents, [breakPtInput, colorInput, addButton]);
 		} else {
-			setTableRow(prefContents, [breakPtInput,  colorInput, addButton+ delButton]);
+			NgChm.UHM.setTableRow(prefContents, [breakPtInput,  colorInput, addButton+ delButton]);
 		}
 	} 
-	addBlankRow(prefContents)
-	setTableRow(prefContents, ["&nbsp;Missing Color:",  "<input class='spectrumColor' type='color' name='"+mapName+"_missing_colorPref' id='"+mapName+"_missing_colorPref' value='"+colorMap.getMissingColor()+"'>"]);
-	addBlankRow(prefContents, 3)
+	NgChm.UHM.addBlankRow(prefContents)
+	NgChm.UHM.setTableRow(prefContents, ["&nbsp;Missing Color:",  "<input class='spectrumColor' type='color' name='"+mapName+"_missing_colorPref' id='"+mapName+"_missing_colorPref' value='"+colorMap.getMissingColor()+"'>"]);
+	NgChm.UHM.addBlankRow(prefContents, 3)
 	// predefined color schemes put here
-	setTableRow(prefContents, ["&nbsp;<u>Choose a pre-defined color palette:</u>"],3);
-	addBlankRow(prefContents);
-	var rainbow = "<div style='display:flex'><div id='setROYGBV' class='presetPalette' style='background: linear-gradient(to right, red,orange,yellow,green,blue,violet);' onclick='setupLayerBreaksToPreset(event, \""+ mapName+ "\", [\"#FF0000\",\"#FF8000\",\"#FFFF00\",\"#00FF00\",\"#0000FF\",\"#FF00FF\"],\"#000000\")' > </div>" +
+	NgChm.UHM.setTableRow(prefContents, ["&nbsp;<u>Choose a pre-defined color palette:</u>"],3);
+	NgChm.UHM.addBlankRow(prefContents);
+	var rainbow = "<div style='display:flex'><div id='setROYGBV' class='presetPalette' style='background: linear-gradient(to right, red,orange,yellow,green,blue,violet);' onclick='NgChm.UPM.setupLayerBreaksToPreset(event, \""+ mapName+ "\", [\"#FF0000\",\"#FF8000\",\"#FFFF00\",\"#00FF00\",\"#0000FF\",\"#FF00FF\"],\"#000000\")' > </div>" +
 			"<div class='presetPaletteMissingColor' style='background:black'></div></div>";
-	var redWhiteBlue = "<div style='display:flex'><div id='setRedWhiteBlue' class='presetPalette' style='background: linear-gradient(to right, blue,white,red);' onclick='setupLayerBreaksToPreset(event, \""+ mapName+ "\", [\"#0000FF\",\"#FFFFFF\",\"#ff0000\"],\"#000000\")'> </div>" +
+	var redWhiteBlue = "<div style='display:flex'><div id='setRedWhiteBlue' class='presetPalette' style='background: linear-gradient(to right, blue,white,red);' onclick='NgChm.UPM.setupLayerBreaksToPreset(event, \""+ mapName+ "\", [\"#0000FF\",\"#FFFFFF\",\"#ff0000\"],\"#000000\")'> </div>" +
 			"<div class='presetPaletteMissingColor' style='background:black'></div></div>";
-	var redBlackGreen = "<div style='display:flex'><div id='setRedBlackGreen' class='presetPalette' style='background: linear-gradient(to right, green,black,red);' onclick='setupLayerBreaksToPreset(event, \""+ mapName+ "\", [\"#00FF00\",\"#000000\",\"#FF0000\"],\"#ffffff\")'> </div>" +
+	var redBlackGreen = "<div style='display:flex'><div id='setRedBlackGreen' class='presetPalette' style='background: linear-gradient(to right, green,black,red);' onclick='NgChm.UPM.setupLayerBreaksToPreset(event, \""+ mapName+ "\", [\"#00FF00\",\"#000000\",\"#FF0000\"],\"#ffffff\")'> </div>" +
 			"<div class='presetPaletteMissingColor' style='background:white'></div></div>"
-	setTableRow(prefContents, [ redWhiteBlue, rainbow, redBlackGreen ]);
-	setTableRow(prefContents, ["&nbsp;Blue Red",  "&nbsp;<b>Rainbow</b>","&nbsp;<b>Green Red</b>"]);
-	addBlankRow(prefContents, 3)
-	setTableRow(prefContents, ["&nbsp;Grid Lines:", gridColorInput, "<b>Show:&nbsp;&nbsp;</b>"+gridShow]); 
-	setTableRow(prefContents, ["&nbsp;Selection Color:", selectionColorInput]); 
-	helpprefs.style.height = prefContents.rows.length;;
+	NgChm.UHM.setTableRow(prefContents, [ redWhiteBlue, rainbow, redBlackGreen ]);
+	NgChm.UHM.setTableRow(prefContents, ["&nbsp;Blue Red",  "&nbsp;<b>Rainbow</b>","&nbsp;<b>Green Red</b>"]);
+	NgChm.UHM.addBlankRow(prefContents, 3)
+	NgChm.UHM.setTableRow(prefContents, ["&nbsp;Grid Lines:", gridColorInput, "<b>Show:&nbsp;&nbsp;</b>"+gridShow]); 
+	NgChm.UHM.setTableRow(prefContents, ["&nbsp;Selection Color:", selectionColorInput]); 
+	helpprefs.style.height = prefContents.rows.length;
 	helpprefs.appendChild(prefContents);
 	
 	return helpprefs;
 }	
-
 
 /**********************************************************************************
  * FUNCTION - setupLayerBreaksToPreset: This function will be executed when the user
@@ -659,7 +730,7 @@ function setupLayerBreaks(e, mapName){
  * predefined colors and interpolate the breakpoints in between.
  * "preset" is an array of the colors in HEX of the predefined color scheme
  **********************************************************************************/
-function setupLayerBreaksToPreset(e, mapName, preset, missingColor,axis,type){
+NgChm.UPM.setupLayerBreaksToPreset = function(e, mapName, preset, missingColor,axis,type) {
 	var elemName = mapName;
 	if (typeof axis != 'undefined') {
 		elemName += "_"+axis;
@@ -677,7 +748,7 @@ function setupLayerBreaksToPreset(e, mapName, preset, missingColor,axis,type){
 			thresh[j] =Number(firstBP)+j*(range/(preset.length-1));
 		}
 		var colorScheme = {"missing": missingColor,"thresholds": thresh,"colors": preset,"type": "continuous"};
-		var csTemp = new ColorMap(colorScheme);
+		var csTemp = new NgChm.CMM.ColorMap(colorScheme);
 		
 		for (var j = 0; j < i; j++) {
 			var threshId = mapName+"_breakPt"+j;
@@ -698,14 +769,14 @@ function setupLayerBreaksToPreset(e, mapName, preset, missingColor,axis,type){
 			} 
 			document.getElementById(elemName+"_missing_colorPref").value = missingColor; 
 		} else { // if colors need to be blended
-			var colorMap = heatMap.getColorMapManager().getColorMap(axis, mapName)
+			var colorMap = NgChm.heatMap.getColorMapManager().getColorMap(axis, mapName)
 			var thresholds = colorMap.getThresholds();
 			var range = thresholds[thresholds.length-1]-thresholds[0];
 			for (var j = 0; j < preset.length; j++){
 				thresh[j] = Number(thresholds[0])+j*(range/(preset.length-1));
 			}
 			var colorScheme = {"missing": missingColor,"thresholds": thresh,"colors": preset,"type": "continuous"};
-			var csTemp = new ColorMap(colorScheme);
+			var csTemp = new NgChm.CMM.ColorMap(colorScheme);
 			for (var j = 0; j < thresholds.length; j++) {
 				var colorId = elemName+"_color"+j;
 				var breakpoint = thresholds[j];
@@ -723,7 +794,7 @@ function setupLayerBreaksToPreset(e, mapName, preset, missingColor,axis,type){
  * function is also called when an error is trappped, opening the data layer DIV
  * that contains the erroneous data entry.
  **********************************************************************************/
-function showLayerBreak(selLayer) {
+NgChm.UPM.showLayerBreak = function(selLayer) {
 	var layerBtn = document.getElementById('dlPref_list');
 	if (typeof selLayer != 'undefined') {
 		layerBtn.value = selLayer;
@@ -745,31 +816,31 @@ function showLayerBreak(selLayer) {
  * row to a data layer colormap. A new row is created using the preceding row as a 
  * template (i.e. breakpt value and color same as row clicked on).  
  **********************************************************************************/
-function addLayerBreak(pos,colorMapName) {
+NgChm.UPM.addLayerBreak = function(pos,colorMapName) {
 	//Retrieve colormap for data layer
-	var colorMap = heatMap.getColorMapManager().getColorMap("data",colorMapName);
-	var newThresholds = getNewBreakThresholds(colorMapName, pos, "add");
-	var newColors = getNewBreakColors(colorMapName, "data", pos, "add");
+	var colorMap = NgChm.heatMap.getColorMapManager().getColorMap("data",colorMapName);
+	var newThresholds = NgChm.UPM.getNewBreakThresholds(colorMapName, pos, "add");
+	var newColors = NgChm.UPM.getNewBreakColors(colorMapName, "data", pos, "add");
 	colorMap.setThresholds(newThresholds);
 	colorMap.setColors(newColors);
-	reloadLayerBreaksColorMap(colorMapName, colorMap);
+	NgChm.UPM.reloadLayerBreaksColorMap(colorMapName, colorMap);
 }
 
 /**********************************************************************************
  * FUNCTION - deleteLayerBreak: The purpose of this function is to remove a breakpoint
  * row from a data layer colormap.   
  **********************************************************************************/
-function deleteLayerBreak(pos,colorMapName) {
-	var colorMap = heatMap.getColorMapManager().getColorMap("data",colorMapName);
+NgChm.UPM.deleteLayerBreak = function(pos,colorMapName) {
+	var colorMap = NgChm.heatMap.getColorMapManager().getColorMap("data",colorMapName);
 	var thresholds = colorMap.getThresholds();
 	var colors = colorMap.getColors();
-	var newThresholds = getNewBreakThresholds(colorMapName, pos, "delete");
-	var newColors = getNewBreakColors(colorMapName, "data", pos, "delete");
+	var newThresholds = NgChm.UPM.getNewBreakThresholds(colorMapName, pos, "delete");
+	var newColors = NgChm.UPM.getNewBreakColors(colorMapName, "data", pos, "delete");
 	//Apply new arrays for thresholds and colors to the datalayer
 	//and reload the colormap.
 	colorMap.setThresholds(newThresholds);
 	colorMap.setColors(newColors);
-	reloadLayerBreaksColorMap(colorMapName, colorMap);
+	NgChm.UPM.reloadLayerBreaksColorMap(colorMapName, colorMap);
 }
 
 /**********************************************************************************
@@ -778,16 +849,16 @@ function deleteLayerBreak(pos,colorMapName) {
  * this common function.  The layerPrefs DIV is retrieved and the setupLayerBreaks
  * method is called, passing in the newly edited colormap. 
  **********************************************************************************/
-function reloadLayerBreaksColorMap(colorMapName, colorMap) {
+NgChm.UPM.reloadLayerBreaksColorMap = function(colorMapName, colorMap) {
 	var e = document.getElementById('gear_btn')
-	var colorMapMgr = heatMap.getColorMapManager();
+	var colorMapMgr = NgChm.heatMap.getColorMapManager();
 	colorMapMgr.setColorMap(colorMapName, colorMap, "data");
 	var breakPrefs = document.getElementById('breakPrefs_'+colorMapName);
 	if (breakPrefs){
 		breakPrefs.remove();
 	}
-	var layerprefs = getDivElement("layerPrefs");
-	var breakPrefs = setupLayerBreaks(e, colorMapName, colorMapName);
+	var layerprefs = NgChm.UHM.getDivElement("layerPrefs");
+	var breakPrefs = NgChm.UPM.setupLayerBreaks(e, colorMapName, colorMapName);
 	breakPrefs.style.display="block";
 	layerPrefs.appendChild(breakPrefs);
 }
@@ -812,29 +883,29 @@ function reloadLayerBreaksColorMap(colorMapName, colorMap) {
  * created for "ALL" classification bars that contains preferences that are global
  * to all of the individual bars.
  **********************************************************************************/
-function setupClassPrefs(e, prefprefs){
-	var rowClassBars = heatMap.getRowClassificationConfig();
-	var rowClassBarsOrder = heatMap.getRowClassificationOrder();
-	var colClassBars = heatMap.getColClassificationConfig();
-	var colClassBarsOrder = heatMap.getColClassificationOrder();
-	var classprefs = getDivElement("classPrefs");
+NgChm.UPM.setupClassPrefs = function(e, prefprefs) {
+	var rowClassBars = NgChm.heatMap.getRowClassificationConfig();
+	var rowClassBarsOrder = NgChm.heatMap.getRowClassificationOrder();
+	var colClassBars = NgChm.heatMap.getColClassificationConfig();
+	var colClassBarsOrder = NgChm.heatMap.getColClassificationOrder();
+	var classprefs = NgChm.UHM.getDivElement("classPrefs");
 	var prefContents = document.createElement("TABLE");
-	addBlankRow(prefContents);
+	NgChm.UHM.addBlankRow(prefContents);
 	var filterInput = "<input name='all_searchPref' id='all_searchPref'>";
-	var filterButton = "<img id='all_searchPref_btn' src='" + staticPath + "images/filterClassButton.png' alt='Filter Covariates' onclick='filterClassPrefs(true);' align='top'/>";
+	var filterButton = "<img id='all_searchPref_btn' src='" + NgChm.staticPath + "images/filterClassButton.png' alt='Filter Covariates' onclick='NgChm.UPM.filterClassPrefs(true);' align='top'/>";
 	var searchClasses = filterInput+"&nbsp;&nbsp;"+filterButton+"&emsp;&emsp;";
-	setTableRow(prefContents,[searchClasses], 4, 'right');
-	addBlankRow(prefContents,2);
-	var classSelect = "<select name='classPref_list' id='classPref_list' onchange='showClassBreak();'></select>"
-	setTableRow(prefContents,["&nbsp;Covariate Bar: ", classSelect]);
-	addBlankRow(prefContents);
+	NgChm.UHM.setTableRow(prefContents,[searchClasses], 4, 'right');
+	NgChm.UHM.addBlankRow(prefContents,2);
+	var classSelect = "<select name='classPref_list' id='classPref_list' onchange='NgChm.UPM.showClassBreak();'></select>"
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;Covariate Bar: ", classSelect]);
+	NgChm.UHM.addBlankRow(prefContents);
 	classprefs.appendChild(prefContents);
 	var i = 0;
 	for (var i = 0; i < rowClassBarsOrder.length;i++){
 		var key = rowClassBarsOrder[i];
 		var currentClassBar = rowClassBars[key];
-		if (filterShow(key)) {
-			var breakprefs = setupClassBreaks(e, key, "row", currentClassBar);
+		if (NgChm.UPM.filterShow(key)) {
+			var breakprefs = NgChm.UPM.setupClassBreaks(e, key, "row", currentClassBar);
 			breakprefs.style.display="none";
 			//breakprefs.style.width = 300;
 			classprefs.appendChild(breakprefs);
@@ -843,15 +914,15 @@ function setupClassPrefs(e, prefprefs){
 	for (var i = 0; i < colClassBarsOrder.length;i++){
 		var key = colClassBarsOrder[i];
 		var currentClassBar = colClassBars[key];
-		if (filterShow(key)) {
-			var breakprefs = setupClassBreaks(e, key, "col", currentClassBar);
+		if (NgChm.UPM.filterShow(key)) {
+			var breakprefs = NgChm.UPM.setupClassBreaks(e, key, "col", currentClassBar);
 			breakprefs.style.display="none";
 			//breakprefs.style.width = 300;
 			classprefs.appendChild(breakprefs);
 		}
 	}
 	// Append a DIV panel for all of the covariate class bars 
-	var allPrefs = setupAllClassesPrefs(); 
+	var allPrefs = NgChm.UPM.setupAllClassesPrefs(); 
 	allPrefs.style.display="block";
 	classprefs.appendChild(allPrefs);
 	
@@ -859,27 +930,27 @@ function setupClassPrefs(e, prefprefs){
 }
 
 /**********************************************************************************
- * FUNCTION - setupClassBreaks: The purpose of this function is to construct a DIV 
+ * FUNCTION - setupAllClassesPrefs: The purpose of this function is to construct a DIV 
  * containing a list of all covariate bars with informational data and user preferences 
  * that are common to all bars (show/hide and size).  
  **********************************************************************************/
-function setupAllClassesPrefs(){
-	var allprefs = getDivElement("breakPrefs_ALL");
+NgChm.UPM.setupAllClassesPrefs = function() {
+	var allprefs = NgChm.UHM.getDivElement("breakPrefs_ALL");
 	allprefs.style.height="100px";
 	var prefContents = document.createElement("TABLE");
 	prefContents.id = "tableAllClasses";
-	addBlankRow(prefContents);
-	var colShowAll = "<input name='all_showPref' id='all_showPref' type='checkbox' onchange='showAllBars();'> ";
-	setTableRow(prefContents,["&nbsp;<u>"+"Covariate"+"</u>", "<b><u>"+"Position"+"</u></b>", colShowAll+"<b><u>"+"Show"+"</u></b>", "<b><u>"+"Height"+"</u></b>"]);
+	NgChm.UHM.addBlankRow(prefContents);
+	var colShowAll = "<input name='all_showPref' id='all_showPref' type='checkbox' onchange='NgChm.UPM.showAllBars();'> ";
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;<u>"+"Covariate"+"</u>", "<b><u>"+"Position"+"</u></b>", colShowAll+"<b><u>"+"Show"+"</u></b>", "<b><u>"+"Height"+"</u></b>"]);
 	var checkState = true;
-	var rowClassBars = heatMap.getRowClassificationConfig();
-	var rowClassBarsOrder = heatMap.getRowClassificationOrder();
+	var rowClassBars = NgChm.heatMap.getRowClassificationConfig();
+	var rowClassBarsOrder = NgChm.heatMap.getRowClassificationOrder();
 	for (var i = 0;  i < rowClassBarsOrder.length; i++){
 		var key = rowClassBarsOrder[i];
 		var currentClassBar = rowClassBars[key];
 		var keyrow = key+"_row";
-		if (filterShow(key)) {
-			var colShow = "&emsp;&emsp;<input name='"+keyrow+"_showPref' id='"+keyrow+"_showPref' type='checkbox' onchange='setShowAll();'";
+		if (NgChm.UPM.filterShow(key)) {
+			var colShow = "&emsp;&emsp;<input name='"+keyrow+"_showPref' id='"+keyrow+"_showPref' type='checkbox' onchange='NgChm.UPM.setShowAll();'";
 			if (currentClassBar.show == 'Y') {
 				colShow = colShow+"checked"
 			}
@@ -889,17 +960,17 @@ function setupAllClassesPrefs(){
 			if (key.length > 20){
 				displayName = key.substring(0,20) + "...";
 			}
-			setTableRow(prefContents,["&nbsp;&nbsp;"+displayName,"Row",colShow,colHeight]); 
+			NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;"+displayName,"Row",colShow,colHeight]); 
 		}
 	}
-	var colClassBars = heatMap.getColClassificationConfig();
-	var colClassBarsOrder = heatMap.getColClassificationOrder();
+	var colClassBars = NgChm.heatMap.getColClassificationConfig();
+	var colClassBarsOrder = NgChm.heatMap.getColClassificationOrder();
 	for (var i = 0; i < colClassBarsOrder.length; i++){
 		var key = colClassBarsOrder[i];
 		var currentClassBar = colClassBars[key];
 		var keycol = key+"_col";
-		if (filterShow(key)) {
-			var colShow = "&emsp;&emsp;<input name='"+keycol+"_showPref' id='"+keycol+"_showPref' type='checkbox' onchange='setShowAll();'";
+		if (NgChm.UPM.filterShow(key)) {
+			var colShow = "&emsp;&emsp;<input name='"+keycol+"_showPref' id='"+keycol+"_showPref' type='checkbox' onchange='NgChm.UPM.setShowAll();'";
 			if (currentClassBar.show == 'Y') {
 				colShow = colShow+"checked"
 			}
@@ -909,7 +980,7 @@ function setupAllClassesPrefs(){
 			if (key.length > 20){
 				displayName = key.substring(0,20) + "...";
 			}
-			setTableRow(prefContents,["&nbsp;&nbsp;"+displayName,"Col",colShow,colHeight]); 
+			NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;"+displayName,"Col",colShow,colHeight]); 
 		}
 	}
 	allprefs.appendChild(prefContents);
@@ -922,49 +993,49 @@ function setupAllClassesPrefs(){
  * containing a set informational data and a list of categories/colors for a given
  * covariate classfication bar.  
  **********************************************************************************/
-function setupClassBreaks(e, key, barType, classBar){
+NgChm.UPM.setupClassBreaks = function(e, key, barType, classBar) {
 	//must add barType to key when adding objects to DOM
 	var keyRC = key+"_"+barType;
-	var colorMap = heatMap.getColorMapManager().getColorMap(barType, key);
+	var colorMap = NgChm.heatMap.getColorMapManager().getColorMap(barType, key);
 	var thresholds = colorMap.getThresholds();
 	var colors = colorMap.getColors();
-	var helpprefs = getDivElement("breakPrefs_"+keyRC);
+	var helpprefs = NgChm.UHM.getDivElement("breakPrefs_"+keyRC);
 	var prefContents = document.createElement("TABLE"); 
-	addBlankRow(prefContents);
-	var pos = toTitleCase(barType);
-	var typ = toTitleCase(colorMap.getType());
-	setTableRow(prefContents,["&nbsp;Bar Position: ","<b>"+pos+"</b>"]);
-	setTableRow(prefContents,["&nbsp;Bar Type: ","<b>"+typ+"</b>"]);
-	addBlankRow(prefContents, 3);
-	setTableRow(prefContents, ["&nbsp;<u>Category</u>","<b><u>"+"Color"+"</b></u>"]); 
+	NgChm.UHM.addBlankRow(prefContents);
+	var pos = NgChm.UTIL.toTitleCase(barType);
+	var typ = NgChm.UTIL.toTitleCase(colorMap.getType());
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;Bar Position: ","<b>"+pos+"</b>"]);
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;Bar Type: ","<b>"+typ+"</b>"]);
+	NgChm.UHM.addBlankRow(prefContents, 3);
+	NgChm.UHM.setTableRow(prefContents, ["&nbsp;<u>Category</u>","<b><u>"+"Color"+"</b></u>"]); 
 	for (var j = 0; j < thresholds.length; j++) {
 		var threshold = thresholds[j];
 		var color = colors[j];
 		var threshId = keyRC+"_breakPt"+j;
 		var colorId = keyRC+"_color"+j;
 		var colorInput = "<input class='spectrumColor' type='color' name='"+colorId+"_colorPref' id='"+colorId+"_colorPref' value='"+color+"'>"; 
-		setTableRow(prefContents, ["&nbsp;&nbsp;"+threshold, colorInput]);
+		NgChm.UHM.setTableRow(prefContents, ["&nbsp;&nbsp;"+threshold, colorInput]);
 	} 
-	addBlankRow(prefContents);
-	setTableRow(prefContents, ["&nbsp;Missing Color:",  "<input class='spectrumColor' type='color' name='"+keyRC+"_missing_colorPref' id='"+keyRC+"_missing_colorPref' value='"+colorMap.getMissingColor()+"'>"]);
-	addBlankRow(prefContents, 3);
-	setTableRow(prefContents, ["&nbsp;<u>Choose a pre-defined color palette:</u>"],3);
-	addBlankRow(prefContents);
+	NgChm.UHM.addBlankRow(prefContents);
+	NgChm.UHM.setTableRow(prefContents, ["&nbsp;Missing Color:",  "<input class='spectrumColor' type='color' name='"+keyRC+"_missing_colorPref' id='"+keyRC+"_missing_colorPref' value='"+colorMap.getMissingColor()+"'>"]);
+	NgChm.UHM.addBlankRow(prefContents, 3);
+	NgChm.UHM.setTableRow(prefContents, ["&nbsp;<u>Choose a pre-defined color palette:</u>"],3);
+	NgChm.UHM.addBlankRow(prefContents);
 	if (typ == "Discrete"){
-		var scheme1 = "<div style='display:flex'><div class='presetPalette' style='background: linear-gradient(to right, #1f77b4,#ff7f0e,#2ca02c,#d62728,#9467bd,#8c564b,#e377c2,#7f7f7f,#bcbd22,#17becf);' onclick='setupLayerBreaksToPreset(event, \""+ key+ "\", [\"#1f77b4\",\"#ff7f0e\",\"#2ca02c\", \"#d62728\", \"#9467bd\", \"#8c564b\", \"#e377c2\", \"#7f7f7f\", \"#bcbd22\", \"#17becf\"],\"#ffffff\",\""+barType+"\",\""+typ+"\")'> </div><div class='presetPaletteMissingColor' style='background:white'></div></div>";
-		var scheme2 = "<div style='display:flex'><div class='presetPalette' style='background: linear-gradient(to right, #1f77b4,#aec7e8,#ff7f0e,#ffbb78,#2ca02c,#98df8a,#d62728,#ff9896,#9467bd,#c5b0d5,#8c564b,#c49c94,#e377c2,#f7b6d2,#7f7f7f,#c7c7c7,#bcbd22,#dbdb8d,#17becf,#9edae5);' onclick='setupLayerBreaksToPreset(event, \""+ key+ "\", [\"#1f77b4\",\"#aec7e8\",\"#ff7f0e\",\"#ffbb78\",\"#2ca02c\",\"#98df8a\",\"#d62728\",\"#ff9896\",\"#9467bd\",\"#c5b0d5\",\"#8c564b\",\"#c49c94\",\"#e377c2\",\"#f7b6d2\",\"#7f7f7f\",\"#c7c7c7\",\"#bcbd22\",\"#dbdb8d\",\"#17becf\",\"#9edae5\"],\"#ffffff\",\""+barType+"\",\""+typ+"\")'> </div><div class='presetPaletteMissingColor' style='background:white'></div></div>";
-		var scheme3 = "<div style='display:flex'><div class='presetPalette' style='background: linear-gradient(to right,#393b79, #637939, #8c6d31, #843c39, #7b4173, #5254a3, #8ca252, #bd9e39, #ad494a, #a55194, #6b6ecf, #b5cf6b, #e7ba52, #d6616b, #ce6dbd, #9c9ede, #cedb9c, #e7cb94, #e7969c, #de9ed6);' onclick='setupLayerBreaksToPreset(event, \""+ key+ "\", [\"#393b79\", \"#637939\", \"#8c6d31\", \"#843c39\", \"#7b4173\", \"#5254a3\", \"#8ca252\", \"#bd9e39\", \"#ad494a\", \"#a55194\", \"#6b6ecf\", \"#b5cf6b\", \"#e7ba52\", \"#d6616b\", \"#ce6dbd\", \"#9c9ede\", \"#cedb9c\", \"#e7cb94\", \"#e7969c\", \"#de9ed6\"],\"#ffffff\",\""+barType+"\",\""+typ+"\")'> </div><div class='presetPaletteMissingColor' style='background:white'></div></div>";
-		setTableRow(prefContents, [scheme1,scheme2,scheme3]);
-		setTableRow(prefContents, ["&nbsp;Palette1",  "&nbsp;<b>Palette2</b>","&nbsp;<b>Palette3</b>"]);
+		var scheme1 = "<div style='display:flex'><div class='presetPalette' style='background: linear-gradient(to right, #1f77b4,#ff7f0e,#2ca02c,#d62728,#9467bd,#8c564b,#e377c2,#7f7f7f,#bcbd22,#17becf);' onclick='NgChm.UPM.setupLayerBreaksToPreset(event, \""+ key+ "\", [\"#1f77b4\",\"#ff7f0e\",\"#2ca02c\", \"#d62728\", \"#9467bd\", \"#8c564b\", \"#e377c2\", \"#7f7f7f\", \"#bcbd22\", \"#17becf\"],\"#ffffff\",\""+barType+"\",\""+typ+"\")'> </div><div class='presetPaletteMissingColor' style='background:white'></div></div>";
+		var scheme2 = "<div style='display:flex'><div class='presetPalette' style='background: linear-gradient(to right, #1f77b4,#aec7e8,#ff7f0e,#ffbb78,#2ca02c,#98df8a,#d62728,#ff9896,#9467bd,#c5b0d5,#8c564b,#c49c94,#e377c2,#f7b6d2,#7f7f7f,#c7c7c7,#bcbd22,#dbdb8d,#17becf,#9edae5);' onclick='NgChm.UPM.setupLayerBreaksToPreset(event, \""+ key+ "\", [\"#1f77b4\",\"#aec7e8\",\"#ff7f0e\",\"#ffbb78\",\"#2ca02c\",\"#98df8a\",\"#d62728\",\"#ff9896\",\"#9467bd\",\"#c5b0d5\",\"#8c564b\",\"#c49c94\",\"#e377c2\",\"#f7b6d2\",\"#7f7f7f\",\"#c7c7c7\",\"#bcbd22\",\"#dbdb8d\",\"#17becf\",\"#9edae5\"],\"#ffffff\",\""+barType+"\",\""+typ+"\")'> </div><div class='presetPaletteMissingColor' style='background:white'></div></div>";
+		var scheme3 = "<div style='display:flex'><div class='presetPalette' style='background: linear-gradient(to right,#393b79, #637939, #8c6d31, #843c39, #7b4173, #5254a3, #8ca252, #bd9e39, #ad494a, #a55194, #6b6ecf, #b5cf6b, #e7ba52, #d6616b, #ce6dbd, #9c9ede, #cedb9c, #e7cb94, #e7969c, #de9ed6);' onclick='NgChm.UPM.setupLayerBreaksToPreset(event, \""+ key+ "\", [\"#393b79\", \"#637939\", \"#8c6d31\", \"#843c39\", \"#7b4173\", \"#5254a3\", \"#8ca252\", \"#bd9e39\", \"#ad494a\", \"#a55194\", \"#6b6ecf\", \"#b5cf6b\", \"#e7ba52\", \"#d6616b\", \"#ce6dbd\", \"#9c9ede\", \"#cedb9c\", \"#e7cb94\", \"#e7969c\", \"#de9ed6\"],\"#ffffff\",\""+barType+"\",\""+typ+"\")'> </div><div class='presetPaletteMissingColor' style='background:white'></div></div>";
+		NgChm.UHM.setTableRow(prefContents, [scheme1,scheme2,scheme3]);
+		NgChm.UHM.setTableRow(prefContents, ["&nbsp;Palette1",  "&nbsp;<b>Palette2</b>","&nbsp;<b>Palette3</b>"]);
 	} else {
-		var rainbow = "<div style='display:flex'><div class='presetPalette' style='background: linear-gradient(to right, red,orange,yellow,green,blue,violet);' onclick='setupLayerBreaksToPreset(event, \""+ key+ "\", [\"#FF0000\",\"#FF8000\",\"#FFFF00\",\"#00FF00\",\"#0000FF\",\"#FF00FF\"],\"#000000\",\""+barType+"\",\""+typ+"\")' > </div><div class='presetPaletteMissingColor' style='background:black'></div></div>";
-		var greyscale = "<div style='display:flex'><div class='presetPalette' style='background: linear-gradient(to right, white,black);' onclick='setupLayerBreaksToPreset(event, \""+ key+ "\", [\"#FFFFFF\",\"#000000\"],\"#FF0000\",\""+barType+"\",\""+typ+"\")' > </div><div class='presetPaletteMissingColor' style='background:red'></div></div>";
-		var redBlackGreen = "<div style='display:flex'><div id='setRedBlackGreen' class='presetPalette' style='background: linear-gradient(to right, green,black,red);' onclick='setupLayerBreaksToPreset(event, \""+ key +"\", [\"#00FF00\",\"#000000\",\"#FF0000\"],\"#ffffff\",\""+barType+"\",\""+typ+"\")'> </div>" +
+		var rainbow = "<div style='display:flex'><div class='presetPalette' style='background: linear-gradient(to right, red,orange,yellow,green,blue,violet);' onclick='NgChm.UPM.setupLayerBreaksToPreset(event, \""+ key+ "\", [\"#FF0000\",\"#FF8000\",\"#FFFF00\",\"#00FF00\",\"#0000FF\",\"#FF00FF\"],\"#000000\",\""+barType+"\",\""+typ+"\")' > </div><div class='presetPaletteMissingColor' style='background:black'></div></div>";
+		var greyscale = "<div style='display:flex'><div class='presetPalette' style='background: linear-gradient(to right, white,black);' onclick='NgChm.UPM.setupLayerBreaksToPreset(event, \""+ key+ "\", [\"#FFFFFF\",\"#000000\"],\"#FF0000\",\""+barType+"\",\""+typ+"\")' > </div><div class='presetPaletteMissingColor' style='background:red'></div></div>";
+		var redBlackGreen = "<div style='display:flex'><div id='setRedBlackGreen' class='presetPalette' style='background: linear-gradient(to right, green,black,red);' onclick='NgChm.UPM.setupLayerBreaksToPreset(event, \""+ key +"\", [\"#00FF00\",\"#000000\",\"#FF0000\"],\"#ffffff\",\""+barType+"\",\""+typ+"\")'> </div>" +
 		"<div class='presetPaletteMissingColor' style='background:white'></div></div>"
-		setTableRow(prefContents, [greyscale,rainbow,redBlackGreen]);
-		setTableRow(prefContents, ["&nbsp;Greyscale",  "&nbsp;<b>Rainbow</b>","&nbsp;<b>Green Red</b>"]);
+		NgChm.UHM.setTableRow(prefContents, [greyscale,rainbow,redBlackGreen]);
+		NgChm.UHM.setTableRow(prefContents, ["&nbsp;Greyscale",  "&nbsp;<b>Rainbow</b>","&nbsp;<b>Green Red</b>"]);
 	}
-	helpprefs.style.height = prefContents.rows.length;;
+	helpprefs.style.height = prefContents.rows.length;
 	helpprefs.appendChild(prefContents);
 
 	return helpprefs;
@@ -977,22 +1048,22 @@ function setupClassBreaks(e, key, barType, classBar){
  * the ALL entry of the covariate dropdown is selected. Whenever a  user checks the 
  * show all box, all other boxes are checked.  
  **********************************************************************************/
-function showAllBars(){
+NgChm.UPM.showAllBars = function() {
 	var showAllBox = document.getElementById('all_showPref');
 	var checkState = false;
 	if (showAllBox.checked) {
 		checkState = true;
 	}
-	var rowClassBars = heatMap.getRowClassificationConfig();
+	var rowClassBars = NgChm.heatMap.getRowClassificationConfig();
 	for (var key in rowClassBars){
-		if (filterShow(key)) {
+		if (NgChm.UPM.filterShow(key)) {
 			var colShow = document.getElementById(key+"_row"+'_showPref');
 			colShow.checked = checkState;
 		}
 	}
-	var colClassBars = heatMap.getColClassificationConfig();
+	var colClassBars = NgChm.heatMap.getColClassificationConfig();
 	for (var key in colClassBars){
-		if (filterShow(key)) {
+		if (NgChm.UPM.filterShow(key)) {
 			var colShow = document.getElementById(key+"_col"+'_showPref');
 			colShow.checked = checkState;
 		}
@@ -1009,22 +1080,22 @@ function showAllBars(){
  * covariate bars, the show all box is un-checked. Conversely, if a user checks a box 
  * resulting in all of the boxes being selected, the show all box will be checked.
  **********************************************************************************/
-function setShowAll(){
+NgChm.UPM.setShowAll = function() {
 	var checkState = true;
-	var rowClassBars = heatMap.getRowClassificationConfig();
+	var rowClassBars = NgChm.heatMap.getRowClassificationConfig();
 	for (var key in rowClassBars){
 		var colShow = document.getElementById(key+"_row"+'_showPref');
-		if (filterShow(key)) {
+		if (NgChm.UPM.filterShow(key)) {
 			if (!colShow.checked) {
 				checkState = false;
 				break;
 			}
 		}
 	}
-	var colClassBars = heatMap.getColClassificationConfig();
+	var colClassBars = NgChm.heatMap.getColClassificationConfig();
 	for (var key in colClassBars){
 		var colShow = document.getElementById(key+"_col"+'_showPref');
-		if (filterShow(key)) {
+		if (NgChm.UPM.filterShow(key)) {
 			if (!colShow.checked) {
 				checkState = false;
 				break;
@@ -1044,7 +1115,7 @@ function setShowAll(){
  * function is also called when an error is trappped, opening the covariate DIV
  * that contains the erroneous data entry.
  **********************************************************************************/
-function showClassBreak(selClass) {
+NgChm.UPM.showClassBreak = function(selClass) {
 	var classBtn = document.getElementById("classPref_list");
 	if (typeof selClass != 'undefined') {
 		classBtn.value = selClass;
@@ -1069,28 +1140,28 @@ function showClassBreak(selClass) {
  * cleared when clearing and the editPreferences function is called to reload all
  * preferences.
  **********************************************************************************/
-function filterClassPrefs(filterOn){
-	searchPerformed = true;
-	showClassBreak("ALL");
+NgChm.UPM.filterClassPrefs = function(filterOn) {
+	NgChm.UPM.searchPerformed = true;
+	NgChm.UPM.showClassBreak("ALL");
 	var filterButton = document.getElementById('all_searchPref_btn');
 	var searchPrefSelect = document.getElementById('all_searchPref');
 	var searchPrefVal = searchPrefSelect.value;
 	if (filterOn) {
 		if (searchPrefVal != "") {
-			filterVal = searchPrefVal;
-			filterButton.src = staticPath + "images/removeFilterClassButton.png";
-			filterButton.onclick=function (){filterClassPrefs(false);};
+			NgChm.UPM.filterVal = searchPrefVal;
+			filterButton.src = NgChm.staticPath + "images/removeFilterClassButton.png";
+			filterButton.onclick=function (){NgChm.UPM.filterClassPrefs(false);};
 		}
 	} else {
-		filterButton.src = staticPath + "images/filterClassButton.png";
-		filterButton.onclick=function (){filterClassPrefs(true);};
+		filterButton.src = NgChm.staticPath + "images/filterClassButton.png";
+		filterButton.onclick=function (){NgChm.UPM.filterClassPrefs(true);};
 		searchPrefSelect.value = "";
-		filterVal = null;
+		NgChm.UPM.filterVal = null;
 	}
 	var allprefs = document.getElementById("breakPrefs_ALL");
-	hiddenItems = addClassPrefOptions();
-	filterAllClassesTable(hiddenItems);
-	showClassBreak("ALL");
+	hiddenItems = NgChm.UPM.addClassPrefOptions();
+	NgChm.UPM.filterAllClassesTable(hiddenItems);
+	NgChm.UPM.showClassBreak("ALL");
 }
 
 /**********************************************************************************
@@ -1099,7 +1170,7 @@ function filterClassPrefs(filterOn){
  * covariates will be loaded at startup.  The filter control, however, is used to 
  * limit the visible options in this dropdown.
  **********************************************************************************/
-function filterAllClassesTable(hiddenItems) {    
+NgChm.UPM.filterAllClassesTable = function(hiddenItems) {
     var table=document.getElementById('tableAllClasses');
     for(var i=0; i<table.rows.length;i++){
         var row  = table.rows[i];
@@ -1122,11 +1193,11 @@ function filterAllClassesTable(hiddenItems) {
  * array containing a list of all options that are NOT being displayed.  This list
  * is used to hide rows on the ALL covariates panel.
  **********************************************************************************/
-function addClassPrefOptions() {
-	var rowClassBars = heatMap.getRowClassificationConfig();
-	var colClassBars = heatMap.getColClassificationConfig();
-	var rowClassBarsOrder = heatMap.getRowClassificationOrder();
-	var colClassBarsOrder = heatMap.getColClassificationOrder();
+NgChm.UPM.addClassPrefOptions = function() {
+	var rowClassBars = NgChm.heatMap.getRowClassificationConfig();
+	var colClassBars = NgChm.heatMap.getColClassificationConfig();
+	var rowClassBarsOrder = NgChm.heatMap.getRowClassificationOrder();
+	var colClassBarsOrder = NgChm.heatMap.getColClassificationOrder();
 	var classSelect = document.getElementById('classPref_list');
 	var hiddenOpts = new Array();
 	classSelect.options.length = 0;
@@ -1138,7 +1209,7 @@ function addClassPrefOptions() {
 		if (key.length > 20){
 			displayName = key.substring(0,20) + "...";
 		}
-		if (filterShow(key)) {
+		if (NgChm.UPM.filterShow(key)) {
 			classSelect.options[classSelect.options.length] = new Option(displayName, keyrow);
 		} else {
 			hiddenOpts.push(displayName);
@@ -1151,7 +1222,7 @@ function addClassPrefOptions() {
 		if (key.length > 20){
 			displayName = key.substring(0,20) + "...";
 		}
-		if (filterShow(key)) {
+		if (NgChm.UPM.filterShow(key)) {
 			classSelect.options[classSelect.options.length] = new Option(displayName, keycol);
 		} else {
 			hiddenOpts.push(displayName);
@@ -1166,11 +1237,11 @@ function addClassPrefOptions() {
  * given covariates bar is to be shown given the state of the covariates filter
  * search text box.
  **********************************************************************************/
-function filterShow(key) {
+NgChm.UPM.filterShow = function(key) {
 	var filterShow = false;
 	var lowerkey = key.toLowerCase();
-	if (filterVal != null) {
-		if (lowerkey.indexOf(filterVal.toLowerCase()) >= 0) {
+	if (NgChm.UPM.filterVal != null) {
+		if (lowerkey.indexOf(NgChm.UPM.filterVal.toLowerCase()) >= 0) {
 			filterShow = true;
 		}
 	} else {
@@ -1197,63 +1268,69 @@ function filterShow(key) {
  * rows and the other for cols.  Informational data begins each section and 
  * properties for modifying the appearance of row/col dendograms appear at the end.
  **********************************************************************************/
-function setupRowColPrefs(e, prefprefs){
-	var rowcolprefs = getDivElement("rowsColsPrefs");
+NgChm.UPM.setupRowColPrefs = function(e, prefprefs) {
+	var rowcolprefs = NgChm.UHM.getDivElement("rowsColsPrefs");
 	var prefContents = document.createElement("TABLE");
-	addBlankRow(prefContents);
-	setTableRow(prefContents,["MAP INFORMATION:"], 2);
-	addBlankRow(prefContents);
-	setTableRow(prefContents,["&nbsp;&nbsp;Version Id:", heatMap.getMapInformation().version_id]);
-	setTableRow(prefContents,["&nbsp;&nbsp;Read Only:", heatMap.getMapInformation().read_only]);
-	addBlankRow(prefContents,2);
-	setTableRow(prefContents,["ROW INFORMATION:"], 2);
-	addBlankRow(prefContents);
-	var rowLabels = heatMap.getRowLabels();
-	var rowOrganization = heatMap.getRowOrganization();
+	NgChm.UHM.addBlankRow(prefContents);
+	NgChm.UHM.setTableRow(prefContents,["MAP INFORMATION:"], 2);
+	NgChm.UHM.addBlankRow(prefContents);
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Version Id:", NgChm.heatMap.getMapInformation().version_id]);
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Read Only:", NgChm.heatMap.getMapInformation().read_only]);
+	NgChm.UHM.addBlankRow(prefContents,2);
+	NgChm.UHM.setTableRow(prefContents,["ROW INFORMATION:"], 2);
+	NgChm.UHM.addBlankRow(prefContents);
+	var rowLabels = NgChm.heatMap.getRowLabels();
+	var rowOrganization = NgChm.heatMap.getRowOrganization();
 	var rowOrder = rowOrganization['order_method'];
-	setTableRow(prefContents,["&nbsp;&nbsp;Total Rows:",heatMap.getTotalRows()]);
-	setTableRow(prefContents,["&nbsp;&nbsp;Labels Type:",rowLabels['label_type']]);
-	setTableRow(prefContents,["&nbsp;&nbsp;Ordering Method:",rowOrder]);
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Total Rows:",NgChm.heatMap.getTotalRows()]);
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Labels Type:",rowLabels['label_type']]);
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Ordering Method:",rowOrder]);
 	var dendroShowOptions = "<option value='ALL'>Summary and Detail</option><option value='SUMMARY'>Summary Only</option><option value='NONE'>Hide</option></select>";
 	var dendroHeightOptions = "<option value='50'>50%</option><option value='75'>75%</option><option value='100'>100%</option><option value='125'>125%</option><option value='150'>150%</option><option value='200'>200%</option><option value='300'>300%</option></select>";
 	if (rowOrder === "Hierarchical") {
-		setTableRow(prefContents,["&nbsp;&nbsp;Agglomeration Method:",rowOrganization['agglomeration_method']]);
-		setTableRow(prefContents,["&nbsp;&nbsp;Distance Metric:",rowOrganization['distance_metric']]);
-		var rowDendroSelect = "<select name='rowDendroShowPref' id='rowDendroShowPref' onchange='dendroRowShowChange()'>"
+		NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Agglomeration Method:",rowOrganization['agglomeration_method']]);
+		NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Distance Metric:",rowOrganization['distance_metric']]);
+		var rowDendroSelect = "<select name='rowDendroShowPref' id='rowDendroShowPref' onchange='NgChm.UPM.dendroRowShowChange()'>"
 		rowDendroSelect = rowDendroSelect+dendroShowOptions;
-		setTableRow(prefContents,["&nbsp;&nbsp;Show Dendrogram:",rowDendroSelect]);  
+		NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Show Dendrogram:",rowDendroSelect]);  
 		var rowDendroHeightSelect = "<select name='rowDendroHeightPref' id='rowDendroHeightPref'>"
 		rowDendroHeightSelect = rowDendroHeightSelect+dendroHeightOptions;
-		setTableRow(prefContents,["&nbsp;&nbsp;Dendrogram Height:",rowDendroHeightSelect]); 
+		NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Dendrogram Height:",rowDendroHeightSelect]); 
 	}  
-	addBlankRow(prefContents,2);
-	setTableRow(prefContents,["COLUMN INFORMATION:"], 2);
-	addBlankRow(prefContents);
+	NgChm.UHM.addBlankRow(prefContents,2);
+	NgChm.UHM.setTableRow(prefContents,["COLUMN INFORMATION:"], 2);
+	NgChm.UHM.addBlankRow(prefContents);
 	
-	var colLabels = heatMap.getColLabels();
-	var colOrganization = heatMap.getColOrganization();
+	var colLabels = NgChm.heatMap.getColLabels();
+	var colOrganization = NgChm.heatMap.getColOrganization();
 	var colOrder = colOrganization['order_method'];
-	setTableRow(prefContents,["&nbsp;&nbsp;Total Columns:",heatMap.getTotalCols()]);
-	setTableRow(prefContents,["&nbsp;&nbsp;Labels Type:",colLabels['label_type']]);
-	setTableRow(prefContents,["&nbsp;&nbsp;Ordering Method:",colOrder]);
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Total Columns:",NgChm.heatMap.getTotalCols()]);
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Labels Type:",colLabels['label_type']]);
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Ordering Method:",colOrder]);
 	if (colOrder === "Hierarchical") {
-		setTableRow(prefContents,["&nbsp;&nbsp;Agglomeration Method:",colOrganization['agglomeration_method']]);
-		setTableRow(prefContents,["&nbsp;&nbsp;Distance Metric:",colOrganization['distance_metric']]);
-		var colDendroShowSelect = "<select name='colDendroShowPref' id='colDendroShowPref' onchange='dendroColShowChange()'>"
+		NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Agglomeration Method:",colOrganization['agglomeration_method']]);
+		NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Distance Metric:",colOrganization['distance_metric']]);
+		var colDendroShowSelect = "<select name='colDendroShowPref' id='colDendroShowPref' onchange='NgChm.UPM.dendroColShowChange()'>"
 		colDendroShowSelect = colDendroShowSelect+dendroShowOptions;
 		var colDendroHeightSelect = "<select name='colDendroHeightPref' id='colDendroHeightPref'>"
 		colDendroHeightSelect = colDendroHeightSelect+dendroHeightOptions;
-		setTableRow(prefContents,["&nbsp;&nbsp;Show Dendrogram:",colDendroShowSelect]);
-		setTableRow(prefContents,["&nbsp;&nbsp;Dendrogram Height:",colDendroHeightSelect]);
+		NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Show Dendrogram:",colDendroShowSelect]);
+		NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Dendrogram Height:",colDendroHeightSelect]);
 	}
-	addBlankRow(prefContents,2);
-	setTableRow(prefContents,["MAP SIZING:"]);
+	NgChm.UHM.addBlankRow(prefContents,2);
+	NgChm.UHM.setTableRow(prefContents,["MAP SIZING:"]);
 	var sumWidth = Math.round(document.getElementById('summary_chm').offsetWidth/(.96*document.getElementById('container').offsetWidth)*100);
 	var detWidth = Math.round(document.getElementById('detail_chm').offsetWidth/(.96*document.getElementById('container').offsetWidth)*100);
 	var mapHeight = Math.round(document.getElementById('detail_chm').clientHeight/container.clientHeight*100);
-	setTableRow(prefContents,["&nbsp;&nbsp;Summary Width:","<input type=\"text\" name=\"summaryWidthPref\" id=\"summaryWidthPref\" style=\"width:40px\" value=\"" + sumWidth+"\">%"]);
-	setTableRow(prefContents,["&nbsp;&nbsp;Detail Width:","<input type=\"text\" name=\"detailWidthPref\" id=\"detailWidthPref\" style=\"width:40px\" value=\"" + detWidth + "\">%"]);
-	setTableRow(prefContents,["&nbsp;&nbsp;Map Height:","<input type=\"text\" name=\"mapHeightPref\" id=\"mapHeightPref\" style=\"width:40px\" value=\"" + mapHeight + "\">%"]);
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Summary Width:","<input type=\"text\" name=\"summaryWidthPref\" id=\"summaryWidthPref\" style=\"width:40px\" value=\"" + sumWidth+"\">%"]);
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Detail Width:","<input type=\"text\" name=\"detailWidthPref\" id=\"detailWidthPref\" style=\"width:40px\" value=\"" + detWidth + "\">%"]);
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Map Height:","<input type=\"text\" name=\"mapHeightPref\" id=\"mapHeightPref\" style=\"width:40px\" value=\"" + mapHeight + "\">%"]);
+	NgChm.UHM.addBlankRow(prefContents,2);
+	NgChm.UHM.setTableRow(prefContents,["LABEL SIZING:"]);
+	var labelSizeSelect = "<select name='labelSizePref' id='labelSizePref'><option value='10'>10 Characters</option><option value='15'>15 Characters</option><option value='20'>20 Characters</option><option value='25'>25 Characters</option><option value='30'>30 Characters</option><option value='35'>35 Characters</option><option value='40'>40 Characters</option>"
+	var labelTruncSelect = "<select name='labelTruncPref' id='labelTruncPref'><option value='START'>Beginning</option><option value='MIDDLE'>Middle</option><option value='END'>End</option>"
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Maximum Length:",labelSizeSelect]);
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Trim Text From:",labelTruncSelect]);
 	
 	rowcolprefs.appendChild(prefContents);
 
@@ -1264,9 +1341,9 @@ function setupRowColPrefs(e, prefprefs){
  * FUNCTION - showDendroSelections: The purpose of this function is to set the 
  * states of the row/column dendrogram show and height preferences.
  **********************************************************************************/
-function showDendroSelections() {
-	var rowDendroConfig = heatMap.getRowDendroConfig();
-	var rowOrganization = heatMap.getRowOrganization();
+NgChm.UPM.showDendroSelections = function() {
+	var rowDendroConfig = NgChm.heatMap.getRowDendroConfig();
+	var rowOrganization = NgChm.heatMap.getRowOrganization();
 	var rowOrder = rowOrganization['order_method'];
 	if (rowOrder === "Hierarchical") {
 		var dendroShowVal = rowDendroConfig.show;
@@ -1287,9 +1364,9 @@ function showDendroSelections() {
 			rowHeightPref.value = rowDendroConfig.height;
 		}
 	}
-	var colOrganization = heatMap.getColOrganization();
+	var colOrganization = NgChm.heatMap.getColOrganization();
 	var colOrder = colOrganization['order_method'];
-	var colDendroConfig = heatMap.getColDendroConfig();
+	var colDendroConfig = NgChm.heatMap.getColDendroConfig();
 	if (colOrder === "Hierarchical") {
 		var dendroShowVal = colDendroConfig.show;
 		document.getElementById("colDendroShowPref").value = dendroShowVal;
@@ -1312,13 +1389,26 @@ function showDendroSelections() {
 }
 
 /**********************************************************************************
+ * FUNCTION - showLabelSelections: The purpose of this function is to set the 
+ * states of the label length and truncation preferences.
+ **********************************************************************************/
+NgChm.UPM.showLabelSelections = function() {
+	var labelSize = NgChm.heatMap.getMapInformation().label_display_length;
+	var labelTrunc = NgChm.heatMap.getMapInformation().label_display_truncation;
+	var labelSizePref = document.getElementById("labelSizePref");
+	var labelTruncPref = document.getElementById("labelTruncPref");
+	labelSizePref.value = labelSize;
+	labelTruncPref.value = labelTrunc;
+}
+
+/**********************************************************************************
  * FUNCTION - dendroRowShowChange: The purpose of this function is to respond to
  * a change event on the show row dendrogram dropdown.  If the change is to Hide, 
  * the row dendro height is set to 10 and the dropdown disabled. If the change is to
  * one of the 2 Show options AND was previously Hide, set height to the default
  * value of 100 and enable the dropdown.
  **********************************************************************************/
-function dendroRowShowChange() {
+NgChm.UPM.dendroRowShowChange = function() {
 	var newValue = document.getElementById("rowDendroShowPref").value;
 	var rowHeightPref = document.getElementById("rowDendroHeightPref");
 	if (newValue === 'NONE') {
@@ -1339,13 +1429,13 @@ function dendroRowShowChange() {
 }
 
 /**********************************************************************************
- * FUNCTION - dendroRowShowChange: The purpose of this function is to respond to
+ * FUNCTION - dendroColShowChange: The purpose of this function is to respond to
  * a change event on the show row dendrogram dropdown.  If the change is to Hide, 
  * the row dendro height is set to 10 and the dropdown disabled. If the change is to
  * one of the 2 Show options AND was previously Hide, set height to the default
  * value of 100 and enable the dropdown.
  **********************************************************************************/
-function dendroColShowChange() {
+NgChm.UPM.dendroColShowChange = function() {
 	var newValue = document.getElementById("colDendroShowPref").value;
 	var colHeightPref = document.getElementById("colDendroHeightPref");
 	if (newValue === 'NONE') {

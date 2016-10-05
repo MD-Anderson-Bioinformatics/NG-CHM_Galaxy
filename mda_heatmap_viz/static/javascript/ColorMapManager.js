@@ -1,5 +1,7 @@
+//Define Namespace for NgChm ColorMapManager
+NgChm.createNS('NgChm.CMM');
 
-function ColorMap(colorMapObj){
+NgChm.CMM.ColorMap = function(colorMapObj) {
 	var type = colorMapObj["type"];
 	var thresholds;
 	if (type == "quantile"){
@@ -89,7 +91,7 @@ function ColorMap(colorMapObj){
 	this.getColor = function(value){
 		var color;
 	
-		if (value >= max_values){
+		if (value >= NgChm.SUM.maxValues){
 			color = rgbaMissingColor;
 		}else if(value <= thresholds[0]){
 			color = rgbaColors[0]; // return color for lowest threshold if value is below range
@@ -236,17 +238,17 @@ function ColorMap(colorMapObj){
 }
 		
 // All color maps and current color maps are stored here.
-function ColorMapManager(mapConfig){
+NgChm.CMM.ColorMapManager = function(mapConfig) {
 	
 	var colorMapCollection = [mapConfig.data_configuration.map_information.data_layer,mapConfig.row_configuration.classifications,mapConfig.col_configuration.classifications];
 	
 	this.getColorMap = function(type, colorMapName){
 		if (type === "data") {
-			var colorMap = new ColorMap(colorMapCollection[0][colorMapName].color_map);
+			var colorMap = new NgChm.CMM.ColorMap(colorMapCollection[0][colorMapName].color_map);
 		} else if (type === "row") {
-			var colorMap = new ColorMap(colorMapCollection[1][colorMapName].color_map);
+			var colorMap = new NgChm.CMM.ColorMap(colorMapCollection[1][colorMapName].color_map);
 		} else {
-			var colorMap = new ColorMap(colorMapCollection[2][colorMapName].color_map);
+			var colorMap = new NgChm.CMM.ColorMap(colorMapCollection[2][colorMapName].color_map);
 		}
 		return colorMap;
 	}

@@ -4,9 +4,9 @@
       <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/lib/zip.js"></script>
       <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/lib/deflate.js"></script>
       <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/lib/inflate.js"></script>
+      <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/MatrixManager.js"></script>
       <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/NGCHM_Util.js"></script>
       <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/SelectionManager.js"></script>
-      <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/MatrixManager.js"></script>
       <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/ColorMapManager.js"></script>
       <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/SummaryHeatMapDisplay.js"></script>
       <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/DetailHeatMapDisplay.js"></script>
@@ -36,8 +36,8 @@
     %>
 
     <script>
-       heatMap = null;  //global - heatmap object.
-       staticPath = "/plugins/visualizations/mda_heatmap_viz/static/"; //path for static web content - changes in galaxy.
+       NgChm.heatMap = null;  //global - heatmap object.
+       NgChm.staticPath = "/plugins/visualizations/mda_heatmap_viz/static/"; //path for static web content - changes in galaxy.
 
        var url_dict = ${ h.dumps( url_dict ) };
        var hdaId   = '${trans.security.encode_id( hda.id )}';
@@ -51,23 +51,24 @@
            if (this.status == 200) {
                var blob = new Blob([this.response], {type: 'compress/zip'});
                zip.useWebWorkers = false;
-               var matrixMgr = new MatrixManager(MatrixManager.FILE_SOURCE);
+               var matrixMgr = new NgChm.MMGR.MatrixManager(NgChm.MMGR.FILE_SOURCE);
                var name = this.getResponseHeader("Content-Disposition");
                if (name.indexOf('[') > -1) {
                  name = name.substring(name.indexOf('[')+1, name.indexOf(']'));
-               }               heatMap = matrixMgr.getHeatMap(name,  processSummaryMapUpdate, blob);
-               heatMap.addEventListener(processDetailMapUpdate);
-               initSummaryDisplay();
-               initDetailDisplay();
+               }               
+               NgChm.heatMap = matrixMgr.getHeatMap(name,  NgChm.SUM.processSummaryMapUpdate, blob);
+               NgChm.heatMap.addEventListener(NgChm.DET.processDetailMapUpdate);
+               NgChm.SUM.initSummaryDisplay();
+               NgChm.DET.initDetailDisplay();
                document.getElementById("container").addEventListener('wheel', handleScroll, false);
            }
        };
        xmlhttp.send();
 
        function chmResize() {
- 	  summaryResize();
- 	  detailResize();
- 	  prefsResize();
+ 	  NgChm.SUM.summaryResize();
+ 	  NgChm.DET.detailResize();
+ 	  NgChm.UPM.prefsResize();
        }
 
     </script>
@@ -78,38 +79,37 @@
                <img src="/plugins/visualizations/mda_heatmap_viz/static/images/mdabcblogo262x108.png" alt=""/>
            </a>
         </div>
-        <div id='detail_buttons' style="display:none;" onmouseout='userHelpClose();'>
+        <div id='detail_buttons' style="display:none;" onmouseout='NgChm.UHM.userHelpClose();'>
 	   <div id='top_buttons'>
-       	      <div id="mapName" onmouseover='detailDataToolHelp(this,heatMap.getMapInformation().description)'></div>
+       	      <div id="mapName" onmouseover='NgChm.UHM.detailDataToolHelp(this,NgChm.heatMap.getMapInformation().description)' style="font-size: 14px;color: rgb(51, 51, 51);"></div>
            </div>
            <div id='bottom_buttons' >
-     	      <img id='back_btn' style="display: none;" src='/plugins/visualizations/mda_heatmap_viz/static/images/returnArrow.png' alt='Return to previous screen' onmouseover='detailDataToolHelp(this,"Return To Previous Screen")' onclick='returnToHome();' align="top"   />
- 	      <img id='zoomOut_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/zoom-out.png' alt='Zoom Out' onmouseover='detailDataToolHelp(this,"Zoom Out")' onclick='detailDataZoomOut();'   align="top"   />
-	      <img id='zoomIn_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/zoom-in.png' alt='Zoom In' onmouseover='detailDataToolHelp(this,"Zoom In")' onclick='detailDataZoomIn();' align="top"   />
-	      <img id='full_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/full_selected.png' alt='Full' onmouseover='detailDataToolHelp(this,"Normal View")' onclick='detailNormal();' align="top"   />
-	      <img id='ribbonH_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/ribbonH.png' alt='Ribbon H' onmouseover='detailDataToolHelp(this,"Horizontal Ribbon View")' onclick='detailHRibbonButton();' align="top"  />
-	      <img id='ribbonV_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/ribbonV.png' alt='Ribbon V' onmouseover='detailDataToolHelp(this,"Vertical Ribbon View")' onclick='detailVRibbonButton();'  align="top"  />
-   	      <span style='display: inline-block;'><b>Search: </b><input type="text" id="search_text" name="search" onkeyup='clearSrchBtns(event);' onchange='detailSearch();'
-                                               onmouseover='detailDataToolHelp(this,"Search Row/Column Labels. Separate search terms with spaces or commas. Use * for wild card matching. Hit enter or Go to run the search. If the search box turns red none of the search terms were found. If it turns yellow only some of the search terms were found.", 200)' /></span>	
-	      <img id='go_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/go.png' alt='Go' onmouseover='detailDataToolHelp(this,"Search Row/Column Labels")'  onclick='detailSearch();' align="top"  />
-	      <img id='prev_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/prev.png' alt='Previous' onmouseover='userHelpClose();' style="display:none;" onclick='searchPrev();'  align="top"  />
-	      <img id='next_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/next.png' alt='Next' onmouseover='userHelpClose();' style="display:none;" onclick='searchNext();'  align="top"  />
-	      <img id='cancel_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/cancel.png' alt='Cancel' onmouseover='detailDataToolHelp(this,"Clear current search")' style="display:none;" onclick='clearSearch(event);'  align="top"  />
+ 	      <img id='zoomOut_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/zoom-out.png' alt='Zoom Out' onmouseover='NgChm.UHM.detailDataToolHelp(this,"Zoom Out")' onclick='NgChm.DET.detailDataZoomOut();'   align="top"   />
+	      <img id='zoomIn_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/zoom-in.png' alt='Zoom In' onmouseover='NgChm.UHM.detailDataToolHelp(this,"Zoom In")' onclick='NgChm.DET.detailDataZoomIn();' align="top"   />
+	      <img id='full_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/full_selected.png' alt='Full' onmouseover='NgChm.UHM.detailDataToolHelp(this,"Normal View")' onclick='NgChm.DET.detailNormal();' align="top"   />
+	      <img id='ribbonH_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/ribbonH.png' alt='Ribbon H' onmouseover='NgChm.UHM.detailDataToolHelp(this,"Horizontal Ribbon View")' onclick='NgChm.DET.detailHRibbonButton();' align="top"  />
+	      <img id='ribbonV_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/ribbonV.png' alt='Ribbon V' onmouseover='NgChm.UHM.detailDataToolHelp(this,"Vertical Ribbon View")' onclick='NgChm.DET.detailVRibbonButton();'  align="top"  />
+   	      <span style='display: inline-block;'><b>Search: </b><input type="text" id="search_text" name="search" onkeyup='NgChm.DET.clearSrchBtns(event);' onchange='NgChm.DET.detailSearch();'
+                                               onmouseover='NgChm.UHM.detailDataToolHelp(this,"Search row and column labels.  Enter search term and click Go. The search will find labels that partially match the search text. To find exact matches only, put \"\" characters around the search term.  Multiple search terms can be separated by spaces.  If the search box turns red, none of the search terms were found.  If it turns yellow, only some of the search terms were found.", 400)' /></span>	
+	      <img id='go_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/go.png' alt='Go' onmouseover='NgChm.UHM.detailDataToolHelp(this,"Search Row/Column Labels")'  onclick='NgChm.DET.detailSearch();' align="top"  />
+	      <img id='prev_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/prev.png' alt='Previous' onmouseover='userHelpClose();' style="display:none;" onclick='NgChm.DET.searchPrev();'  align="top"  />
+	      <img id='next_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/next.png' alt='Next' onmouseover='userHelpClose();' style="display:none;" onclick='NgChm.DET.searchNext();'  align="top"  />
+	      <img id='cancel_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/cancel.png' alt='Cancel' onmouseover='NgChm.UHM.detailDataToolHelp(this,"Clear current search")' style="display:none;" onclick='NgChm.DET.clearSearch(event);'  align="top"  />
            </div>
-           <div id="pdf_gear" align="right" style="position: absolute;right:0;top:0">
+           <div id="pdf_gear" align="right" style="position: absolute;right:15;top:5">
               <div id="flicks" style="display: none;">
                  <div id="noFlickViews" style="display: none;">
-                    <table><tr><td><img id='flickOff' src='/plugins/visualizations/mda_heatmap_viz/static/images/layersOff.png' onclick="flickToggleOn();" onmouseout='userHelpClose();' onmouseover='detailDataToolHelp(this,"Open Data Layer Control")'/></td></tr></table>
+                    <table><tr><td><img id='flickOff' src='/plugins/visualizations/mda_heatmap_viz/static/images/layersOff.png' onclick="NgChm.SEL.flickToggleOn();" onmouseout='NgChm.UHM.userHelpClose();' onmouseover='NgChm.UHM.detailDataToolHelp(this,"Open Data Layer Control")'/></td></tr></table>
                  </div>
                  <div id="flickViews" style="display: none;">
                     <table><tr>
-                       <td><table><tr><td rowspan="2"><img id='flick_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/toggleUp.png' alt='Flick' onmouseout='userHelpClose();' onmouseover='detailDataToolHelp(this,"Toggle Between Selected Data Layers (F2)")' onclick='flickChange();'/></td><td><select name="flick1" id="flick1" onchange="flickChange('flick1');"></select></td></tr><tr><td><select name="flick2" id="flick2" onchange="flickChange('flick2');"></select></td></tr></table></td>
-                       <td><img id='flickOn_pic' src='/plugins/visualizations/mda_heatmap_viz/static/images/layersOn.png'  onclick="flickToggleOff();" onmouseout='userHelpClose();' onmouseover='detailDataToolHelp(this,"Close Data Layer Control")'/></td>
+                       <td><table><tr><td rowspan="2"><img id='flick_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/toggleUp.png' alt='Flick' onmouseout='NgChm.UHM.userHelpClose();' onmouseover='NgChm.UHM.detailDataToolHelp(this,"Toggle Between Selected Data Layers (F2)")' onclick='NgChm.SEL.flickChange();'/></td><td><select name="flick1" id="flick1" onchange="NgChm.SEL.flickChange('flick1');"></select></td></tr><tr><td><select name="flick2" id="flick2" onchange="NgChm.SEL.flickChange('flick2');"></select></td></tr></table></td>
+                       <td><img id='flickOn_pic' src='/plugins/visualizations/mda_heatmap_viz/static/images/layersOn.png'  onclick="NgChm.SEL.flickToggleOff();" onmouseout='NgChm.UHM.userHelpClose();' onmouseover='NgChm.UHM.detailDataToolHelp(this,"Close Data Layer Control")'/></td>
                     </tr></table>
                  </div>
               </div>
-              <img id='pdf_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/pdf.png' alt='go' onmouseover='detailDataToolHelp(this,"Save as PDF")' onclick='openPdfPrefs(this,null);' align="top"/>
-              <img id='gear_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/gear.png' alt='Modify Map' onmouseover='detailDataToolHelp(this,"Modify Map Preferences")' onclick='editPreferences(this,null);' align="top"/>
+              <img id='pdf_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/pdf.png' alt='go' onmouseover='NgChm.UHM.detailDataToolHelp(this,"Save as PDF")' onclick='NgChm.PDF.openPdfPrefs(this,null);' align="top"/>
+              <img id='gear_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/gear.png' alt='Modify Map' onmouseover='NgChm.UHM.detailDataToolHelp(this,"Modify Map Preferences")' onclick='NgChm.UPM.editPreferences(this,null);' align="top"/>
            </div>
         </div>
     </div>
@@ -123,13 +123,13 @@
 	  <div id='sumlabelDiv' style="display: inline-block"></div>
        </div>
 
-       <div id= 'divider' style='position: relative;' onmousedown="dividerStart()" ontouchstart="dividerStart()">
+       <div id= 'divider' style='position: relative;' onmousedown="NgChm.SUM.dividerStart()" ontouchstart="NgChm.SUM.dividerStart()">
        </div>
 
        <div id='detail_chm' style='position: relative;'>
           <canvas id='detail_canvas' style='display: inline-block'></canvas>
           <canvas id='detail_box_canvas' ></canvas>
-          <div id='detSizer' style='position:absolute'  onmousedown="detSizerStart()" ontouchstart="detSizerStart()"></div>
+          <div id='detSizer' style='position:absolute'  onmousedown="NgChm.DET.detSizerStart()" ontouchstart="NgChm.DET.detSizerStart()"></div>
           <div id='labelDiv' style="display: inline-block"></div>
        </div>
    </div>
@@ -165,8 +165,8 @@
                               <tr>
                                  <td style="font-weight: bold;">
                                     <div id="pref_buttons" align="right">
-                                       <img id="prefCancel_btn" src="/plugins/visualizations/mda_heatmap_viz/static/images/prefCancel.png" alt="Cancel changes" onclick="pdfCancelButton();" align="top">&nbsp;&nbsp;
-                                       <img id="prefCreate_btn" src="/plugins/visualizations/mda_heatmap_viz/static/images/createPdf.png" alt="Create PDF" onclick="getPDF();" align="top">
+                                       <img id="prefCancel_btn" src="/plugins/visualizations/mda_heatmap_viz/static/images/prefCancel.png" alt="Cancel changes" onclick="NgChm.PDF.pdfCancelButton();" align="top">&nbsp;&nbsp;
+                                       <img id="prefCreate_btn" src="/plugins/visualizations/mda_heatmap_viz/static/images/createPdf.png" alt="Create PDF" onclick="NgChm.PDF.getPDF();" align="top">
                                     </div>
                                  </td>
                               </tr>
@@ -209,9 +209,9 @@
          </table>
       </div>
       <div id="prefsPanel" style="display: none;">
-         <div id="prefsHeader">Heat Map Display Properties<img id="redX_btn" src="/plugins/visualizations/mda_heatmap_viz/static/images/redX.png" alt="Cancel changes" onclick="prefsCancelButton();" align="right"></div>
+         <div id="prefsHeader">Heat Map Display Properties<img id="redX_btn" src="/plugins/visualizations/mda_heatmap_viz/static/images/redX.png" alt="Cancel changes" onclick="NgChm.UPM.prefsCancelButton();" align="right"></div>
          <div style="height: 20px;"></div>
-         <div id="prefTabButtons">&nbsp;<img id="prefRowsCols_btn" src="/plugins/visualizations/mda_heatmap_viz/static/images/rowsColsOn.png" alt="Edit Rows &amp; Columns" onclick="showRowsColsPrefs();" align="top">&nbsp;<img id="prefLayer_btn" src="/plugins/visualizations/mda_heatmap_viz/static/images/dataLayersOff.png" alt="Edit Data Layers" onclick="showLayerPrefs();" 	align="top">&nbsp;<img id="prefClass_btn" src="/plugins/visualizations/mda_heatmap_viz/static/images/covariateBarsOff.png" alt="Edit Classifications" onclick="showClassPrefs();" align="top"></div>
+         <div id="prefTabButtons">&nbsp;<img id="prefRowsCols_btn" src="/plugins/visualizations/mda_heatmap_viz/static/images/rowsColsOn.png" alt="Edit Rows &amp; Columns" onclick="NgChm.UPM.showRowsColsPrefs();" align="top">&nbsp;<img id="prefLayer_btn" src="/plugins/visualizations/mda_heatmap_viz/static/images/dataLayersOff.png" alt="Edit Data Layers" onclick="NgChm.UPM.showLayerPrefs();" 	align="top">&nbsp;<img id="prefClass_btn" src="/plugins/visualizations/mda_heatmap_viz/static/images/covariateBarsOff.png" alt="Edit Classifications" onclick="NgChm.UPM.showClassPrefs();" align="top"></div>
          <div id="prefPrefs" class="prefSubPanel" style="display: block; height: 70"></div>
       </div>
    </BODY >

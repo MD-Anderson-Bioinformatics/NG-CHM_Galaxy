@@ -1,80 +1,82 @@
-var detCanvas;
-var detBoxCanvas;  //canvas on top of WebGL canvas for selection box 
-var det_gl; // WebGL contexts
-var detTextureParams;
-var labelElement; 
-var old_mouse_pos = [0, 0];
+//Define Namespace for NgChm DetailHeatMapDisplay
+NgChm.createNS('NgChm.DET');
 
-var detCanvasScaleArray = new Float32Array([1.0, 1.0]);
-var detCanvasTranslateArray = new Float32Array([0, 0]);
+NgChm.DET.canvas;
+NgChm.DET.boxCanvas;  //canvas on top of WebGL canvas for selection box 
+NgChm.DET.gl; // WebGL contexts
+NgChm.DET.textureParams;
+NgChm.DET.texPixels;
+NgChm.DET.uScale;
+NgChm.DET.uTranslate;
 
-var detTexPixels;
-var detTexPixelsCache;
-var detUScale;
-var detUTranslate;
+NgChm.DET.canvasScaleArray = new Float32Array([1.0, 1.0]);
+NgChm.DET.canvasTranslateArray = new Float32Array([0, 0]);
 
-var detEventTimer = 0; // Used to delay draw updates
+NgChm.DET.labelElement; 
+NgChm.DET.chmElement;
+NgChm.DET.oldMousePos = [0, 0];
+NgChm.DET.eventTimer = 0; // Used to delay draw updates
 
-var saveRow;
-var saveCol;
-var dataBoxHeight;
-var dataBoxWidth;
+NgChm.DET.saveRow;
+NgChm.DET.saveCol;
+NgChm.DET.dataBoxHeight;
+NgChm.DET.dataBoxWidth;
 
-var paddingHeight = 2;          // space between classification bars
-var detailDendroHeight = 105;
-var detailDendroWidth = 105;
-var normDetailDendroMatrixHeight = 200;
-var rowDetailDendroMatrix,colDetailDendroMatrix;
-var DETAIL_SIZE_NORMAL_MODE = 506;
-var detailDataViewHeight = 506;
-var detailDataViewWidth = 506;
-var detailDataViewBorder = 2;
-var zoomBoxSizes = [1,2,3,4,6,7,8,9,12,14,18,21,24,28,36,42,56,63,72,84,126,168,252,504];
-var minLabelSize = 8;
-var currentSearchItem = {};
-var labelLastClicked = {};
+NgChm.DET.paddingHeight = 2;          // space between classification bars
+NgChm.DET.dendroHeight = 105;
+NgChm.DET.dendroWidth = 105;
+NgChm.DET.normDendroMatrixHeight = 200;
+NgChm.DET.rowDendroMatrix
+NgChm.DET.colDendroMatrix;
+NgChm.DET.SIZE_NORMAL_MODE = 506;
+NgChm.DET.dataViewHeight = 506;
+NgChm.DET.dataViewWidth = 506;
+NgChm.DET.dataViewBorder = 2;
+NgChm.DET.zoomBoxSizes = [1,2,3,4,6,7,8,9,12,14,18,21,24,28,36,42,56,63,72,84,126,168,252,504];
+NgChm.DET.minLabelSize = 8;
+NgChm.DET.currentSearchItem = {};
+NgChm.DET.labelLastClicked = {};
 
-var mouseDown = false;
-var dragOffsetX;
-var dragOffsetY;
-var detailPoint;
-
-var mode = 'NORMAL';
-var isDrawn = false;
+NgChm.DET.mouseDown = false;
+NgChm.DET.dragOffsetX;
+NgChm.DET.dragOffsetY;
+NgChm.DET.detailPoint;
 
 //Call once to hook up detail drawing routines to a heat map and initialize the webGl 
-function initDetailDisplay() {
-	detCanvas = document.getElementById('detail_canvas');
-	detBoxCanvas = document.getElementById('detail_box_canvas');
-	labelElement = document.getElementById('labelDiv');
+NgChm.DET.initDetailDisplay = function () {
+	NgChm.DET.canvas = document.getElementById('detail_canvas');
+	NgChm.DET.boxCanvas = document.getElementById('detail_box_canvas');
+	NgChm.DET.labelElement = document.getElementById('labelDiv');
+	NgChm.DET.chmElement = document.getElementById('detail_chm');
 
-	if (isSub) {
+	if (NgChm.SEL.isSub) {
  		document.getElementById('summary_chm').style.display = 'none';
  		document.getElementById('divider').style.display = 'none';
  		document.getElementById('detail_chm').style.width = '100%';
  		document.getElementById('flicks').style.display = '';
  		document.getElementById('detail_buttons').style.display = '';
- 		document.getElementById('split_btn').src= staticPath + "images/join.png";
- 		document.getElementById('gear_btn').src= staticPath + "images/gearDis.png";
+ 		document.getElementById('split_btn').src= NgChm.staticPath + "images/join.png";
+ 		document.getElementById('gear_btn').src= NgChm.staticPath + "images/gearDis.png";
  		document.getElementById('pdf_btn').style.display = 'none';
 	}
-	if (heatMap.isInitialized() > 0) {
+	if (NgChm.heatMap.isInitialized() > 0) {
  		document.getElementById('flicks').style.display = '';
 		document.getElementById('detail_buttons').style.display = '';
-		detCanvas.width =  (detailDataViewWidth + calculateTotalClassBarHeight("row") + detailDendroWidth);
-		detCanvas.height = (detailDataViewHeight + calculateTotalClassBarHeight("column") + detailDendroHeight);
-		detSetupGl();
-		detInitGl();
-		createLabelMenus();
-		updateSelection();
+		NgChm.DET.canvas.width =  (NgChm.DET.dataViewWidth + NgChm.DET.calculateTotalClassBarHeight("row") + NgChm.DET.dendroWidth);
+		NgChm.DET.canvas.height = (NgChm.DET.dataViewHeight + NgChm.DET.calculateTotalClassBarHeight("column") + NgChm.DET.dendroHeight);
+		NgChm.DET.detSetupGl();
+		NgChm.DET.detInitGl();
+		NgChm.LNK.createLabelMenus();
+		NgChm.SEL.updateSelection();
 	}
 	
-	detCanvas.oncontextmenu = matrixRightClick;
-	detCanvas.onmousedown = clickStart;
-	detCanvas.onmouseup = clickEnd;
-	detCanvas.onmousemove = handleMouseMove;
-	detCanvas.onmouseleave = userHelpClose;
-	detCanvas.onmouseout = handleMouseOut;
+	NgChm.DET.canvas.oncontextmenu = NgChm.DET.matrixRightClick;
+	NgChm.DET.canvas.onmousedown = NgChm.DET.clickStart;
+	NgChm.DET.canvas.onmouseup = NgChm.DET.clickEnd;
+	NgChm.DET.canvas.onmousemove = NgChm.DET.handleMouseMove;
+	NgChm.DET.canvas.onmouseleave = NgChm.UHM.userHelpClose;
+	NgChm.DET.canvas.onmouseout = NgChm.DET.handleMouseOut;
+	NgChm.DET.canvas.onkeydown = NgChm.SEL.keyNavigate;
 
 	document.addEventListener("touchmove", function(e){
 		e.preventDefault();
@@ -84,27 +86,25 @@ function initDetailDisplay() {
 	    	}
 	    }
 	})
-	detCanvas.addEventListener("touchstart", function(e){
-		userHelpClose();
-		clickStart(e);
+	NgChm.DET.canvas.addEventListener("touchstart", function(e){
+		NgChm.UHM.userHelpClose();
+		NgChm.DET.clickStart(e);
 	}, false);
-	detCanvas.addEventListener("touchmove", function(e){
+	NgChm.DET.canvas.addEventListener("touchmove", function(e){
 		e.stopPropagation();
 		e.preventDefault();
-		handleMouseMove(e);
+		NgChm.DET.handleMouseMove(e);
 	}, false);
-	detCanvas.addEventListener("touchend", function(e){clickEnd(e)}, false);
+	NgChm.DET.canvas.addEventListener("touchend", function(e){NgChm.DET.clickEnd(e)}, false);
 	
-	detCanvas.addEventListener("gestureend",function(e){
+	NgChm.DET.canvas.addEventListener("gestureend",function(e){
 		if (e.scale > 1){
-			detailDataZoomIn();
+			NgChm.DET.detailDataZoomIn();
 		} else if (e.scale < 1){
-			detailDataZoomOut();
+			NgChm.DET.detailDataZoomOut();
 		}
 	},false)
 	
-	
-	document.onkeydown = keyNavigate;
 }
 
 /*********************************************************************************************
@@ -112,71 +112,72 @@ function initDetailDisplay() {
  * 
  * The purpose of this function is to handle a user mouse down event.  
  *********************************************************************************************/
-function clickStart(e){
+NgChm.DET.clickStart = function (e) {
+	NgChm.DET.canvas.focus();
 	e.preventDefault();
-	mouseEventActive = true;
-	var clickType = getClickType(e);
-	userHelpClose();
+	NgChm.SUM.mouseEventActive = true;
+	var clickType = NgChm.DET.getClickType(e);
+	NgChm.UHM.userHelpClose();
 	if (clickType === 0) { 
-		detCanvas = document.getElementById('detail_canvas');
-		dragOffsetX = e.touches ? e.layerX : e.layerX;  //canvas X coordinate 
-		dragOffsetY = e.touches ? e.layerY : e.layerY;
-	    mouseDown = true;
+		NgChm.DET.canvas = document.getElementById('detail_canvas');
+		NgChm.DET.dragOffsetX = e.touches ? e.layerX : e.layerX;  //canvas X coordinate 
+		NgChm.DET.dragOffsetY = e.touches ? e.layerY : e.layerY;
+	    NgChm.DET.mouseDown = true;
 		// client space
 		var divW = e.target.clientWidth;
 		var divH = e.target.clientHeight;
 		// texture space
-		var rowTotalW = detailDataViewWidth + calculateTotalClassBarHeight("row") + detailDendroWidth;
-		var colTotalH = detailDataViewHeight + calculateTotalClassBarHeight("column") + detailDendroHeight;
+		var rowTotalW = NgChm.DET.dataViewWidth + NgChm.DET.calculateTotalClassBarHeight("row") + NgChm.DET.dendroWidth;
+		var colTotalH = NgChm.DET.dataViewHeight + NgChm.DET.calculateTotalClassBarHeight("column") + NgChm.DET.dendroHeight;
 		// proportion space
-		var rowDendroW = detailDendroWidth/rowTotalW;
-		var colDendroH = detailDendroHeight/colTotalH;
-		var rowClassW = calculateTotalClassBarHeight("row")/rowTotalW;
-		var colClassH = calculateTotalClassBarHeight("column")/colTotalH;
-		var mapW = detailDataViewWidth/rowTotalW;
-		var mapH = detailDataViewHeight/colTotalH;
+		var rowDendroW = NgChm.DET.dendroWidth/rowTotalW;
+		var colDendroH = NgChm.DET.dendroHeight/colTotalH;
+		var rowClassW = NgChm.DET.calculateTotalClassBarHeight("row")/rowTotalW;
+		var colClassH = NgChm.DET.calculateTotalClassBarHeight("column")/colTotalH;
+		var mapW = NgChm.DET.dataViewWidth/rowTotalW;
+		var mapH = NgChm.DET.dataViewHeight/colTotalH;
 		var clickX = e.layerX/divW;
 		var clickY = e.layerY/divH;
 		
 		if (clickX > rowDendroW + rowClassW && clickY < colDendroH){ // col dendro clicked
-			var heightRatio = heatMap.getNumColumns(MatrixManager.DETAIL_LEVEL)/dataPerRow;
-			var X = (currentCol + (dataPerRow*(clickX-rowDendroW-rowClassW)/mapW));
+			var heightRatio = NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerRow;
+			var X = (NgChm.SEL.currentCol + (NgChm.SEL.dataPerRow*(clickX-rowDendroW-rowClassW)/mapW));
 			var Y = (colDendroH-clickY)/colDendroH/heightRatio;
 			var matrixX = Math.round(X*3-1);
 			var matrixY = Math.round(Y*500);
-			var leftRight = summaryColumnDendro.findExtremes(matrixY,matrixX);
+			var leftRight = NgChm.SUM.colDendro.findExtremes(matrixY,matrixX);
 			var left = (leftRight[0]+2)/3;
 			var right =(leftRight[1]+2)/3;
-			colDetailDendroMatrix = buildDetailDendroMatrix('col', currentCol, currentCol+dataPerRow, heatMap.getNumColumns(MatrixManager.DETAIL_LEVEL)/dataPerRow, {"left":leftRight[0],"right":leftRight[1],"height":Y});
-			summaryColumnDendro.addSelectedBar(leftRight[0],leftRight[1],matrixY,e.shiftKey);
-			detailDrawColDendrogram(detTexPixels);
-			updateSelection();
-			drawColSelectionMarks();
-			drawRowSelectionMarks();
+			NgChm.DET.colDendroMatrix = NgChm.DET.buildDetailDendroMatrix('col', NgChm.SEL.currentCol, NgChm.SEL.currentCol+NgChm.SEL.dataPerRow, NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerRow, {"left":leftRight[0],"right":leftRight[1],"height":Y});
+			NgChm.SUM.colDendro.addSelectedBar(leftRight[0],leftRight[1],matrixY,e.shiftKey);
+			NgChm.DET.detailDrawColDendrogram(NgChm.DET.texPixels);
+			NgChm.SEL.updateSelection();
+			NgChm.SUM.drawColSelectionMarks();
+			NgChm.SUM.drawRowSelectionMarks();
 		} else if (clickX < rowDendroW && clickY > colDendroH + colClassH){ // row dendro clicked
-			var heightRatio = heatMap.getNumRows(MatrixManager.DETAIL_LEVEL)/dataPerCol;
-			var X = (currentRow + Math.floor(dataPerCol*(clickY-colDendroH-colClassH)/mapH));
+			var heightRatio = NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerCol;
+			var X = (NgChm.SEL.currentRow + Math.floor(NgChm.SEL.dataPerCol*(clickY-colDendroH-colClassH)/mapH));
 			var Y = (rowDendroW-clickX)/rowDendroW/heightRatio; // this is a percentage of how high up on the entire dendro matrix (not just the detail view) the click occured
 			var matrixX = X*3-1;
 			var matrixY = Math.round(Y*500);
-			var leftRight = summaryRowDendro.findExtremes(matrixY,matrixX);
+			var leftRight = NgChm.SUM.rowDendro.findExtremes(matrixY,matrixX);
 			var left = (leftRight[0]+2)/3;
 			var right =(leftRight[1]+2)/3;
-			rowDetailDendroMatrix = buildDetailDendroMatrix('row', currentRow, currentRow+dataPerCol, heatMap.getNumRows(MatrixManager.DETAIL_LEVEL)/dataPerCol, {"left":leftRight[0],"right":leftRight[1],"height":Y});
-			summaryRowDendro.addSelectedBar(leftRight[0],leftRight[1],matrixY,e.shiftKey);
-			detailDrawRowDendrogram(detTexPixels);
-			updateSelection();
-			drawColSelectionMarks();
-			drawRowSelectionMarks();
+			NgChm.DET.rowDendroMatrix = NgChm.DET.buildDetailDendroMatrix('row', NgChm.SEL.currentRow, NgChm.SEL.currentRow+NgChm.SEL.dataPerCol, NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerCol, {"left":leftRight[0],"right":leftRight[1],"height":Y});
+			NgChm.SUM.rowDendro.addSelectedBar(leftRight[0],leftRight[1],matrixY,e.shiftKey);
+			NgChm.DET.detailDrawRowDendrogram(NgChm.DET.texPixels);
+			NgChm.SEL.updateSelection();
+			NgChm.SUM.drawColSelectionMarks();
+			NgChm.SUM.drawRowSelectionMarks();
 		}
 	    
-	    if (isOnObject(e,"map")) {
+	    if (NgChm.DET.isOnObject(e,"map")) {
 			//Set cursor for drag move or drag select
 			if (e.shiftKey) {
-				detCanvas.style.cursor="crosshair";
+				NgChm.DET.canvas.style.cursor="crosshair";
 		    }
 		    else {
-				detCanvas.style.cursor="move";
+				NgChm.DET.canvas.style.cursor="move";
 		    }
 	    }
 	}
@@ -189,23 +190,23 @@ function clickStart(e){
  * moved out of a given detail row/col between clickStart and clickEnd, user help is opened
  * for that cell.
  *********************************************************************************************/
-function clickEnd(e){
-	if (mouseEventActive) {
-		var clickType = getClickType(e);
+NgChm.DET.clickEnd = function (e) {
+	if (NgChm.SUM.mouseEventActive) {
+		var clickType = NgChm.DET.getClickType(e);
 		if (clickType === 0) {
-			mouseDown = false;
+			NgChm.DET.mouseDown = false;
 			var dragEndX = e.changedTouches ? e.changedTouches[0].pageX : e.layerX;  //etouches is for tablets = number of fingers touches on screen
 			var dragEndY = e.changedTouches ? e.changedTouches[0].pageY : e.layerY;
-			var rowElementSize = dataBoxWidth * detCanvas.clientWidth/detCanvas.width;
-		    var colElementSize = dataBoxHeight * detCanvas.clientHeight/detCanvas.height;
+			var rowElementSize = NgChm.DET.dataBoxWidth * NgChm.DET.canvas.clientWidth/NgChm.DET.canvas.width;
+		    var colElementSize = NgChm.DET.dataBoxHeight * NgChm.DET.canvas.clientHeight/NgChm.DET.canvas.height;
 		    //If cursor did not move from the column/row between click start/end, display User Help
-			if (Math.abs(dragEndX - dragOffsetX) < colElementSize/10 && Math.abs(dragEndY - dragOffsetY) < rowElementSize/10){
-				userHelpOpen(e);
+			if (Math.abs(dragEndX - NgChm.DET.dragOffsetX) < colElementSize/10 && Math.abs(dragEndY - NgChm.DET.dragOffsetY) < rowElementSize/10){
+				NgChm.UHM.userHelpOpen(e);
 			}
 			//Set cursor back to default
-			detCanvas.style.cursor="default";
+			NgChm.DET.canvas.style.cursor="default";
 		}
-		mouseEventActive = false;
+		NgChm.SUM.mouseEventActive = false;
 	}
 }
 
@@ -216,10 +217,10 @@ function clickEnd(e){
  * off the detail canvas without letting up the mouse button.  In these cases, we cancel 
  * the mouse event that we are tracking, reset mouseDown, and reset the cursor to default.
  *********************************************************************************************/
-function handleMouseOut(evt) {
-	detCanvas.style.cursor="default";
-    mouseDown = false;
-	mouseEventActive = false;
+NgChm.DET.handleMouseOut = function (e) {
+	NgChm.DET.canvas.style.cursor="default";
+    NgChm.DET.mouseDown = false;
+	NgChm.SUM.mouseEventActive = false;
 }
 
 /*********************************************************************************************
@@ -228,7 +229,7 @@ function handleMouseOut(evt) {
  * The purpose of this function returns an integer. 0 for left click; 1 for right.  It could
  * be expanded further for wheel clicks, browser back, and browser forward 
  *********************************************************************************************/
-function getClickType(e) {
+NgChm.DET.getClickType = function (e) {
 	 var clickType = 0;
 	 e = e || window.event;
 	 if ( !e.which && (typeof e.button !== 'undefined') ) {
@@ -248,24 +249,24 @@ function getClickType(e) {
  * drag-select is determined, based upon keys pressed and the appropriate function is called
  * to perform the function.
  *********************************************************************************************/
-function handleMouseMove(e) {
+NgChm.DET.handleMouseMove = function (e) {
     // Do not clear help if the mouse position did not change. Repeated firing of the mousemove event can happen on random 
     // machines in all browsers but FireFox. There are varying reasons for this so we check and exit if need be.
 	var eX = e.touches ? e.touches[0].clientX : e.clientX;
 	var eY = e.touches ? e.touches[0].clientY : e.clientY;
-	if(old_mouse_pos[0] != eX || old_mouse_pos[1] != eY) {
-		userHelpClose();
-		old_mouse_pos = [eX, eY];
+	if(NgChm.DET.oldMousePos[0] != eX || NgChm.DET.oldMousePos[1] != eY) {
+		NgChm.UHM.userHelpClose();
+		NgChm.DET.oldMousePos = [eX, eY];
 	} 
-	if (mouseDown && mouseEventActive){
+	if (NgChm.DET.mouseDown && NgChm.SUM.mouseEventActive){
 		//If mouse is down and shift key is pressed, perform a drag selection
 		//Else perform a drag move
 		if (e.shiftKey) {
-			clearSearch(e);
-			handleSelectDrag(e);
+			NgChm.DET.clearSearch(e);
+			NgChm.DET.handleSelectDrag(e);
 	    }
 	    else {
-    		handleMoveDrag(e);
+    		NgChm.DET.handleMoveDrag(e);
 	    }
 	} 
 }
@@ -277,25 +278,25 @@ function handleMouseMove(e) {
  * clicks and drags across the detail heat map viewport. When this happens, the current position
  * of the heatmap viewport is changed and the detail heat map is redrawn 
  *********************************************************************************************/
-function handleMoveDrag(e) { 
-    if(!mouseDown) return;
-    var rowElementSize = dataBoxWidth * detCanvas.clientWidth/detCanvas.width;
-    var colElementSize = dataBoxHeight * detCanvas.clientHeight/detCanvas.height;
+NgChm.DET.handleMoveDrag = function (e) {
+    if(!NgChm.DET.mouseDown) return;
+    var rowElementSize = NgChm.DET.dataBoxWidth * NgChm.DET.canvas.clientWidth/NgChm.DET.canvas.width;
+    var colElementSize = NgChm.DET.dataBoxHeight * NgChm.DET.canvas.clientHeight/NgChm.DET.canvas.height;
     if (e.touches){  //If more than 2 fingers on, don't do anything
     	if (e.touches.length > 1){
     		return false;
     	}
     } 
-    var xDrag = e.touches ? e.layerX - dragOffsetX : e.layerX - dragOffsetX;
-    var yDrag = e.touches ? e.layerY - dragOffsetY : e.layerY - dragOffsetY;
+    var xDrag = e.touches ? e.layerX - NgChm.DET.dragOffsetX : e.layerX - NgChm.DET.dragOffsetX;
+    var yDrag = e.touches ? e.layerY - NgChm.DET.dragOffsetY : e.layerY - NgChm.DET.dragOffsetY;
     if ((Math.abs(xDrag/rowElementSize) > 1) || (Math.abs(yDrag/colElementSize) > 1)) {
-    	currentRow = Math.floor(currentRow - (yDrag/colElementSize));
-    	currentCol = Math.floor(currentCol - (xDrag/rowElementSize));
-    	dragOffsetX = e.touches ? e.layerX : e.layerX;
-	    dragOffsetY = e.touches ? e.layerY : e.layerY;
-	    checkRow();
-	    checkColumn();
-	    updateSelection();
+    	NgChm.SEL.currentRow = Math.floor(NgChm.SEL.currentRow - (yDrag/colElementSize));
+    	NgChm.SEL.currentCol = Math.floor(NgChm.SEL.currentCol - (xDrag/rowElementSize));
+    	NgChm.DET.dragOffsetX = e.touches ? e.layerX : e.layerX;
+	    NgChm.DET.dragOffsetY = e.touches ? e.layerY : e.layerY;
+	    NgChm.SEL.checkRow();
+	    NgChm.SEL.checkColumn();
+	    NgChm.SEL.updateSelection();
     } 
 }	
 
@@ -308,44 +309,43 @@ function handleMoveDrag(e) {
  * with those positions (representing selected items on each axis).  Finally, selection marks
  * on the Summary heatmap are drawn and the detail heat map is re-drawn 
  *********************************************************************************************/
-function handleSelectDrag(e) {
-    if(!mouseDown) return;
-    var rowElementSize = dataBoxWidth * detCanvas.clientWidth/detCanvas.width;
-    var colElementSize = dataBoxHeight * detCanvas.clientHeight/detCanvas.height;
+NgChm.DET.handleSelectDrag = function (e) {
+    if(!NgChm.DET.mouseDown) return;
+    var rowElementSize = NgChm.DET.dataBoxWidth * NgChm.DET.canvas.clientWidth/NgChm.DET.canvas.width;
+    var colElementSize = NgChm.DET.dataBoxHeight * NgChm.DET.canvas.clientHeight/NgChm.DET.canvas.height;
     if (e.touches){  //If more than 2 fingers on, don't do anything
     	if (e.touches.length > 1){
     		return false;
     	}
     }
-    var xDrag = e.touches ? e.touches[0].layerX - dragOffsetX : e.layerX - dragOffsetX;
-    var yDrag = e.touches ? e.touches[0].layerY - dragOffsetY : e.layerY - dragOffsetY;
+    var xDrag = e.touches ? e.touches[0].layerX - NgChm.DET.dragOffsetX : e.layerX - NgChm.DET.dragOffsetX;
+    var yDrag = e.touches ? e.touches[0].layerY - NgChm.DET.dragOffsetY : e.layerY - NgChm.DET.dragOffsetY;
     
     if ((Math.abs(xDrag/rowElementSize) > 1) || (Math.abs(yDrag/colElementSize) > 1)) {
     	//Retrieve drag corners but set to max/min values in case user is dragging
     	//bottom->up or left->right.
-    	var endRow = Math.max(getRowFromLayerY(e.layerY),getRowFromLayerY(dragOffsetY));
-    	var endCol = Math.max(getColFromLayerX(e.layerX),getColFromLayerX(dragOffsetX));
-		var startRow = Math.min(getRowFromLayerY(e.layerY),getRowFromLayerY(dragOffsetY));
-		var startCol = Math.min(getColFromLayerX(e.layerX),getColFromLayerX(dragOffsetX));
-    	clearSearchItems("Column");
-    	clearSearchItems("Row");
+    	var endRow = Math.max(NgChm.DET.getRowFromLayerY(e.layerY),NgChm.DET.getRowFromLayerY(NgChm.DET.dragOffsetY));
+    	var endCol = Math.max(NgChm.DET.getColFromLayerX(e.layerX),NgChm.DET.getColFromLayerX(NgChm.DET.dragOffsetX));
+		var startRow = Math.min(NgChm.DET.getRowFromLayerY(e.layerY),NgChm.DET.getRowFromLayerY(NgChm.DET.dragOffsetY));
+		var startCol = Math.min(NgChm.DET.getColFromLayerX(e.layerX),NgChm.DET.getColFromLayerX(NgChm.DET.dragOffsetX));
+		NgChm.DET.clearSearch(e);
     	for (var i = startRow; i <= endRow; i++){
-    		searchItems["Row"][i] = 1;
+    		NgChm.SEL.searchItems["Row"][i] = 1;
     	}
     	for (var i = startCol; i <= endCol; i++){
-    		searchItems["Column"][i] = 1;
+    		NgChm.SEL.searchItems["Column"][i] = 1;
     	}
-    	if (isSub){
-    		localStorage.setItem('selected', JSON.stringify(searchItems));
+    	if (NgChm.SEL.isSub){
+    		localStorage.setItem('selected', JSON.stringify(NgChm.SEL.searchItems));
     	} else {
-    		drawRowSelectionMarks();
-    		drawColSelectionMarks();
+    		NgChm.SUM.drawRowSelectionMarks();
+    		NgChm.SUM.drawColSelectionMarks();
     	}
-	   	 clearLabels();
-		 drawSelections();
-		 drawRowAndColLabels();
-		 detailDrawColClassBarLabels();
-		 detailDrawRowClassBarLabels();
+	   	 NgChm.DET.clearLabels();
+		 NgChm.DET.drawSelections();
+		 NgChm.DET.drawRowAndColLabels();
+		 NgChm.DET.detailDrawColClassBarLabels();
+		 NgChm.DET.detailDrawRowClassBarLabels();
 
     }
 }	
@@ -356,22 +356,22 @@ function handleSelectDrag(e) {
  * The purpose of this function is to retrieve the row/col in the data matrix that matched a given
  * mouse location.  They utilize event.layerY/X for the mouse position.
  *********************************************************************************************/
-function getRowFromLayerY(layerY) {
-    var rowElementSize = dataBoxWidth * detCanvas.clientWidth/detCanvas.width; // px/Glpoint
-    var colElementSize = dataBoxHeight * detCanvas.clientHeight/detCanvas.height;
-	var colClassHeightPx = getColClassPixelHeight();
-	var colDendroHeightPx = getColDendroPixelHeight();
+NgChm.DET.getRowFromLayerY = function (layerY) {
+    var rowElementSize = NgChm.DET.dataBoxWidth * NgChm.DET.canvas.clientWidth/NgChm.DET.canvas.width; // px/Glpoint
+    var colElementSize = NgChm.DET.dataBoxHeight * NgChm.DET.canvas.clientHeight/NgChm.DET.canvas.height;
+	var colClassHeightPx = NgChm.DET.getColClassPixelHeight();
+	var colDendroHeightPx = NgChm.DET.getColDendroPixelHeight();
 	var mapLocY = layerY - colClassHeightPx - colDendroHeightPx;
-	return Math.floor(currentRow + (mapLocY/colElementSize)*getSamplingRatio('row'));
+	return Math.floor(NgChm.SEL.currentRow + (mapLocY/colElementSize)*NgChm.DET.getSamplingRatio('row'));
 }
 
-function getColFromLayerX(layerX) {
-    var rowElementSize = dataBoxWidth * detCanvas.clientWidth/detCanvas.width; // px/Glpoint
-    var colElementSize = dataBoxHeight * detCanvas.clientHeight/detCanvas.height;
-	var rowClassWidthPx = getRowClassPixelWidth();
-	var rowDendroWidthPx =  getRowDendroPixelWidth();
+NgChm.DET.getColFromLayerX = function (layerX) {
+    var rowElementSize = NgChm.DET.dataBoxWidth * NgChm.DET.canvas.clientWidth/NgChm.DET.canvas.width; // px/Glpoint
+    var colElementSize = NgChm.DET.dataBoxHeight * NgChm.DET.canvas.clientHeight/NgChm.DET.canvas.height;
+	var rowClassWidthPx = NgChm.DET.getRowClassPixelWidth();
+	var rowDendroWidthPx =  NgChm.DET.getRowDendroPixelWidth();
 	var mapLocX = layerX - rowClassWidthPx - rowDendroWidthPx;
-	return Math.floor(currentCol + (mapLocX/rowElementSize)*getSamplingRatio('col'));
+	return Math.floor(NgChm.SEL.currentCol + (mapLocX/rowElementSize)*NgChm.DET.getSamplingRatio('col'));
 }
 
 /*********************************************************************************************
@@ -380,12 +380,12 @@ function getColFromLayerX(layerX) {
  * Given a detail matrix row, these function return the canvas Y (vertical) OR canvas x 
  * (or horizontal) position. 
  *********************************************************************************************/
-function getDetCanvasYFromRow(row){
-	return ((row*(detailDataViewHeight/getCurrentDetDataPerCol())) + getDetColMapOffset());
+NgChm.DET.getDetCanvasYFromRow = function (row) {
+	return ((row*(NgChm.DET.dataViewHeight/NgChm.SEL.getCurrentDetDataPerCol())) + NgChm.DET.getDetColMapOffset());
 }
 
-function getDetCanvasXFromCol(col){
-	return ((col*(detailDataViewWidth/getCurrentDetDataPerRow())) + getDetRowMapOffset());
+NgChm.DET.getDetCanvasXFromCol = function (col) {
+	return ((col*(NgChm.DET.dataViewWidth/NgChm.SEL.getCurrentDetDataPerRow())) + NgChm.DET.getDetRowMapOffset());
 }
 
 /*********************************************************************************************
@@ -394,12 +394,12 @@ function getDetCanvasXFromCol(col){
  * These functions return the col/row offset of position 0,0 on the heatmap from the top of 
  * the detail canvas.  The position includes the dendro, classbar, and border
  *********************************************************************************************/
-function getDetColMapOffset() {
-	return (calculateTotalClassBarHeight("column") + detailDendroHeight);
+NgChm.DET.getDetColMapOffset = function () {
+	return (NgChm.DET.calculateTotalClassBarHeight("column") + NgChm.DET.dendroHeight);
 }
 
-function getDetRowMapOffset() {
-	return (calculateTotalClassBarHeight("row") + detailDendroWidth);
+NgChm.DET.getDetRowMapOffset = function () {
+	return (NgChm.DET.calculateTotalClassBarHeight("row") + NgChm.DET.dendroWidth);
 }
 
 /*********************************************************************************************
@@ -410,23 +410,23 @@ function getDetRowMapOffset() {
  * function that will draw line OR boxes on the heatMap detail box canvas.  If either of the 
  * 2 arrays is empty, lines will be drawn otherwise boxes.  
  *********************************************************************************************/
-function drawSelections() {
-	var ctx=detBoxCanvas.getContext("2d");
-	ctx.clearRect(0, 0, detBoxCanvas.width, detBoxCanvas.height);
+NgChm.DET.drawSelections = function () {
+	var ctx=NgChm.DET.boxCanvas.getContext("2d");
+	ctx.clearRect(0, 0, NgChm.DET.boxCanvas.width, NgChm.DET.boxCanvas.height);
 	//Retrieve contiguous row and column search arrays
-	var searchRows = getSearchRows();
-	var rowRanges = getContigSearchRanges(searchRows);
-	var searchCols = getSearchCols();
-	var colRanges = getContigSearchRanges(searchCols);
+	var searchRows = NgChm.DET.getSearchRows();
+	var rowRanges = NgChm.DET.getContigSearchRanges(searchRows);
+	var searchCols = NgChm.DET.getSearchCols();
+	var colRanges = NgChm.DET.getContigSearchRanges(searchCols);
 	if (rowRanges.length > 0 || colRanges.length > 0) {
-    	showSrchBtns();
+    	NgChm.DET.showSrchBtns();
 		if (rowRanges.length === 0) {
 			//Draw horizontal lines across entire heatMap
 			for (var i=0;i<colRanges.length;i++) {
 				var range = colRanges[i];
 				var colStart = range[0];
 				var colEnd = range[1];
-				drawSearchBox(0,heatMap.getNumRows('d'),colStart,colEnd);
+				NgChm.DET.drawSearchBox(0,NgChm.heatMap.getNumRows('d'),colStart,colEnd);
 			}
 		} else if (colRanges.length === 0) {
 			//Draw vertical lines across entire heatMap
@@ -434,7 +434,7 @@ function drawSelections() {
 				var range = rowRanges[i];
 				var rowStart = range[0];
 				var rowEnd = range[1];
-				drawSearchBox(rowStart,rowEnd,0,heatMap.getNumColumns('d'));
+				NgChm.DET.drawSearchBox(rowStart,rowEnd,0,NgChm.heatMap.getNumColumns('d'));
 			}
 		} else {
 			for (var i=0;i<rowRanges.length;i++) {
@@ -446,7 +446,7 @@ function drawSelections() {
 					var colRange = colRanges[j];
 					var colStart = colRange[0];
 					var colEnd = colRange[1];
-					drawSearchBox(rowStart,rowEnd,colStart,colEnd);
+					NgChm.DET.drawSearchBox(rowStart,rowEnd,colStart,colEnd);
 				}				
 			}
 		}
@@ -460,7 +460,7 @@ function drawSelections() {
  * containing entries for each contiguous range selected in the /searchArray.  This array will 
  * contain sub-arrays that have 2 entries (one for starting position and the other for ending)
  *********************************************************************************************/
-function getContigSearchRanges(searchArr) {
+NgChm.DET.getContigSearchRanges = function (searchArr) {
 	var ranges = [];
 	var prevVal=searchArr[0];
 	var startVal = searchArr[0];
@@ -494,25 +494,25 @@ function getContigSearchRanges(searchArr) {
  * This function draws lines on the heatMap detail box canvas for each contiguous search 
  * range that the user has specified (by click dragging, label selecting, or dendro clicking).
  *********************************************************************************************/
-function drawSearchBox(csRowStart, csRowEnd, csColStart, csColEnd) {
+NgChm.DET.drawSearchBox = function (csRowStart, csRowEnd, csColStart, csColEnd) {
 
 	//top-left corner of visible area
-	var topX = (((getDetRowMapOffset()) / detCanvas.width) * detBoxCanvas.width);
-	var topY = ((getDetColMapOffset() / detCanvas.height) * detBoxCanvas.height);
+	var topX = (((NgChm.DET.getDetRowMapOffset()) / NgChm.DET.canvas.width) * NgChm.DET.boxCanvas.width);
+	var topY = ((NgChm.DET.getDetColMapOffset() / NgChm.DET.canvas.height) * NgChm.DET.boxCanvas.height);
 	
 	//height/width of heat map rectangle in pixels
-	var mapXWidth = detBoxCanvas.width - topX;
-	var mapYHeight = detBoxCanvas.height - topY;
+	var mapXWidth = NgChm.DET.boxCanvas.width - topX;
+	var mapYHeight = NgChm.DET.boxCanvas.height - topY;
 	//height/width of a data cell in pixels
-	var cellWidth = mapXWidth/getCurrentDetDataPerRow();
-	var cellHeight = mapYHeight/getCurrentDetDataPerCol();
+	var cellWidth = mapXWidth/NgChm.SEL.getCurrentDetDataPerRow();
+	var cellHeight = mapYHeight/NgChm.SEL.getCurrentDetDataPerCol();
 	//bottom-right corner of visible area
-	var bottomX = topX + (getCurrentDetDataPerCol()*cellWidth);
-	var bottomY = topY + (getCurrentDetDataPerRow()*cellHeight);
+	var bottomX = topX + (NgChm.SEL.getCurrentDetDataPerCol()*cellWidth);
+	var bottomY = topY + (NgChm.SEL.getCurrentDetDataPerRow()*cellHeight);
 	
 	//how much to move row/col offset from currentRow in pixels
-	var adjustedRowStart = (csRowStart - currentRow)*cellHeight;
-	var adjustedColStart = (csColStart - currentCol)*cellWidth;
+	var adjustedRowStart = (csRowStart - NgChm.SEL.currentRow)*cellHeight;
+	var adjustedColStart = (csColStart - NgChm.SEL.currentCol)*cellWidth;
 	var adjustedRowEnd = ((csRowEnd - csRowStart)+1)*cellHeight;
 	var adjustedColEnd = ((csColEnd - csColStart)+1)*cellWidth;
 	
@@ -523,27 +523,27 @@ function drawSearchBox(csRowStart, csRowEnd, csColStart, csColEnd) {
 	var boxY2 = boxY+adjustedRowEnd; 
 	
 	//Retrieve selection color for coloring search box
-	var ctx=detBoxCanvas.getContext("2d");
-	var dataLayers = heatMap.getDataLayers();
-	var dataLayer = dataLayers[currentDl];
+	var ctx=NgChm.DET.boxCanvas.getContext("2d");
+	var dataLayers = NgChm.heatMap.getDataLayers();
+	var dataLayer = dataLayers[NgChm.SEL.currentDl];
 	ctx.lineWidth=3;
 	ctx.strokeStyle=dataLayer.selection_color;
 
 	// draw top horizontal line
-	if (isHorizLineVisible(topY, boxY)) {
-		drawHorizLine(topX,boxX, boxX2, boxY);
+	if (NgChm.DET.isHorizLineVisible(topY, boxY)) {
+		NgChm.DET.drawHorizLine(topX,boxX, boxX2, boxY);
 	}
 	// draw left side line
-	if (isVertLineVisible(topX, boxX)) {
-		drawVertLine(topY, boxY, boxY2, boxX);
+	if (NgChm.DET.isVertLineVisible(topX, boxX)) {
+		NgChm.DET.drawVertLine(topY, boxY, boxY2, boxX);
 	}
 	// draw bottom line
-	if (isHorizLineVisible(topY, boxY2)) {
-		drawHorizLine(topX,boxX, boxX2, boxY2);
+	if (NgChm.DET.isHorizLineVisible(topY, boxY2)) {
+		NgChm.DET.drawHorizLine(topX,boxX, boxX2, boxY2);
 	}
 	// draw right side line
-	if (isVertLineVisible(topX, boxX2)) {
-		drawVertLine(topY, boxY, boxY2, boxX2);
+	if (NgChm.DET.isVertLineVisible(topX, boxX2)) {
+		NgChm.DET.drawVertLine(topY, boxY, boxY2, boxX2);
 	}
 }
 
@@ -553,11 +553,11 @@ function drawSearchBox(csRowStart, csRowEnd, csColStart, csColEnd) {
  * These functions check the position of a horizontal/vertical line to see if it is currently 
  * visible in the detail viewport.
  *********************************************************************************************/
-function isHorizLineVisible(topY, boxY) {
+NgChm.DET.isHorizLineVisible = function (topY, boxY) {
 	return (boxY >= topY);
 }
 
-function isVertLineVisible(topX, boxX) {
+NgChm.DET.isVertLineVisible = function (topX, boxX) {
 	return (boxX >= topX);
 }
 
@@ -568,19 +568,19 @@ function isVertLineVisible(topX, boxX) {
  * viewport.   If only a portion of the line is visible on the top or left border, the length 
  * of the line will be amended to stop at the border.
  *********************************************************************************************/
-function drawHorizLine(topX, boxX, boxX2, boxY) {
+NgChm.DET.drawHorizLine = function (topX, boxX, boxX2, boxY) {
 	var lineStart = boxX >= topX ? boxX : topX;
 	var lineEnd = boxX2 >= topX ? boxX2 : topX;
 	if (lineStart !== lineEnd) {
-		strokeLine(lineStart,boxY,lineEnd, boxY);
+		NgChm.DET.strokeLine(lineStart,boxY,lineEnd, boxY);
 	}
 }
 
-function drawVertLine(topY, boxY, boxY2, boxX) {
+NgChm.DET.drawVertLine = function (topY, boxY, boxY2, boxX) {
 	var lineStart = boxY >= topY ? boxY : topY;
 	var lineEnd = boxY2 >= topY ? boxY2 : topY;
 	if (lineStart !== lineEnd) {
-		strokeLine(boxX,lineStart,boxX, lineEnd);
+		NgChm.DET.strokeLine(boxX,lineStart,boxX, lineEnd);
 	}
 }
 
@@ -590,37 +590,37 @@ function drawVertLine(topY, boxY, boxY2, boxX) {
  * This function draws lines on the heatMap detail box canvas for each contiguous search 
  * range that the user has specified (by click dragging, label selecting, or dendro clicking).
  *********************************************************************************************/
-function strokeLine(fromX, fromY, toX,toY) {
-	var ctx=detBoxCanvas.getContext("2d");
+NgChm.DET.strokeLine = function (fromX, fromY, toX,toY) {
+	var ctx=NgChm.DET.boxCanvas.getContext("2d");
 	ctx.beginPath();
 	ctx.moveTo(fromX,fromY);
 	ctx.lineTo(toX, toY); 
 	ctx.stroke(); 
 }
 
-function getColClassPixelHeight() {
-	var classbarHeight = calculateTotalClassBarHeight("column");
-	return detCanvas.clientHeight*(classbarHeight/detCanvas.height);
+NgChm.DET.getColClassPixelHeight = function () {
+	var classbarHeight = NgChm.DET.calculateTotalClassBarHeight("column");
+	return NgChm.DET.canvas.clientHeight*(classbarHeight/NgChm.DET.canvas.height);
 }
 
-function getRowClassPixelWidth() {
-	var classbarWidth = calculateTotalClassBarHeight("row");
-	return detCanvas.clientWidth*(classbarWidth/detCanvas.width);
+NgChm.DET.getRowClassPixelWidth = function () {
+	var classbarWidth = NgChm.DET.calculateTotalClassBarHeight("row");
+	return NgChm.DET.canvas.clientWidth*(classbarWidth/NgChm.DET.canvas.width);
 }
 
-function getColDendroPixelHeight() {
-	return detCanvas.clientHeight*(detailDendroHeight/detCanvas.height);
+NgChm.DET.getColDendroPixelHeight = function () {
+	return NgChm.DET.canvas.clientHeight*(NgChm.DET.dendroHeight/NgChm.DET.canvas.height);
 }
 
-function getRowDendroPixelWidth() {
-	return detCanvas.clientWidth*(detailDendroWidth/detCanvas.width);
+NgChm.DET.getRowDendroPixelWidth = function () {
+	return NgChm.DET.canvas.clientWidth*(NgChm.DET.dendroWidth/NgChm.DET.canvas.width);
 }
 
-function isOnObject(e,type) {
-    var rowClassWidthPx =  getRowClassPixelWidth();
-    var colClassHeightPx = getColClassPixelHeight();
-    var rowDendroWidthPx =  getRowDendroPixelWidth();
-    var colDendroHeightPx = getColDendroPixelHeight();
+NgChm.DET.isOnObject = function (e,type) {
+    var rowClassWidthPx =  NgChm.DET.getRowClassPixelWidth();
+    var colClassHeightPx = NgChm.DET.getColClassPixelHeight();
+    var rowDendroWidthPx =  NgChm.DET.getRowDendroPixelWidth();
+    var colDendroHeightPx = NgChm.DET.getColDendroPixelHeight();
     if (e.layerY > colClassHeightPx + colDendroHeightPx) { 
     	if  ((type == "map") && e.layerX > rowClassWidthPx + rowDendroWidthPx) {
     		return true;
@@ -636,301 +636,296 @@ function isOnObject(e,type) {
     return false;
 }	
 
-function detailDataZoomIn() {
-	userHelpClose();	
-	if (mode == 'NORMAL') {
-		var current = zoomBoxSizes.indexOf(dataBoxWidth);
-		if (current < zoomBoxSizes.length - 1) {
-			setDetailDataSize (zoomBoxSizes[current+1]);
-			updateSelection();
+NgChm.DET.detailDataZoomIn = function () {
+	NgChm.UHM.userHelpClose();	
+	if (NgChm.SEL.mode == 'NORMAL') {
+		var current = NgChm.DET.zoomBoxSizes.indexOf(NgChm.DET.dataBoxWidth);
+		if (current < NgChm.DET.zoomBoxSizes.length - 1) {
+			NgChm.DET.setDetailDataSize (NgChm.DET.zoomBoxSizes[current+1]);
+			NgChm.SEL.updateSelection();
 		}
-	} else if ((mode == 'RIBBONH') || (mode == 'RIBBONH_DETAIL')) {
-		var current = zoomBoxSizes.indexOf(dataBoxHeight);
-		if (current < zoomBoxSizes.length - 1) {
-			setDetailDataHeight (zoomBoxSizes[current+1]);
-			updateSelection();
+	} else if ((NgChm.SEL.mode == 'RIBBONH') || (NgChm.SEL.mode == 'RIBBONH_DETAIL')) {
+		var current = NgChm.DET.zoomBoxSizes.indexOf(NgChm.DET.dataBoxHeight);
+		if (current < NgChm.DET.zoomBoxSizes.length - 1) {
+			NgChm.DET.setDetailDataHeight (NgChm.DET.zoomBoxSizes[current+1]);
+			NgChm.SEL.updateSelection();
 		}
-	} else if ((mode == 'RIBBONV') || (mode == 'RIBBONV_DETAIL')) {
-		var current = zoomBoxSizes.indexOf(dataBoxWidth);
-		if (current < zoomBoxSizes.length - 1) {
-			setDetailDataWidth(zoomBoxSizes[current+1]);
-			updateSelection();
+	} else if ((NgChm.SEL.mode == 'RIBBONV') || (NgChm.SEL.mode == 'RIBBONV_DETAIL')) {
+		var current = NgChm.DET.zoomBoxSizes.indexOf(NgChm.DET.dataBoxWidth);
+		if (current < NgChm.DET.zoomBoxSizes.length - 1) {
+			NgChm.DET.setDetailDataWidth(NgChm.DET.zoomBoxSizes[current+1]);
+			NgChm.SEL.updateSelection();
 		}
 	}
+	NgChm.DET.canvas.focus();
 }	
 
-function detailDataZoomOut() {
-	userHelpClose();	
-	if (mode == 'NORMAL') {
-		var current = zoomBoxSizes.indexOf(dataBoxWidth);
+NgChm.DET.detailDataZoomOut = function () {
+	NgChm.UHM.userHelpClose();	
+	if (NgChm.SEL.mode == 'NORMAL') {
+		var current = NgChm.DET.zoomBoxSizes.indexOf(NgChm.DET.dataBoxWidth);
 		if ((current > 0) &&
-		    (Math.floor((detailDataViewHeight-detailDataViewBorder)/zoomBoxSizes[current-1]) <= heatMap.getNumRows(MatrixManager.DETAIL_LEVEL)) &&
-		    (Math.floor((detailDataViewWidth-detailDataViewBorder)/zoomBoxSizes[current-1]) <= heatMap.getNumColumns(MatrixManager.DETAIL_LEVEL))){
-			setDetailDataSize (zoomBoxSizes[current-1]);
-			updateSelection();
+		    (Math.floor((NgChm.DET.dataViewHeight-NgChm.DET.dataViewBorder)/NgChm.DET.zoomBoxSizes[current-1]) <= NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL)) &&
+		    (Math.floor((NgChm.DET.dataViewWidth-NgChm.DET.dataViewBorder)/NgChm.DET.zoomBoxSizes[current-1]) <= NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL))){
+			NgChm.DET.setDetailDataSize (NgChm.DET.zoomBoxSizes[current-1]);
+			NgChm.SEL.updateSelection();
 		}	
-	} else if ((mode == 'RIBBONH') || (mode == 'RIBBONH_DETAIL')) {
-		var current = zoomBoxSizes.indexOf(dataBoxHeight);
+	} else if ((NgChm.SEL.mode == 'RIBBONH') || (NgChm.SEL.mode == 'RIBBONH_DETAIL')) {
+		var current = NgChm.DET.zoomBoxSizes.indexOf(NgChm.DET.dataBoxHeight);
 		if ((current > 0) &&
-		    (Math.floor((detailDataViewHeight-detailDataViewBorder)/zoomBoxSizes[current-1]) <= heatMap.getNumRows(MatrixManager.DETAIL_LEVEL))) {
-			setDetailDataHeight (zoomBoxSizes[current-1]);
-			updateSelection();
+		    (Math.floor((NgChm.DET.dataViewHeight-NgChm.DET.dataViewBorder)/NgChm.DET.zoomBoxSizes[current-1]) <= NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL))) {
+			NgChm.DET.setDetailDataHeight (NgChm.DET.zoomBoxSizes[current-1]);
+			NgChm.SEL.updateSelection();
 		}	
-	} else if ((mode == 'RIBBONV') || (mode == 'RIBBONV_DETAIL')){
-		var current = zoomBoxSizes.indexOf(dataBoxWidth);
+	} else if ((NgChm.SEL.mode == 'RIBBONV') || (NgChm.SEL.mode == 'RIBBONV_DETAIL')){
+		var current = NgChm.DET.zoomBoxSizes.indexOf(NgChm.DET.dataBoxWidth);
 		if ((current > 0) &&
-		    (Math.floor((detailDataViewWidth-detailDataViewBorder)/zoomBoxSizes[current-1]) <= heatMap.getNumColumns(MatrixManager.DETAIL_LEVEL))){
-			setDetailDataWidth (zoomBoxSizes[current-1]);
-			updateSelection();
+		    (Math.floor((NgChm.DET.dataViewWidth-NgChm.DET.dataViewBorder)/NgChm.DET.zoomBoxSizes[current-1]) <= NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL))){
+			NgChm.DET.setDetailDataWidth (NgChm.DET.zoomBoxSizes[current-1]);
+			NgChm.SEL.updateSelection();
 		}	
 	}
+	NgChm.DET.canvas.focus();
 }
 
 //How big each data point should be in the detail pane.  
-function setDetailDataSize(size) {
-	setDetailDataWidth (size);
-	setDetailDataHeight(size);
+NgChm.DET.setDetailDataSize = function (size) {
+	NgChm.DET.setDetailDataWidth (size);
+	NgChm.DET.setDetailDataHeight(size);
 }
  
 //How big each data point should be in the detail pane.  
-function setDetailDataWidth(size) {
-	var prevDataPerRow = dataPerRow;
-	dataBoxWidth = size;
-	setDataPerRowFromDet(Math.floor((detailDataViewWidth-detailDataViewBorder)/dataBoxWidth));
+NgChm.DET.setDetailDataWidth = function (size) {
+	var prevDataPerRow = NgChm.SEL.dataPerRow;
+	NgChm.DET.dataBoxWidth = size;
+	NgChm.SEL.setDataPerRowFromDet(Math.floor((NgChm.DET.dataViewWidth-NgChm.DET.dataViewBorder)/NgChm.DET.dataBoxWidth));
 
 	//Adjust the current column based on zoom but don't go outside or the heat map matrix dimensions.
 	if (prevDataPerRow != null) {
-		if (prevDataPerRow > dataPerRow) {
-			currentCol += Math.floor((prevDataPerRow - dataPerRow) / 2);
+		if (prevDataPerRow > NgChm.SEL.dataPerRow) {
+			NgChm.SEL.currentCol += Math.floor((prevDataPerRow - NgChm.SEL.dataPerRow) / 2);
 		} else {
-			currentCol -= Math.floor((dataPerRow - prevDataPerRow) / 2);
+			NgChm.SEL.currentCol -= Math.floor((NgChm.SEL.dataPerRow - prevDataPerRow) / 2);
 		}
-		checkColumn();
+		NgChm.SEL.checkColumn();
 	}
 }
 
 //How big each data point should be in the detail pane.  
-function setDetailDataHeight(size) {
-	var prevDataPerCol = dataPerCol;
-	dataBoxHeight = size;
-	setDataPerColFromDet(Math.floor((detailDataViewHeight-detailDataViewBorder)/dataBoxHeight));
+NgChm.DET.setDetailDataHeight = function (size) {
+	var prevDataPerCol = NgChm.SEL.dataPerCol;
+	NgChm.DET.dataBoxHeight = size;
+	NgChm.SEL.setDataPerColFromDet(Math.floor((NgChm.DET.dataViewHeight-NgChm.DET.dataViewBorder)/NgChm.DET.dataBoxHeight));
 	
 	//Adjust the current row but don't go outside of the current heat map dimensions
 	if (prevDataPerCol != null) {
-		if (prevDataPerCol > dataPerCol)
-			currentRow += Math.floor((prevDataPerCol - dataPerCol) / 2);
+		if (prevDataPerCol > NgChm.SEL.dataPerCol)
+			NgChm.SEL.currentRow += Math.floor((prevDataPerCol - NgChm.SEL.dataPerCol) / 2);
 		else
-			currentRow -= Math.floor((dataPerCol - prevDataPerCol) / 2);
-		checkRow();
+			NgChm.SEL.currentRow -= Math.floor((NgChm.SEL.dataPerCol - prevDataPerCol) / 2);
+		NgChm.SEL.checkRow();
 	}
 }
 
-//How much data are we showing per row - determined by dataBoxWidth and detailDataViewWidth
-function getDetailDataPerRow() {
-	return dataPerRow;
+NgChm.DET.detailHRibbonButton = function () {
+	NgChm.DDR.clearDendroSelection();
+	NgChm.DET.detailHRibbon();
+	NgChm.DET.canvas.focus();
 }
 
-//How much data are we showing per row - determined by dataBoxWidth and detailDataViewWidth
-function getDetailDataPerCol () {
-	return dataPerCol;
-}
-
-function detailHRibbonButton () {
-	clearDendroSelection();
-	detailHRibbon();
-}
-
-function detailVRibbonButton () {
-	clearDendroSelection();
-	detailVRibbon();
+NgChm.DET.detailVRibbonButton = function () {
+	NgChm.DDR.clearDendroSelection();
+	NgChm.DET.detailVRibbon();
+	NgChm.DET.canvas.focus();
 }
 
 //Change to horizontal ribbon view.  Note there is a standard full ribbon view and also a sub-selection
 //ribbon view if the user clicks on the dendrogram.  If a dendrogram selection is in effect, then
 //selectedStart and selectedStop will be set.
-function detailHRibbon () {
-	userHelpClose();	
-	var previousMode = mode;
-	var prevWidth = dataBoxWidth;
-	saveCol = currentCol;
+NgChm.DET.detailHRibbon = function () {
+	NgChm.UHM.userHelpClose();	
+	var previousMode = NgChm.SEL.mode;
+	var prevWidth = NgChm.DET.dataBoxWidth;
+	NgChm.DET.saveCol = NgChm.SEL.currentCol;
 	
 		
-	mode='RIBBONH';
-	setButtons();
+	NgChm.SEL.mode='RIBBONH';
+	NgChm.DET.setButtons();
 	
 	// If normal (full) ribbon, set the width of the detail display to the size of the horizontal ribbon view
 	// and data size to 1.
-	if (selectedStart == null || selectedStart == 0) {
-		detailDataViewWidth = heatMap.getNumColumns(MatrixManager.RIBBON_HOR_LEVEL) + detailDataViewBorder;
+	if (NgChm.SEL.selectedStart == null || NgChm.SEL.selectedStart == 0) {
+		NgChm.DET.dataViewWidth = NgChm.heatMap.getNumColumns(NgChm.MMGR.RIBBON_HOR_LEVEL) + NgChm.DET.dataViewBorder;
 		var ddw = 1;
-		while(2*detailDataViewWidth < 500){ // make the width wider to prevent blurry/big dendros for smaller maps
+		while(2*NgChm.DET.dataViewWidth < 500){ // make the width wider to prevent blurry/big dendros for smaller maps
 			ddw *=2;
-			detailDataViewWidth = ddw*heatMap.getNumColumns(MatrixManager.RIBBON_HOR_LEVEL) + detailDataViewBorder;
+			NgChm.DET.dataViewWidth = ddw*NgChm.heatMap.getNumColumns(NgChm.MMGR.RIBBON_HOR_LEVEL) + NgChm.DET.dataViewBorder;
 		}
-		setDetailDataWidth(ddw);
-		currentCol = 1;
+		NgChm.DET.setDetailDataWidth(ddw);
+		NgChm.SEL.currentCol = 1;
 	} else {
-		var selectionSize = selectedStop - selectedStart + 1;
+		var selectionSize = NgChm.SEL.selectedStop - NgChm.SEL.selectedStart + 1;
 		if (selectionSize < 500) {
-			mode='RIBBONH_DETAIL'
+			NgChm.SEL.mode='RIBBONH_DETAIL'
 		} else {
-			var rvRate = heatMap.getColSummaryRatio(MatrixManager.RIBBON_HOR_LEVEL);
+			var rvRate = NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.RIBBON_HOR_LEVEL);
 			selectionSize = Math.floor(selectionSize/rvRate);
 		}
 		var width = Math.max(1, Math.floor(500/selectionSize));
-		detailDataViewWidth = (selectionSize * width) + detailDataViewBorder;
-		setDetailDataWidth(width);	
-		currentCol = selectedStart;
+		NgChm.DET.dataViewWidth = (selectionSize * width) + NgChm.DET.dataViewBorder;
+		NgChm.DET.setDetailDataWidth(width);	
+		NgChm.SEL.currentCol = NgChm.SEL.selectedStart;
 	}
 	
-	detailDataViewHeight = DETAIL_SIZE_NORMAL_MODE;
+	NgChm.DET.dataViewHeight = NgChm.DET.SIZE_NORMAL_MODE;
 	if ((previousMode=='RIBBONV') || (previousMode == 'RIBBONV_DETAIL')) {
-		setDetailDataHeight(prevWidth);
-		currentRow=saveRow;
+		NgChm.DET.setDetailDataHeight(prevWidth);
+		NgChm.SEL.currentRow=NgChm.DET.saveRow;
 	}	
 
 	//On some maps, one view (e.g. ribbon view) can show bigger data areas than will fit for other view modes.  If so, zoom back out to find a workable zoom level.
-	while (Math.floor((detailDataViewHeight-detailDataViewBorder)/zoomBoxSizes[zoomBoxSizes.indexOf(dataBoxHeight)]) > heatMap.getNumRows(MatrixManager.DETAIL_LEVEL)) {
-		setDetailDataHeight(zoomBoxSizes[zoomBoxSizes.indexOf(dataBoxHeight)+1]);
+	while (Math.floor((NgChm.DET.dataViewHeight-NgChm.DET.dataViewBorder)/NgChm.DET.zoomBoxSizes[NgChm.DET.zoomBoxSizes.indexOf(NgChm.DET.dataBoxHeight)]) > NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL)) {
+		NgChm.DET.setDetailDataHeight(NgChm.DET.zoomBoxSizes[NgChm.DET.zoomBoxSizes.indexOf(NgChm.DET.dataBoxHeight)+1]);
 	}	
 	
-	detCanvas.width =  (detailDataViewWidth + calculateTotalClassBarHeight("row") + detailDendroWidth);
-	detCanvas.height = (detailDataViewHeight + calculateTotalClassBarHeight("column") + detailDendroHeight);
-	detSetupGl();
-	detInitGl();
-	updateSelection();
+	NgChm.DET.canvas.width =  (NgChm.DET.dataViewWidth + NgChm.DET.calculateTotalClassBarHeight("row") + NgChm.DET.dendroWidth);
+	NgChm.DET.canvas.height = (NgChm.DET.dataViewHeight + NgChm.DET.calculateTotalClassBarHeight("column") + NgChm.DET.dendroHeight);
+	NgChm.DET.detSetupGl();
+	NgChm.DET.detInitGl();
+	NgChm.SEL.updateSelection();
 	document.getElementById("viewport").setAttribute("content", "height=device-height");
     document.getElementById("viewport").setAttribute("content", "");
 }
 
-function detailVRibbon () {
-	userHelpClose();	
-	var previousMode = mode;
-	var prevHeight = dataBoxHeight;
-	saveRow = currentRow;
+NgChm.DET.detailVRibbon = function () {
+	NgChm.UHM.userHelpClose();	
+	var previousMode = NgChm.SEL.mode;
+	var prevHeight = NgChm.DET.dataBoxHeight;
+	NgChm.DET.saveRow = NgChm.SEL.currentRow;
 	
-	mode='RIBBONV';
-	setButtons();
+	NgChm.SEL.mode='RIBBONV';
+	NgChm.DET.setButtons();
 
 	// If normal (full) ribbon, set the width of the detail display to the size of the horizontal ribbon view
 	// and data size to 1.
-	if (selectedStart == null || selectedStart == 0) {
-		detailDataViewHeight = heatMap.getNumRows(MatrixManager.RIBBON_VERT_LEVEL) + detailDataViewBorder;
+	if (NgChm.SEL.selectedStart == null || NgChm.SEL.selectedStart == 0) {
+		NgChm.DET.dataViewHeight = NgChm.heatMap.getNumRows(NgChm.MMGR.RIBBON_VERT_LEVEL) + NgChm.DET.dataViewBorder;
 		var ddh = 1;
-		while(2*detailDataViewHeight < 500){ // make the height taller to prevent blurry/big dendros for smaller maps
+		while(2*NgChm.DET.dataViewHeight < 500){ // make the height taller to prevent blurry/big dendros for smaller maps
 			ddh *=2;
-			detailDataViewHeight = ddh*heatMap.getNumRows(MatrixManager.RIBBON_VERT_LEVEL) + detailDataViewBorder;
+			NgChm.DET.dataViewHeight = ddh*NgChm.heatMap.getNumRows(NgChm.MMGR.RIBBON_VERT_LEVEL) + NgChm.DET.dataViewBorder;
 		}
-		setDetailDataHeight(ddh);
-		currentRow = 1;
+		NgChm.DET.setDetailDataHeight(ddh);
+		NgChm.SEL.currentRow = 1;
 	} else {
-		var selectionSize = selectedStop - selectedStart + 1;
+		var selectionSize = NgChm.SEL.selectedStop - NgChm.SEL.selectedStart + 1;
 		if (selectionSize < 500) {
-			mode = 'RIBBONV_DETAIL';
+			NgChm.SEL.mode = 'RIBBONV_DETAIL';
 		} else {
-			var rvRate = heatMap.getRowSummaryRatio(MatrixManager.RIBBON_VERT_LEVEL);
+			var rvRate = NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.RIBBON_VERT_LEVEL);
 			selectionSize = Math.floor(selectionSize / rvRate);			
 		}
 		var height = Math.max(1, Math.floor(500/selectionSize));
-    	detailDataViewHeight = (selectionSize * height) + detailDataViewBorder;
-		setDetailDataHeight(height);
-		currentRow = selectedStart;
+    	NgChm.DET.dataViewHeight = (selectionSize * height) + NgChm.DET.dataViewBorder;
+		NgChm.DET.setDetailDataHeight(height);
+		NgChm.SEL.currentRow = NgChm.SEL.selectedStart;
 	}
 	
-	detailDataViewWidth = DETAIL_SIZE_NORMAL_MODE;
+	NgChm.DET.dataViewWidth = NgChm.DET.SIZE_NORMAL_MODE;
 	if ((previousMode=='RIBBONH') || (previousMode=='RIBBONH_DETAIL')) {
-		setDetailDataWidth(prevHeight);
-		currentCol = saveCol;
+		NgChm.DET.setDetailDataWidth(prevHeight);
+		NgChm.SEL.currentCol = NgChm.DET.saveCol;
 	}
 	
 	//On some maps, one view (e.g. ribbon view) can show bigger data areas than will fit for other view modes.  If so, zoom back out to find a workable zoom level.
-	while (Math.floor((detailDataViewWidth-detailDataViewBorder)/zoomBoxSizes[zoomBoxSizes.indexOf(dataBoxWidth)]) > heatMap.getNumColumns(MatrixManager.DETAIL_LEVEL)) {
-		setDetailDataWidth(zoomBoxSizes[zoomBoxSizes.indexOf(dataBoxWidth)+1]);
+	while (Math.floor((NgChm.DET.dataViewWidth-NgChm.DET.dataViewBorder)/NgChm.DET.zoomBoxSizes[NgChm.DET.zoomBoxSizes.indexOf(NgChm.DET.dataBoxWidth)]) > NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL)) {
+		NgChm.DET.setDetailDataWidth(NgChm.DET.zoomBoxSizes[NgChm.DET.zoomBoxSizes.indexOf(NgChm.DET.dataBoxWidth)+1]);
 	}	
 		
-	detCanvas.width =  (detailDataViewWidth + calculateTotalClassBarHeight("row") + detailDendroWidth);
-	detCanvas.height = (detailDataViewHeight + calculateTotalClassBarHeight("column") + detailDendroHeight);
-	detSetupGl();
-	detInitGl();
-	updateSelection();
+	NgChm.DET.canvas.width =  (NgChm.DET.dataViewWidth + NgChm.DET.calculateTotalClassBarHeight("row") + NgChm.DET.dendroWidth);
+	NgChm.DET.canvas.height = (NgChm.DET.dataViewHeight + NgChm.DET.calculateTotalClassBarHeight("column") + NgChm.DET.dendroHeight);
+	NgChm.DET.detSetupGl();
+	NgChm.DET.detInitGl();
+	NgChm.SEL.updateSelection();
 	document.getElementById("viewport").setAttribute("content", "height=device-height");
     document.getElementById("viewport").setAttribute("content", "");
 }
 
-function detailNormal () {
-	userHelpClose();	
-	var previousMode = mode;
-	mode = 'NORMAL';
-	setButtons();
-	detailDataViewHeight = DETAIL_SIZE_NORMAL_MODE;
-	detailDataViewWidth = DETAIL_SIZE_NORMAL_MODE;
+NgChm.DET.detailNormal = function () {
+	NgChm.UHM.userHelpClose();	
+	var previousMode = NgChm.SEL.mode;
+	NgChm.SEL.mode = 'NORMAL';
+	NgChm.DET.setButtons();
+	NgChm.DET.dataViewHeight = NgChm.DET.SIZE_NORMAL_MODE;
+	NgChm.DET.dataViewWidth = NgChm.DET.SIZE_NORMAL_MODE;
 	if ((previousMode=='RIBBONV') || (previousMode=='RIBBONV_DETAIL')) {
-		setDetailDataSize(dataBoxWidth);
-		currentRow = saveRow;
+		NgChm.DET.setDetailDataSize(NgChm.DET.dataBoxWidth);
+		NgChm.SEL.currentRow = NgChm.DET.saveRow;
 	} else if ((previousMode=='RIBBONH') || (previousMode=='RIBBONH_DETAIL')) {
-		setDetailDataSize(dataBoxHeight);
-		currentCol = saveCol;
+		NgChm.DET.setDetailDataSize(NgChm.DET.dataBoxHeight);
+		NgChm.SEL.currentCol = NgChm.DET.saveCol;
 	} else {
 		
 	}	
 
 	//On some maps, one view (e.g. ribbon view) can show bigger data areas than will fit for other view modes.  If so, zoom back out to find a workable zoom level.
-	while ((Math.floor((detailDataViewHeight-detailDataViewBorder)/zoomBoxSizes[zoomBoxSizes.indexOf(dataBoxHeight)]) > heatMap.getNumRows(MatrixManager.DETAIL_LEVEL)) ||
-           (Math.floor((detailDataViewWidth-detailDataViewBorder)/zoomBoxSizes[zoomBoxSizes.indexOf(dataBoxWidth)]) > heatMap.getNumColumns(MatrixManager.DETAIL_LEVEL))) {
-		setDetailDataSize(zoomBoxSizes[zoomBoxSizes.indexOf(dataBoxWidth)+1]);
+	while ((Math.floor((NgChm.DET.dataViewHeight-NgChm.DET.dataViewBorder)/NgChm.DET.zoomBoxSizes[NgChm.DET.zoomBoxSizes.indexOf(NgChm.DET.dataBoxHeight)]) > NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL)) ||
+           (Math.floor((NgChm.DET.dataViewWidth-NgChm.DET.dataViewBorder)/NgChm.DET.zoomBoxSizes[NgChm.DET.zoomBoxSizes.indexOf(NgChm.DET.dataBoxWidth)]) > NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL))) {
+		NgChm.DET.setDetailDataSize(NgChm.DET.zoomBoxSizes[NgChm.DET.zoomBoxSizes.indexOf(NgChm.DET.dataBoxWidth)+1]);
 	}	
 	
-	checkRow();
-	checkColumn();
-	detCanvas.width =  (detailDataViewWidth + calculateTotalClassBarHeight("row") + detailDendroWidth);
-	detCanvas.height = (detailDataViewHeight + calculateTotalClassBarHeight("column") + detailDendroHeight);
+	NgChm.SEL.checkRow();
+	NgChm.SEL.checkColumn();
+	NgChm.DET.canvas.width =  (NgChm.DET.dataViewWidth + NgChm.DET.calculateTotalClassBarHeight("row") + NgChm.DET.dendroWidth);
+	NgChm.DET.canvas.height = (NgChm.DET.dataViewHeight + NgChm.DET.calculateTotalClassBarHeight("column") + NgChm.DET.dendroHeight);
 	 
-	detSetupGl();
-	detInitGl();
-	clearDendroSelection();
-	updateSelection();
+	NgChm.DET.detSetupGl();
+	NgChm.DET.detInitGl();
+	NgChm.DDR.clearDendroSelection();
+	NgChm.SEL.updateSelection();
 	document.getElementById("viewport").setAttribute("content", "height=device-height");
     document.getElementById("viewport").setAttribute("content", "");
+    NgChm.DET.canvas.focus();
 }
 
-function setButtons() {
+NgChm.DET.setButtons = function () {
 	var full = document.getElementById('full_btn');
 	var ribbonH = document.getElementById('ribbonH_btn');
 	var ribbonV = document.getElementById('ribbonV_btn');
-	full.src= staticPath+ "images/full.png";
-	ribbonH.src= staticPath + "images/ribbonH.png";
-	ribbonV.src= staticPath + "images/ribbonV.png";
-	if (mode=='RIBBONV')
-		ribbonV.src= staticPath + "images/ribbonV_selected.png";
-	else if (mode == "RIBBONH")
-		ribbonH.src= staticPath + "images/ribbonH_selected.png";
+	full.src= NgChm.staticPath+ "images/full.png";
+	ribbonH.src= NgChm.staticPath + "images/ribbonH.png";
+	ribbonV.src= NgChm.staticPath + "images/ribbonV.png";
+	if (NgChm.SEL.mode=='RIBBONV')
+		ribbonV.src= NgChm.staticPath + "images/ribbonV_selected.png";
+	else if (NgChm.SEL.mode == "RIBBONH")
+		ribbonH.src= NgChm.staticPath + "images/ribbonH_selected.png";
 	else
-		full.src= staticPath + "images/full_selected.png";	
+		full.src= NgChm.staticPath + "images/full_selected.png";	
 }
 
-function setDetCanvasBoxSize() {
-	detBoxCanvas.width =  detCanvas.clientWidth;
-	detBoxCanvas.height = detCanvas.clientHeight;
-	detBoxCanvas.style.left=detCanvas.style.left;
-	detBoxCanvas.style.top=detCanvas.style.top;
+NgChm.DET.setDetCanvasBoxSize = function () {
+	NgChm.DET.boxCanvas.width =  NgChm.DET.canvas.clientWidth;
+	NgChm.DET.boxCanvas.height = NgChm.DET.canvas.clientHeight;
+	NgChm.DET.boxCanvas.style.left=NgChm.DET.canvas.style.left;
+	NgChm.DET.boxCanvas.style.top=NgChm.DET.canvas.style.top;
 }
 
 //Called when split/join button is pressed
-function detailSplit(){
-	if (!heatMap.getUnAppliedChanges()) {
-		userHelpClose();
-		heatMap.setFlickInitialized(false);
+NgChm.DET.detailSplit = function () {
+	if (!NgChm.heatMap.getUnAppliedChanges()) {
+		NgChm.UHM.userHelpClose();
+		NgChm.heatMap.setFlickInitialized(false);
 		// If the summary and detail are in a single browser window, this is a split action.  
-		if (!isSub) {
+		if (!NgChm.SEL.isSub) {
 			//Write current selection settings to the local storage
-			hasSub=true;
-			clearLabels();
-			clearSelectionMarks();
-			updateSelection();
+			NgChm.SEL.hasSub=true;
+			NgChm.DET.clearLabels();
+			NgChm.SUM.clearSelectionMarks();
+			NgChm.SEL.updateSelection();
 			//Create a new detail browser window
 			detWindow = window.open(window.location.href + '&sub=true', '_blank', 'modal=yes, width=' + (window.screen.availWidth / 2) + ', height='+ window.screen.availHeight + ',top=0, left=' + (window.screen.availWidth / 2));
 			detWindow.moveTo(window.screen.availWidth / 2, 0);
-			detWindow.onbeforeunload = function(){rejoinNotice(),hasSub=false,detailJoin();} // when you close the subwindow, it will return to the original window
+			detWindow.onbeforeunload = function(){NgChm.SEL.rejoinNotice(),NgChm.SEL.hasSub=false,NgChm.DET.detailJoin();} // when you close the subwindow, it will return to the original window
 			var detailDiv = document.getElementById('detail_chm');
 			detailDiv.style.display = 'none';
 			var dividerDiv = document.getElementById('divider');
@@ -942,41 +937,41 @@ function detailSplit(){
 			detailFlickDiv.style.display = 'none';
 			var summaryDiv = document.getElementById('summary_chm');
 			summaryDiv.style.width = '100%';
-			setSummarySize();
-			summaryRowDendro.draw();
-			summaryColumnDendro.draw();
-			drawRowSelectionMarks();
-			drawColSelectionMarks();
+			NgChm.SUM.setSummarySize();
+			NgChm.SUM.rowDendro.draw();
+			NgChm.SUM.colDendro.draw();
+			NgChm.SUM.drawRowSelectionMarks();
+			NgChm.SUM.drawColSelectionMarks();
 	 		document.getElementById('pdf_gear').style.display = 'none';
 		} else {
-			updateSelection();
-			rejoinNotice();
+			NgChm.SEL.updateSelection();
+			NgChm.SEL.rejoinNotice();
 			window.close();
 		}
 	} else {
-		unappliedChangeNotification();
+		NgChm.UHM.unappliedChangeNotification();
 	}
 }
 
 //Called when a separate detail window is joined back into the main window.
-function detailJoin() {
+NgChm.DET.detailJoin = function () {
 	var detailDiv = document.getElementById('detail_chm');
 	detailDiv.style.display = '';
 	var detailButtonDiv = document.getElementById('bottom_buttons');
 	detailButtonDiv.style.display = '';
 	var dividerDiv = document.getElementById('divider');
 	dividerDiv.style.display = '';
-	initSummarySize();
-	summaryRowDendro.draw();
-	summaryColumnDendro.draw();
-	initFromLocalStorage();
-	clearSelectionMarks();
-	drawRowSelectionMarks();
-	drawColSelectionMarks();
-	heatMap.configureFlick();
-	flickToggleOff();
+	NgChm.SUM.initSummarySize();
+	NgChm.SUM.rowDendro.draw();
+	NgChm.SUM.colDendro.draw();
+	NgChm.SEL.initFromLocalStorage();
+	NgChm.SUM.clearSelectionMarks();
+	NgChm.SUM.drawRowSelectionMarks();
+	NgChm.SUM.drawColSelectionMarks();
+	NgChm.heatMap.configureFlick();
+	NgChm.SEL.flickToggleOff();
 	document.getElementById('pdf_gear').style.display = '';
-	if (flickExists()){
+	if (NgChm.SEL.flickExists()){
 		document.getElementById('pdf_gear').style.minWidth = '340px';
 	} else {
 		document.getElementById('pdf_gear').style.minWidth = '140px';
@@ -986,169 +981,160 @@ function detailJoin() {
 
 // Callback that is notified every time there is an update to the heat map 
 // initialize, new data, etc.  This callback draws the summary heat map.
-function processDetailMapUpdate (event, level) {
+NgChm.DET.processDetailMapUpdate = function (event, level) {
 
-	if (event == MatrixManager.Event_INITIALIZED) {
-		detailInit();
-		heatMap.configureButtonBar();
+	if (event == NgChm.MMGR.Event_INITIALIZED) {
+		NgChm.DET.detailInit();
+		NgChm.heatMap.configureButtonBar();
 	} else {
 		//Data tile update - wait a bit to see if we get another new tile quickly, then draw
-		if (detEventTimer != 0) {
+		if (NgChm.DET.eventTimer != 0) {
 			//New tile arrived - reset timer
-			clearTimeout(detEventTimer);
+			clearTimeout(NgChm.DET.eventTimer);
 		}
-		detEventTimer = setTimeout(drawDetailHeatMap, 200);
+		NgChm.DET.eventTimer = setTimeout(NgChm.DET.drawDetailHeatMap, 200);
 	} 
 }
 
-function setDendroShow() {
-	var rowDendroConfig = heatMap.getRowDendroConfig();
-	var colDendroConfig = heatMap.getColDendroConfig();
-	if (!heatMap.showRowDendrogram("DETAIL")) {
-		detailDendroWidth = 15;
+NgChm.DET.setDendroShow = function () {
+	var rowDendroConfig = NgChm.heatMap.getRowDendroConfig();
+	var colDendroConfig = NgChm.heatMap.getColDendroConfig();
+	if (!NgChm.heatMap.showRowDendrogram("DETAIL")) {
+		NgChm.DET.dendroWidth = 15;
 	} else {
-		detailDendroWidth = Math.floor(parseInt(rowDendroConfig.height) * heatMap.getRowDendroConfig().height/100+5);
+		NgChm.DET.dendroWidth = Math.floor(parseInt(rowDendroConfig.height) * NgChm.heatMap.getRowDendroConfig().height/100+5);
 	}
-	if (!heatMap.showColDendrogram("DETAIL")) {
-		detailDendroHeight = 15;
+	if (!NgChm.heatMap.showColDendrogram("DETAIL")) {
+		NgChm.DET.dendroHeight = 15;
 	} else {
-		detailDendroHeight = Math.floor(parseInt(colDendroConfig.height) * heatMap.getColDendroConfig().height/100+5);
+		NgChm.DET.dendroHeight = Math.floor(parseInt(colDendroConfig.height) * NgChm.heatMap.getColDendroConfig().height/100+5);
 	}
 }
  
 //Perform all initialization functions for Detail heat map
-function detailInit() {
-	setDendroShow();
+NgChm.DET.detailInit = function () {
+	NgChm.DET.setDendroShow();
 	document.getElementById('detail_buttons').style.display = '';
-	detCanvas.width =  (detailDataViewWidth + calculateTotalClassBarHeight("row") + detailDendroWidth);
-	detCanvas.height = (detailDataViewHeight + calculateTotalClassBarHeight("column") + detailDendroHeight);
-	createLabelMenus();
-	createEmptySearchItems();
-	if (getURLParameter("selected") !== ""){
-		var selected = getURLParameter("selected").split(",");
-		for (var i = 0; i < selected.length; i++){
-			var item = selected[i];
-			var axis = "Row";
-			var index = findRowLabel(item);
-			if (index < 0){
-				axis = "Column";
-				index = findColLabel(item);
-			}
-			if (!searchItems[axis])searchItems[axis] = {};
-			searchItems[axis][index+1] = 1;
-		}
-		drawRowSelectionMarks();
-		drawColSelectionMarks();
+	NgChm.DET.canvas.width =  (NgChm.DET.dataViewWidth + NgChm.DET.calculateTotalClassBarHeight("row") + NgChm.DET.dendroWidth);
+	NgChm.DET.canvas.height = (NgChm.DET.dataViewHeight + NgChm.DET.calculateTotalClassBarHeight("column") + NgChm.DET.dendroHeight);
+	NgChm.LNK.createLabelMenus();
+	NgChm.SEL.createEmptySearchItems();
+	if (typeof NgChm.DET.dataBoxWidth === 'undefined') {
+		NgChm.DET.setDetailDataSize(12);
 	}
-	if (typeof dataBoxWidth === 'undefined') {
-		setDetailDataSize(12);
-	}
-	detSetupGl();
-	detInitGl();
-	if (isSub)  {
-		initFromLocalStorage();
+	NgChm.DET.detSetupGl();
+	NgChm.DET.detInitGl();
+	if (NgChm.SEL.isSub)  {
+		NgChm.SEL.initFromLocalStorage();
 	} else {
-		updateSelection();
+		NgChm.SEL.updateSelection();
+	}
+	if (NgChm.UTIL.getURLParameter("selected") !== ""){
+		var selected = NgChm.UTIL.getURLParameter("selected").replace(","," ");
+		document.getElementById("search_text").value = selected;
+		NgChm.DET.detailSearch();
+		NgChm.SUM.drawRowSelectionMarks();
+		NgChm.SUM.drawColSelectionMarks();
 	}
 }
 
-function drawDetailHeatMap() {
+NgChm.DET.drawDetailHeatMap = function () {
  	
-	setDetCanvasBoxSize();
-	if ((currentRow == null) || (currentRow == 0)) {
+	NgChm.DET.setDetCanvasBoxSize();
+	if ((NgChm.SEL.currentRow == null) || (NgChm.SEL.currentRow == 0)) {
 		return;
 	}
-	setDendroShow();
-	var colorMap = heatMap.getColorMapManager().getColorMap("data",currentDl);
-	var dataLayers = heatMap.getDataLayers();
-	var dataLayer = dataLayers[currentDl];
+	NgChm.DET.setDendroShow();
+	var colorMap = NgChm.heatMap.getColorMapManager().getColorMap("data",NgChm.SEL.currentDl);
+	var dataLayers = NgChm.heatMap.getDataLayers();
+	var dataLayer = dataLayers[NgChm.SEL.currentDl];
 	var showGrid = false;
 	if (dataLayer.grid_show === 'Y') {
 		showGrid = true;
 	}
-	var rowClassBarWidth = calculateTotalClassBarHeight("row");
-	var searchRows = getSearchRows();
-	var searchCols = getSearchCols();
+	var rowClassBarWidth = NgChm.DET.calculateTotalClassBarHeight("row");
+	var searchRows = NgChm.DET.getSearchRows();
+	var searchCols = NgChm.DET.getSearchCols();
 	var searchGridColor = [0,0,0];
 	var dataGridColor = colorMap.getHexToRgba(dataLayer.grid_color);
 	var dataSelectionColorRGB = colorMap.getHexToRgba(dataLayer.selection_color);
 	var dataSelectionColor = [dataSelectionColorRGB.r/255, dataSelectionColorRGB.g/255, dataSelectionColorRGB.b/255, 1];
 	var regularGridColor = [dataGridColor.r, dataGridColor.g, dataGridColor.b];
-	var detDataPerRow = getCurrentDetDataPerRow();
-	var detDataPerCol = getCurrentDetDataPerCol();
+	var detDataPerRow = NgChm.SEL.getCurrentDetDataPerRow();
+	var detDataPerCol = NgChm.SEL.getCurrentDetDataPerCol();
  
 	//Build a horizontal grid line for use between data lines. Tricky because some dots will be selected color if a column is in search results.
-	var gridLine = new Uint8Array(new ArrayBuffer((detailDendroWidth + rowClassBarWidth + detailDataViewWidth) * BYTE_PER_RGBA));
+	var gridLine = new Uint8Array(new ArrayBuffer((NgChm.DET.dendroWidth + rowClassBarWidth + NgChm.DET.dataViewWidth) * NgChm.SUM.BYTE_PER_RGBA));
 	if (showGrid == true) {
-		var linePos = (detailDendroWidth+rowClassBarWidth)*BYTE_PER_RGBA;
-		gridLine[linePos]=0; gridLine[linePos+1]=0;gridLine[linePos+2]=0;gridLine[linePos+3]=255;linePos+=BYTE_PER_RGBA;
+		var linePos = (NgChm.DET.dendroWidth+rowClassBarWidth)*NgChm.SUM.BYTE_PER_RGBA;
+		gridLine[linePos]=0; gridLine[linePos+1]=0;gridLine[linePos+2]=0;gridLine[linePos+3]=255;linePos+=NgChm.SUM.BYTE_PER_RGBA;
 		for (var j = 0; j < detDataPerRow; j++) {
-			var gridColor = ((searchCols.indexOf(currentCol+j) > -1) || (searchCols.indexOf(currentCol+j+1) > -1)) ? searchGridColor : regularGridColor;
-			for (var k = 0; k < dataBoxWidth; k++) {
-				if (k==dataBoxWidth-1 && showGrid == true && dataBoxWidth > minLabelSize ){ // should the grid line be drawn?
+			var gridColor = ((searchCols.indexOf(NgChm.SEL.currentCol+j) > -1) || (searchCols.indexOf(NgChm.SEL.currentCol+j+1) > -1)) ? searchGridColor : regularGridColor;
+			for (var k = 0; k < NgChm.DET.dataBoxWidth; k++) {
+				if (k==NgChm.DET.dataBoxWidth-1 && showGrid == true && NgChm.DET.dataBoxWidth > NgChm.DET.minLabelSize ){ // should the grid line be drawn?
 					gridLine[linePos] = gridColor[0]; gridLine[linePos+1] = gridColor[1]; gridLine[linePos+2] = gridColor[2];	gridLine[linePos+3] = 255;
 				} else {
 					gridLine[linePos]=regularGridColor[0]; gridLine[linePos + 1]=regularGridColor[1]; gridLine[linePos + 2]=regularGridColor[2]; gridLine[linePos + 3]=255;
 				}
-				linePos += BYTE_PER_RGBA;
+				linePos += NgChm.SUM.BYTE_PER_RGBA;
 			}
 		}
-		gridLine[linePos]=0; gridLine[linePos+1]=0;gridLine[linePos+2]=0;gridLine[linePos+3]=255;linePos+=BYTE_PER_RGBA;
+		gridLine[linePos]=0; gridLine[linePos+1]=0;gridLine[linePos+2]=0;gridLine[linePos+3]=255;linePos+=NgChm.SUM.BYTE_PER_RGBA;
 	}
 	
 	//Setup texture to draw on canvas.
 	
 	//Draw black border line
-	var pos = (rowClassBarWidth+detailDendroWidth)*BYTE_PER_RGBA;
-	for (var i = 0; i < detailDataViewWidth; i++) {
-		detTexPixels[pos]=0;
-		detTexPixels[pos+1]=0;
-		detTexPixels[pos+2]=0;
-		detTexPixels[pos+3]=255;
-		pos+=BYTE_PER_RGBA;
+	var pos = (rowClassBarWidth+NgChm.DET.dendroWidth)*NgChm.SUM.BYTE_PER_RGBA;
+	for (var i = 0; i < NgChm.DET.dataViewWidth; i++) {
+		NgChm.DET.texPixels[pos]=0;
+		NgChm.DET.texPixels[pos+1]=0;
+		NgChm.DET.texPixels[pos+2]=0;
+		NgChm.DET.texPixels[pos+3]=255;
+		pos+=NgChm.SUM.BYTE_PER_RGBA;
 	}
 		
 	//Needs to go backward because WebGL draws bottom up.
-	var line = new Uint8Array(new ArrayBuffer((rowClassBarWidth + detailDendroWidth + detailDataViewWidth) * BYTE_PER_RGBA));
+	var line = new Uint8Array(new ArrayBuffer((rowClassBarWidth + NgChm.DET.dendroWidth + NgChm.DET.dataViewWidth) * NgChm.SUM.BYTE_PER_RGBA));
 	for (var i = detDataPerCol-1; i >= 0; i--) {
-		var linePos = (rowClassBarWidth + detailDendroWidth)*BYTE_PER_RGBA;
+		var linePos = (rowClassBarWidth + NgChm.DET.dendroWidth)*NgChm.SUM.BYTE_PER_RGBA;
 		//Add black boarder
-		line[linePos]=0; line[linePos+1]=0;line[linePos+2]=0;line[linePos+3]=255;linePos+=BYTE_PER_RGBA;
+		line[linePos]=0; line[linePos+1]=0;line[linePos+2]=0;line[linePos+3]=255;linePos+=NgChm.SUM.BYTE_PER_RGBA;
 		for (var j = 0; j < detDataPerRow; j++) { // for every data point...
-			var val = heatMap.getValue(getLevelFromMode(MatrixManager.DETAIL_LEVEL), getCurrentDetRow()+i, getCurrentDetCol()+j);
+			var val = NgChm.heatMap.getValue(NgChm.SEL.getLevelFromMode(NgChm.MMGR.DETAIL_LEVEL), NgChm.SEL.getCurrentDetRow()+i, NgChm.SEL.getCurrentDetCol()+j);
 			var color = colorMap.getColor(val);
-			var gridColor = ((searchCols.indexOf(currentCol+j) > -1) || (searchCols.indexOf(currentCol+j+1) > -1)) ? searchGridColor : regularGridColor;
+			var gridColor = ((searchCols.indexOf(NgChm.SEL.currentCol+j) > -1) || (searchCols.indexOf(NgChm.SEL.currentCol+j+1) > -1)) ? searchGridColor : regularGridColor;
 
 			//For each data point, write it several times to get correct data point width.
-			for (var k = 0; k < dataBoxWidth; k++) {
-				if (k==dataBoxWidth-1 && showGrid == true && dataBoxWidth > minLabelSize ){ // should the grid line be drawn?
+			for (var k = 0; k < NgChm.DET.dataBoxWidth; k++) {
+				if (k==NgChm.DET.dataBoxWidth-1 && showGrid == true && NgChm.DET.dataBoxWidth > NgChm.DET.minLabelSize ){ // should the grid line be drawn?
 					line[linePos] = gridColor[0]; line[linePos+1] = gridColor[1]; line[linePos+2] = gridColor[2];	line[linePos+3] = 255;
 				} else {
 					line[linePos] = color['r'];	line[linePos + 1] = color['g'];	line[linePos + 2] = color['b'];	line[linePos + 3] = color['a'];
 				}
-				linePos += BYTE_PER_RGBA;
+				linePos += NgChm.SUM.BYTE_PER_RGBA;
 			}
 		}
-		line[linePos]=0; line[linePos+1]=0;line[linePos+2]=0;line[linePos+3]=255;linePos+=BYTE_PER_RGBA;
+		line[linePos]=0; line[linePos+1]=0;line[linePos+2]=0;line[linePos+3]=255;linePos+=NgChm.SUM.BYTE_PER_RGBA;
 
 
 		//Write each line several times to get correct data point height.
-		for (dup = 0; dup < dataBoxHeight; dup++) {
-			if (dup == dataBoxHeight-1 && showGrid == true && dataBoxHeight > minLabelSize){ // do we draw gridlines?
-				if ((searchRows.indexOf(currentRow+i) > -1) || (searchRows.indexOf(currentRow+i-1) > -1)) {
-					pos += (rowClassBarWidth + detailDendroWidth)*BYTE_PER_RGBA;
-					for (var k = 0; k < detailDataViewWidth; k++) {
-						detTexPixels[pos]=searchGridColor[0];detTexPixels[pos+1]=searchGridColor[1];detTexPixels[pos+2]=searchGridColor[2];detTexPixels[pos+3]=255;pos+=BYTE_PER_RGBA;
+		for (dup = 0; dup < NgChm.DET.dataBoxHeight; dup++) {
+			if (dup == NgChm.DET.dataBoxHeight-1 && showGrid == true && NgChm.DET.dataBoxHeight > NgChm.DET.minLabelSize){ // do we draw gridlines?
+				if ((searchRows.indexOf(NgChm.SEL.currentRow+i) > -1) || (searchRows.indexOf(NgChm.SEL.currentRow+i-1) > -1)) {
+					pos += (rowClassBarWidth + NgChm.DET.dendroWidth)*NgChm.SUM.BYTE_PER_RGBA;
+					for (var k = 0; k < NgChm.DET.dataViewWidth; k++) {
+						NgChm.DET.texPixels[pos]=searchGridColor[0];NgChm.DET.texPixels[pos+1]=searchGridColor[1];NgChm.DET.texPixels[pos+2]=searchGridColor[2];NgChm.DET.texPixels[pos+3]=255;pos+=NgChm.SUM.BYTE_PER_RGBA;
 					}					
 				} else {
 					for (k = 0; k < line.length; k++) {
-						detTexPixels[pos]=gridLine[k];
+						NgChm.DET.texPixels[pos]=gridLine[k];
 						pos++;
 					}
 				}	
 			} else {
 				for (k = 0; k < line.length; k++) {
-					detTexPixels[pos]=line[k];
+					NgChm.DET.texPixels[pos]=line[k];
 					pos++;
 				}
 			}
@@ -1156,54 +1142,54 @@ function drawDetailHeatMap() {
 	}
 
 	//Draw black border line
-	pos += (rowClassBarWidth + detailDendroWidth)*BYTE_PER_RGBA;
-	for (var i = 0; i < detailDataViewWidth; i++) {
-		detTexPixels[pos]=0;detTexPixels[pos+1]=0;detTexPixels[pos+2]=0;detTexPixels[pos+3]=255;pos+=BYTE_PER_RGBA;
+	pos += (rowClassBarWidth + NgChm.DET.dendroWidth)*NgChm.SUM.BYTE_PER_RGBA;
+	for (var i = 0; i < NgChm.DET.dataViewWidth; i++) {
+		NgChm.DET.texPixels[pos]=0;NgChm.DET.texPixels[pos+1]=0;NgChm.DET.texPixels[pos+2]=0;NgChm.DET.texPixels[pos+3]=255;pos+=NgChm.SUM.BYTE_PER_RGBA;
 	}
-	clearDetailDendrograms();
-	if (heatMap.showRowDendrogram("DETAIL")) {
-		rowDetailDendroMatrix = buildDetailDendroMatrix('row', currentRow, currentRow+dataPerCol, heatMap.getNumRows(MatrixManager.DETAIL_LEVEL)/dataPerCol);
-		detailDrawRowDendrogram(detTexPixels);
+	NgChm.DET.clearDetailDendrograms();
+	if (NgChm.heatMap.showRowDendrogram("DETAIL")) {
+		NgChm.DET.rowDendroMatrix = NgChm.DET.buildDetailDendroMatrix('row', NgChm.SEL.currentRow, NgChm.SEL.currentRow+NgChm.SEL.dataPerCol, NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerCol);
+		NgChm.DET.detailDrawRowDendrogram(NgChm.DET.texPixels);
 	}
-	if (heatMap.showColDendrogram("DETAIL")) {
-		colDetailDendroMatrix = buildDetailDendroMatrix('col', currentCol, currentCol+dataPerRow, heatMap.getNumColumns(MatrixManager.DETAIL_LEVEL)/dataPerRow);
-		detailDrawColDendrogram(detTexPixels);
+	if (NgChm.heatMap.showColDendrogram("DETAIL")) {
+		NgChm.DET.colDendroMatrix = NgChm.DET.buildDetailDendroMatrix('col', NgChm.SEL.currentCol, NgChm.SEL.currentCol+NgChm.SEL.dataPerRow, NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerRow);
+		NgChm.DET.detailDrawColDendrogram(NgChm.DET.texPixels);
 	}
 	//Draw column classification bars.
-	detailDrawColClassBars();
-	detailDrawRowClassBars();
+	NgChm.DET.detailDrawColClassBars();
+	NgChm.DET.detailDrawRowClassBars();
 	
 	//Draw any selection boxes defined by SearchRows/SearchCols
-	drawSelections();
+	NgChm.DET.drawSelections();
 	
 	//WebGL code to draw the summary heat map.
-	det_gl.activeTexture(det_gl.TEXTURE0);
-	det_gl.texImage2D(
-			det_gl.TEXTURE_2D, 
+	NgChm.DET.gl.activeTexture(NgChm.DET.gl.TEXTURE0);
+	NgChm.DET.gl.texImage2D(
+			NgChm.DET.gl.TEXTURE_2D, 
 			0, 
-			det_gl.RGBA, 
-			detTextureParams['width'], 
-			detTextureParams['height'], 
+			NgChm.DET.gl.RGBA, 
+			NgChm.DET.textureParams['width'], 
+			NgChm.DET.textureParams['height'], 
 			0, 
-			det_gl.RGBA,
-			det_gl.UNSIGNED_BYTE, 
-			detTexPixels);
-	det_gl.uniform2fv(detUScale, detCanvasScaleArray);
-	det_gl.uniform2fv(detUTranslate, detCanvasTranslateArray);
-	det_gl.drawArrays(det_gl.TRIANGLE_STRIP, 0, det_gl.buffer.numItems);
+			NgChm.DET.gl.RGBA,
+			NgChm.DET.gl.UNSIGNED_BYTE, 
+			NgChm.DET.texPixels);
+	NgChm.DET.gl.uniform2fv(NgChm.DET.uScale, NgChm.DET.canvasScaleArray);
+	NgChm.DET.gl.uniform2fv(NgChm.DET.uTranslate, NgChm.DET.canvasTranslateArray);
+	NgChm.DET.gl.drawArrays(NgChm.DET.gl.TRIANGLE_STRIP, 0, NgChm.DET.gl.buffer.numItems);
 
-	clearLabels();
-	drawRowAndColLabels();
-	detailDrawColClassBarLabels();
-	detailDrawRowClassBarLabels();
+	NgChm.DET.clearLabels();
+	NgChm.DET.drawRowAndColLabels();
+	NgChm.DET.detailDrawColClassBarLabels();
+	NgChm.DET.detailDrawRowClassBarLabels();
 }
 
-function detailResize() {
-	 clearLabels();
-	 drawSelections();
-	 drawRowAndColLabels();
-	 detailDrawColClassBarLabels();
-	 detailDrawRowClassBarLabels();
+NgChm.DET.detailResize = function () {
+	 NgChm.DET.clearLabels();
+	 NgChm.DET.drawSelections();
+	 NgChm.DET.drawRowAndColLabels();
+	 NgChm.DET.detailDrawColClassBarLabels();
+	 NgChm.DET.detailDrawRowClassBarLabels();
 }
 
 /***********************************************************
@@ -1211,21 +1197,22 @@ function detailResize() {
  ***********************************************************/
 
 //Called when search string is entered.
-function detailSearch() {
+NgChm.DET.detailSearch = function () {
+	NgChm.DET.canvas.focus();
 	var searchElement = document.getElementById('search_text');
 	var searchString = searchElement.value;
 	if (searchString == "" || searchString == null){
 		return;
 	}
-	createEmptySearchItems();
-	clearSelectionMarks();
+	NgChm.SEL.createEmptySearchItems();
+	NgChm.SUM.clearSelectionMarks();
 	var tmpSearchItems = searchString.split(/[;, ]+/);
 	itemsFound = [];
 	
 	//Put labels into the global search item list if they match a user search string.
 	//Regular expression is built for partial matches if the search string contains '*'.
 	//toUpperCase is used to make the search case insensitive.
-	var labels = heatMap.getRowLabels()["labels"];
+	var labels = NgChm.heatMap.getRowLabels()["labels"];
 	for (var j = 0; j < tmpSearchItems.length; j++) {
 		var reg;
 		var searchItem = tmpSearchItems[j];
@@ -1240,14 +1227,14 @@ function detailSearch() {
 				label = label.substring(0,label.indexOf('|'));
 			
 			if  (reg.test(label)) {
-				searchItems["Row"][i+1] = 1;
+				NgChm.SEL.searchItems["Row"][i+1] = 1;
 				if (itemsFound.indexOf(searchItem) == -1)
 					itemsFound.push(searchItem);
 			} 
 		}	
 	}
 
-	labels = heatMap.getColLabels()["labels"];
+	labels = NgChm.heatMap.getColLabels()["labels"];
 	for (var j = 0; j < tmpSearchItems.length; j++) {
 		var reg;
 		var searchItem = tmpSearchItems[j];
@@ -1262,7 +1249,7 @@ function detailSearch() {
 				label = label.substring(0,label.indexOf('|'));
 			
 			if  (reg.test(label)) {
-				searchItems["Column"][i+1] = 1;
+				NgChm.SEL.searchItems["Column"][i+1] = 1;
 				if (itemsFound.indexOf(searchItem) == -1)
 					itemsFound.push(searchItem);
 			} 
@@ -1273,12 +1260,12 @@ function detailSearch() {
 	if (searchString == null || searchString == ""){
 		return;
 	}
-	searchNext();
-	if (!isSub){
-		drawRowSelectionMarks();
-		drawColSelectionMarks();
+	NgChm.DET.searchNext();
+	if (!NgChm.SEL.isSub){
+		NgChm.SUM.drawRowSelectionMarks();
+		NgChm.SUM.drawColSelectionMarks();
 	}
-	if (currentSearchItem.index && currentSearchItem.axis){
+	if (NgChm.DET.currentSearchItem.index && NgChm.DET.currentSearchItem.axis){
 		if (itemsFound.length != tmpSearchItems.length && itemsFound.length > 0) {
 			searchElement.style.backgroundColor = "rgba(255,255,0,0.3)";
 		} else if (itemsFound.length == 0){
@@ -1289,141 +1276,124 @@ function detailSearch() {
 			searchElement.style.backgroundColor = "rgba(255,0,0,0.3)";
 		}	
 		//Clear previous matches when search is empty.
-		updateSelection();
+		NgChm.SEL.updateSelection();
 	}
+    
 }
 
-function goToCurrentSearchItem() {
-	if (currentSearchItem.axis == "Row") {
-		currentRow = currentSearchItem.index;
-		if ((mode == 'RIBBONV') && selectedStart!= 0 && (currentRow < selectedStart-1 || selectedStop-1 < currentRow)){
-			showSearchError(1);
-		} else if (mode == 'RIBBONV' && selectedStart == 0){
-			showSearchError(2);
+NgChm.DET.goToCurrentSearchItem = function () {
+	if (NgChm.DET.currentSearchItem.axis == "Row") {
+		NgChm.SEL.currentRow = NgChm.DET.currentSearchItem.index;
+		if ((NgChm.SEL.mode == 'RIBBONV') && NgChm.SEL.selectedStart!= 0 && (NgChm.SEL.currentRow < NgChm.SEL.selectedStart-1 || NgChm.SEL.selectedStop-1 < NgChm.SEL.currentRow)){
+			NgChm.UHM.showSearchError(1);
+		} else if (NgChm.SEL.mode == 'RIBBONV' && NgChm.SEL.selectedStart == 0){
+			NgChm.UHM.showSearchError(2);
 		} 
-		checkRow();
-	} else if (currentSearchItem.axis == "Column"){
-		currentCol = currentSearchItem.index;
-		if ((mode == 'RIBBONH') && selectedStart!= 0 && (currentCol < selectedStart-1 || selectedStop-1 < currentCol )){
-			showSearchError(1)
-		} else if (mode == 'RIBBONH' && selectedStart == 0){
-			showSearchError(2);
+		NgChm.SEL.checkRow();
+	} else if (NgChm.DET.currentSearchItem.axis == "Column"){
+		NgChm.SEL.currentCol = NgChm.DET.currentSearchItem.index;
+		if ((NgChm.SEL.mode == 'RIBBONH') && NgChm.SEL.selectedStart!= 0 && (NgChm.SEL.currentCol < NgChm.SEL.selectedStart-1 || NgChm.SEL.selectedStop-1 < NgChm.SEL.currentCol )){
+			NgChm.UHM.showSearchError(1)
+		} else if (NgChm.SEL.mode == 'RIBBONH' && NgChm.SEL.selectedStart == 0){
+			NgChm.UHM.showSearchError(2);
 		} 
-		checkColumn();
+		NgChm.SEL.checkColumn();
 	}
-	showSrchBtns();
-	updateSelection();
+	NgChm.DET.showSrchBtns();
+	NgChm.SEL.updateSelection();
 }
 
-//Search the row and column labels - return position if found or -1 if not found.
-function findRowLabel(name){
-	var labels = heatMap.getRowLabels()["labels"];
-	for (var i = 0; i < labels.length; i++) {
-		if (labels[i].toUpperCase() == name.toUpperCase())
-			return i;
-	}
-	return -1;
-}	
-	
-function findColLabel(name) {	
-	var labels = heatMap.getColLabels()["labels"];
-	for (var i = 0; i < labels.length; i++) {
-		if (labels[i].toUpperCase() == name.toUpperCase())
-			return i;
-	}
-	return -1;
-}
-
-function findNextSearchItem(index, axis){
-	var axisLength = axis == "Row" ? heatMap.getRowLabels().labels.length : heatMap.getColLabels().labels.length;
+NgChm.DET.findNextSearchItem = function (index, axis) {
+	var axisLength = axis == "Row" ? NgChm.heatMap.getRowLabels().labels.length : NgChm.heatMap.getColLabels().labels.length;
 	var otherAxis = axis == "Row" ? "Column" : "Row";
-	var otherAxisLength = axis == "Column" ? heatMap.getRowLabels().labels.length : heatMap.getColLabels().labels.length;
+	var otherAxisLength = axis == "Column" ? NgChm.heatMap.getRowLabels().labels.length : NgChm.heatMap.getColLabels().labels.length;
 	var curr = index;
-	while( !searchItems[axis][++curr] && curr <  axisLength); // find first searchItem in row
+	while( !NgChm.SEL.searchItems[axis][++curr] && curr <  axisLength); // find first searchItem in row
 	if (curr >= axisLength){ // if no searchItems exist in first axis, move to other axis
 		curr = -1;
-		while( !searchItems[otherAxis][++curr] && curr <  otherAxisLength);
+		while( !NgChm.SEL.searchItems[otherAxis][++curr] && curr <  otherAxisLength);
 		if (curr >=otherAxisLength){ // if no matches in the other axis, check the earlier indices of the first axis (loop back)
 			curr = -1;
-			while( !searchItems[axis][++curr] && curr <  index);
+			while( !NgChm.SEL.searchItems[axis][++curr] && curr <  index);
 			if (curr < index && index != -1){
-				currentSearchItem["axis"] = axis;
-				currentSearchItem["index"] = curr;
+				NgChm.DET.currentSearchItem["axis"] = axis;
+				NgChm.DET.currentSearchItem["index"] = curr;
 			}
 		} else {
-			currentSearchItem["axis"] = otherAxis;
-			currentSearchItem["index"] = curr;
+			NgChm.DET.currentSearchItem["axis"] = otherAxis;
+			NgChm.DET.currentSearchItem["index"] = curr;
 		}
 	} else {
-		currentSearchItem["axis"] = axis;
-		currentSearchItem["index"] = curr;
+		NgChm.DET.currentSearchItem["axis"] = axis;
+		NgChm.DET.currentSearchItem["index"] = curr;
 	}
+	
 }
 
-function findPrevSearchItem(index, axis){
-	var axisLength = axis == "Row" ? heatMap.getRowLabels().labels.length : heatMap.getColLabels().labels.length;
+NgChm.DET.findPrevSearchItem = function (index, axis) {
+	var axisLength = axis == "Row" ? NgChm.heatMap.getRowLabels().labels.length : NgChm.heatMap.getColLabels().labels.length;
 	var otherAxis = axis == "Row" ? "Column" : "Row";
-	var otherAxisLength = axis == "Column" ? heatMap.getRowLabels().labels.length : heatMap.getColLabels().labels.length;
+	var otherAxisLength = axis == "Column" ? NgChm.heatMap.getRowLabels().labels.length : NgChm.heatMap.getColLabels().labels.length;
 	var curr = index;
-	while( !searchItems[axis][--curr] && curr > -1 ); // find first searchItem in row
+	while( !NgChm.SEL.searchItems[axis][--curr] && curr > -1 ); // find first searchItem in row
 	if (curr < 0){ // if no searchItems exist in first axis, move to other axis
 		curr = otherAxisLength;
-		while( !searchItems[otherAxis][--curr] && curr > -1);
+		while( !NgChm.SEL.searchItems[otherAxis][--curr] && curr > -1);
 		if (curr > 0){
-			currentSearchItem["axis"] = otherAxis;
-			currentSearchItem["index"] = curr;
+			NgChm.DET.currentSearchItem["axis"] = otherAxis;
+			NgChm.DET.currentSearchItem["index"] = curr;
 		} else {
 			curr = axisLength;
-			while( !searchItems[axis][--curr] && curr > index );
+			while( !NgChm.SEL.searchItems[axis][--curr] && curr > index );
 			if (curr > index){
-				currentSearchItem["axis"] = axis;
-				currentSearchItem["index"] = curr;
+				NgChm.DET.currentSearchItem["axis"] = axis;
+				NgChm.DET.currentSearchItem["index"] = curr;
 			}
 		}
 	} else {
-		currentSearchItem["axis"] = axis;
-		currentSearchItem["index"] = curr;
+		NgChm.DET.currentSearchItem["axis"] = axis;
+		NgChm.DET.currentSearchItem["index"] = curr;
 	}
 }
 
 //Go to next search item
-function searchNext() {
-	if (!currentSearchItem["index"] || !currentSearchItem["axis"]){ // if currentSeachItem isnt set (first time search)
-		findNextSearchItem(-1,"Row");
+NgChm.DET.searchNext = function () {
+	if (!NgChm.DET.currentSearchItem["index"] || !NgChm.DET.currentSearchItem["axis"]){ // if currentSeachItem isnt set (first time search)
+		NgChm.DET.findNextSearchItem(-1,"Row");
 	} else {
-		findNextSearchItem(currentSearchItem["index"],currentSearchItem["axis"]);
+		NgChm.DET.findNextSearchItem(NgChm.DET.currentSearchItem["index"],NgChm.DET.currentSearchItem["axis"]);
 	}
-	goToCurrentSearchItem();
+	NgChm.DET.goToCurrentSearchItem();
+	NgChm.DET.canvas.focus();
 }
 
 //Go back to previous search item.
-function searchPrev() {
-	findPrevSearchItem(currentSearchItem["index"],currentSearchItem["axis"]);
-	goToCurrentSearchItem();
+NgChm.DET.searchPrev = function () {
+	NgChm.DET.findPrevSearchItem(NgChm.DET.currentSearchItem["index"],NgChm.DET.currentSearchItem["axis"]);
+	NgChm.DET.goToCurrentSearchItem();
+	NgChm.DET.canvas.focus();
 }
 
 //Called when red 'X' is clicked.
-function clearSearch(event){
+NgChm.DET.clearSearch = function (event) {
 	var searchElement = document.getElementById('search_text');
 	searchElement.value = "";
-	currentSearchItem = {};
-	labelLastClicked = {};
-	createEmptySearchItems();
-	summaryRowDendro.clearSelectedBars();
-	summaryColumnDendro.clearSelectedBars();
-	if (isSub){
-		localStorage.setItem('selected', JSON.stringify(searchItems));
-		updateSelection();
+	NgChm.DET.currentSearchItem = {};
+	NgChm.DET.labelLastClicked = {};
+	NgChm.SEL.createEmptySearchItems();
+	if (NgChm.SEL.isSub){
+		localStorage.setItem('selected', JSON.stringify(NgChm.SEL.searchItems));
+		NgChm.SEL.updateSelection();
 	} else {
-		clearSelectionMarks();
+		NgChm.SUM.clearSelectionMarks();
 	}
-	clearSrchBtns(event);
-	detailResize();
-	drawDetailHeatMap();  //DO WE NEED THIS???
-//	detailSearch();
+	NgChm.DET.clearSrchBtns(event);
+	NgChm.DET.detailResize();
+	NgChm.DET.drawDetailHeatMap();  //DO WE NEED THIS???
+	NgChm.DET.canvas.focus();
 }
 
-function clearSrchBtns(event) {
+NgChm.DET.clearSrchBtns = function (event) {
 	if ((event != null) && (event.keyCode == 13))
 		return;
 	
@@ -1434,36 +1404,25 @@ function clearSrchBtns(event) {
 	srchText.style.backgroundColor = "white";
 }
 
-function showSrchBtns(){
+NgChm.DET.showSrchBtns = function () {
 	document.getElementById('prev_btn').style.display='';
 	document.getElementById('next_btn').style.display='';
 	document.getElementById('cancel_btn').style.display='';
 }
 
-function findCurrentSelection() {
-	if (currentSearchItem === undefined){
-		return 0;
-	}
-	for (var i = 0; i < searchItems[currentSearchItem["axis"]].length; i++) {
-		if (currentSearchItem.label == searchItems[i].label && currentSearchItem.axis == searchItems[i].axis)
-			return i;
-	}
-	return 0;
-}
-
 //Return the column number of any columns meeting the current user search.
-function getSearchCols() {
+NgChm.DET.getSearchCols = function () {
 	var selected = [];
-	for (var i in searchItems["Column"]) {
+	for (var i in NgChm.SEL.searchItems["Column"]) {
 		selected.push(i);
 	}
 	return selected;	
 }
 
 //Return row numbers of any rows meeting current user search.
-function getSearchRows() {
+NgChm.DET.getSearchRows = function () {
 	var selected = [];
-	for (var i in searchItems["Row"]) {
+	for (var i in NgChm.SEL.searchItems["Row"]) {
 		selected.push(i);
 	}
 	return selected;
@@ -1473,87 +1432,93 @@ function getSearchRows() {
  * End - Search Functions
  ***********************************************************/
 
-function clearLabels() {
+NgChm.DET.clearLabels = function () {
 	var oldLabels = document.getElementsByClassName("DynamicLabel");
 	while (oldLabels.length > 0) {
-		labelElement.removeChild(oldLabels[0]);
+		NgChm.DET.labelElement.removeChild(oldLabels[0]);
 	}
 
 }
 
-function drawRowAndColLabels(){
+NgChm.DET.drawRowAndColLabels = function () {
 	var headerSize = 0;
-	var colHeight = calculateTotalClassBarHeight("column") + detailDendroHeight;
+	var colHeight = NgChm.DET.calculateTotalClassBarHeight("column") + NgChm.DET.dendroHeight;
 	if (colHeight > 0) {
-		headerSize = detCanvas.clientHeight * (colHeight / (detailDataViewHeight + colHeight));
+		headerSize = NgChm.DET.canvas.clientHeight * (colHeight / (NgChm.DET.dataViewHeight + colHeight));
 	}
-	var skip = (detCanvas.clientHeight - headerSize) / dataPerCol;
-	var rowFontSize = Math.max(Math.min(skip - 2, 11),minLabelSize);	
+	var skip = (NgChm.DET.canvas.clientHeight - headerSize) / NgChm.SEL.dataPerCol;
+	var rowFontSize = Math.floor(Math.min(skip - 2, 11),NgChm.DET.minLabelSize) - 1;	
 	
 	headerSize = 0;
-	var rowHeight = calculateTotalClassBarHeight("row") + detailDendroWidth;
+	var rowHeight = NgChm.DET.calculateTotalClassBarHeight("row") + NgChm.DET.dendroWidth;
 	if (rowHeight > 0) {
-		headerSize = detCanvas.clientWidth * (rowHeight / (detailDataViewWidth + rowHeight));
+		headerSize = NgChm.DET.canvas.clientWidth * (rowHeight / (NgChm.DET.dataViewWidth + rowHeight));
 	}
-	skip = (detCanvas.clientWidth - headerSize) / dataPerRow;
-	var colFontSize = Math.max(Math.min(skip - 2, 11),minLabelSize);
-	var fontSize = Math.min(colFontSize,rowFontSize);	
-	drawRowLabels(fontSize);
-	drawColLabels(fontSize);
+	skip = (NgChm.DET.canvas.clientWidth - headerSize) / NgChm.SEL.dataPerRow;
+	var colFontSize = Math.floor(Math.min(skip - 2, 11),NgChm.DET.minLabelSize) - 1;
+	var fontSize;
+	if (rowFontSize > NgChm.DET.minLabelSize && colFontSize > NgChm.DET.minLabelSize){
+		fontSize = Math.min(colFontSize,rowFontSize);
+		NgChm.DET.drawRowLabels(fontSize);
+		NgChm.DET.drawColLabels(fontSize);
+	} else if (rowFontSize > NgChm.DET.minLabelSize){
+		NgChm.DET.drawRowLabels(rowFontSize);
+	} else if (colFontSize > NgChm.DET.minLabelSize){
+		NgChm.DET.drawColLabels(colFontSize);
+	}
 }
 
-function drawRowLabels(fontSize) {
+NgChm.DET.drawRowLabels = function (fontSize) {
 	var headerSize = 0;
-	var colHeight = calculateTotalClassBarHeight("column") + detailDendroHeight;
+	var colHeight = NgChm.DET.calculateTotalClassBarHeight("column") + NgChm.DET.dendroHeight;
 	if (colHeight > 0) {
-		headerSize = detCanvas.clientHeight * (colHeight / (detailDataViewHeight + colHeight));
+		headerSize = NgChm.DET.canvas.clientHeight * (colHeight / (NgChm.DET.dataViewHeight + colHeight));
 	}
-	var skip = (detCanvas.clientHeight - headerSize) / dataPerCol;
+	var skip = (NgChm.DET.canvas.clientHeight - headerSize) / NgChm.SEL.dataPerCol;
 	var start = Math.max((skip - fontSize)/2, 0) + headerSize-2;
-	var labels = heatMap.getRowLabels()["labels"];
+	var labels = NgChm.heatMap.getRowLabels()["labels"];
 	
 	
-	if (skip > minLabelSize) {
-		var xPos = detCanvas.clientWidth + 3;
-		for (var i = currentRow; i < currentRow + dataPerCol; i++) {
-			var yPos = start + ((i-currentRow) * skip);
+	if (skip > NgChm.DET.minLabelSize) {
+		var xPos = NgChm.DET.canvas.clientWidth + 3;
+		for (var i = NgChm.SEL.currentRow; i < NgChm.SEL.currentRow + NgChm.SEL.dataPerCol; i++) {
+			var yPos = start + ((i-NgChm.SEL.currentRow) * skip);
 			if (labels[i-1] == undefined){ // an occasional problem in subdendro view
 				continue;
 			}
 			var shownLabel = labels[i-1].split("|")[0];
-			addLabelDiv(labelElement, 'detail_row' + i, 'DynamicLabel', shownLabel, xPos, yPos, fontSize, 'F',i,"Row");
+			NgChm.DET.addLabelDiv(NgChm.DET.labelElement, 'detail_row' + i, 'DynamicLabel', shownLabel, xPos, yPos, fontSize, 'F',i,"Row");
 		}
 	}
 }
 
-
-function drawColLabels(fontSize) {
+NgChm.DET.drawColLabels = function (fontSize) {
 	var headerSize = 0;
-	var rowHeight = calculateTotalClassBarHeight("row") + detailDendroWidth;
+	var rowHeight = NgChm.DET.calculateTotalClassBarHeight("row") + NgChm.DET.dendroWidth;
 	if (rowHeight > 0) {
-		headerSize = detCanvas.clientWidth * (rowHeight / (detailDataViewWidth + rowHeight));
+		headerSize = NgChm.DET.canvas.clientWidth * (rowHeight / (NgChm.DET.dataViewWidth + rowHeight));
 	}
-	var skip = (detCanvas.clientWidth - headerSize) / dataPerRow;
+	var skip = (NgChm.DET.canvas.clientWidth - headerSize) / NgChm.SEL.dataPerRow;
 	var start = headerSize + fontSize + Math.max((skip - fontSize)/2, 0) + 3;
-	var labels = heatMap.getColLabels()["labels"];
-	var labelLen = getMaxLength(labels);
+	var labels = NgChm.heatMap.getColLabels()["labels"];
+	var labelLen = NgChm.DET.getMaxLength(labels);
 		
-	if (skip > minLabelSize) {
-		var yPos = detCanvas.clientHeight + 3;
-		for (var i = currentCol; i < currentCol + dataPerRow; i++) {
-			var xPos = start + ((i-currentCol) * skip);
+	if (skip > NgChm.DET.minLabelSize) {
+		var yPos = NgChm.DET.canvas.clientHeight + 3;
+		for (var i = NgChm.SEL.currentCol; i < NgChm.SEL.currentCol + NgChm.SEL.dataPerRow; i++) {
+			var xPos = start + ((i-NgChm.SEL.currentCol) * skip);
 			if (labels[i-1] == undefined){ // an occasional problem in subdendro view
 				continue;
 			}
 			var shownLabel = labels[i-1].split("|")[0];
-			addLabelDiv(labelElement, 'detail_col' + i, 'DynamicLabel', shownLabel, xPos, yPos, fontSize, 'T',i,"Column");
+			NgChm.DET.addLabelDiv(NgChm.DET.labelElement, 'detail_col' + i, 'DynamicLabel', shownLabel, xPos, yPos, fontSize, 'T',i,"Column");
 		}
 	}
 }
 
-function addLabelDiv(parent, id, className, text, left, top, fontSize, rotate, index,axis) {
-	var colorMap = heatMap.getColorMapManager().getColorMap("data",currentDl);
-	var dataLayer = heatMap.getDataLayers()[currentDl];
+NgChm.DET.addLabelDiv = function (parent, id, className, text, left, top, fontSize, rotate, index,axis) {
+	var colorMap = NgChm.heatMap.getColorMapManager().getColorMap("data",NgChm.SEL.currentDl);
+	var dataLayer = NgChm.heatMap.getDataLayers()[NgChm.SEL.currentDl];
 	var selectionRgba = colorMap.getHexToRgba(dataLayer.selection_color);
 	var div = document.createElement('div');
 	var divFontColor = "#FFFFFF";
@@ -1569,7 +1534,7 @@ function addLabelDiv(parent, id, className, text, left, top, fontSize, rotate, i
 	} else {
 		div.setAttribute('axis', 'Row');
 	}
-	if (labelIndexInSearch(index,axis)) {
+	if (NgChm.DET.labelIndexInSearch(index,axis)) {
 		div.style.backgroundColor = dataLayer.selection_color;
 		div.style.color = divFontColor;
 	}
@@ -1596,32 +1561,26 @@ function addLabelDiv(parent, id, className, text, left, top, fontSize, rotate, i
 	div.style.fontSize = fontSize.toString() +'pt';
 	div.style.fontFamily = 'sans-serif';
 	div.style.fontWeight = 'bold';
-	div.innerHTML = text;
+	div.innerHTML = NgChm.UTIL.getLabelText(text);
 	
 	parent.appendChild(div);
-	if (text !== "<" && text !== "..."){
-		div.addEventListener('click',labelClick,false);
-		div.addEventListener('contextmenu',labelRightClick,false);
-		var rect = div.getBoundingClientRect;
-		if (rect.right > window.innerWidth-15){
-			div.style.width =  window.innerWidth - rect.left - 15;
-			div.onmouseover = function(){detailDataToolHelp(this,text);}
-			div.onmouseleave = userHelpClose;
-		} else if (rect.bottom > window.innerHeight-15){
-			div.style.width =  window.innerHeight - rect.top - 15;
-			div.onmouseover = function(){detailDataToolHelp(this,text);}
-			div.onmouseleave = userHelpClose;
-		}
-	} else if (text == "..."){
-		div.addEventListener('mouseover', (function() {
-		    return function(e) {detailDataToolHelp(this, "Some covariate bars are hidden"); };
-		}) (this), false);
+	
+	if (text !== "<" && text !== "..." && text.length > 0){
+		div.addEventListener('click',NgChm.DET.labelClick ,false);
+		div.addEventListener('contextmenu',NgChm.DET.labelRightClick,false);
+		div.onmouseover = function(){NgChm.UHM.detailDataToolHelp(this,text);}
+		div.onmouseleave = NgChm.UHM.userHelpClose;
 	}
+	if (text == "..."){
+		div.addEventListener('mouseover', (function() {
+		    return function(e) {NgChm.UHM.detailDataToolHelp(this, "Some covariate bars are hidden"); };
+		}) (this), false);
+	}   
+
 }
 
-
 // Get max label length
-function getMaxLength(list) {
+NgChm.DET.getMaxLength = function (list) {
 	var len = 0;
 	for (var i = 0; i < list.length; i++){
 		if (list[i].length > len)
@@ -1630,76 +1589,76 @@ function getMaxLength(list) {
 	return len;
 }
 
-function labelClick(e){
+NgChm.DET.labelClick = function (e) {
 	if (e.shiftKey){ // shift + click
 		var selection = window.getSelection();
 		selection.removeAllRanges();
 		var focusNode = this;
 		var focusIndex = Number(this.getAttribute('index'));
 		var axis = focusNode.getAttribute("axis");
-		if (labelLastClicked[axis]){ // if label in the same axis was clicked last, highlight all
-			var anchorIndex = Number(labelLastClicked[axis]);
+		if (NgChm.DET.labelLastClicked[axis]){ // if label in the same axis was clicked last, highlight all
+			var anchorIndex = Number(NgChm.DET.labelLastClicked[axis]);
 			var startIndex = Math.min(focusIndex,anchorIndex), endIndex = Math.max(focusIndex,anchorIndex);
 			for (var i = startIndex; i <= endIndex; i++){
-				if (!labelIndexInSearch(i, axis)){
-					searchItems[axis][i] = 1;
+				if (!NgChm.DET.labelIndexInSearch(i, axis)){
+					NgChm.SEL.searchItems[axis][i] = 1;
 				}
 			}
 		} else { // otherwise, treat as normal click
-			clearSearchItems(this.getAttribute('axis'));
-			var searchIndex = labelIndexInSearch(focusIndex,axis);
+			NgChm.DET.clearSearchItems(this.getAttribute('axis'));
+			var searchIndex = NgChm.DET.labelIndexInSearch(focusIndex,axis);
 			if (searchIndex ){
-				delete searchItems[axis][index];
+				delete NgChm.SEL.searchItems[axis][index];
 			} else {
-				searchItems[axis][focusIndex] = 1;
+				NgChm.SEL.searchItems[axis][focusIndex] = 1;
 			}
 		}
-		labelLastClicked[axis] = focusIndex;
+		NgChm.DET.labelLastClicked[axis] = focusIndex;
 	} else if (e.ctrlKey || e.metaKey){ // ctrl or Mac key + click
 		var axis = this.getAttribute("axis");
 		var index = this.getAttribute("index");
-		var searchIndex = labelIndexInSearch(index, axis);
+		var searchIndex = NgChm.DET.labelIndexInSearch(index, axis);
 		if (searchIndex){ // if already searched, remove from search items
-			delete searchItems[axis][index];
+			delete NgChm.SEL.searchItems[axis][index];
 		} else {
-			searchItems[axis][index] = 1;
+			NgChm.SEL.searchItems[axis][index] = 1;
 		}
-		labelLastClicked[axis] = index;
+		NgChm.DET.labelLastClicked[axis] = index;
 	} else { // standard click
 		var axis = this.getAttribute("axis");
 		var index = this.getAttribute("index");
-		clearSearchItems(axis);
-		searchItems[axis][index] = 1;
-		labelLastClicked[axis] = index;
+		NgChm.DET.clearSearchItems(axis);
+		NgChm.SEL.searchItems[axis][index] = 1;
+		NgChm.DET.labelLastClicked[axis] = index;
 	}
 	var searchElement = document.getElementById('search_text');
 	searchElement.value = "";
 	document.getElementById('prev_btn').style.display='';
 	document.getElementById('next_btn').style.display='';
 	document.getElementById('cancel_btn').style.display='';
-	clearLabels();
-	clearSelectionMarks();
-	detailDrawRowClassBarLabels();
-	detailDrawColClassBarLabels();
-	drawRowAndColLabels();
-	updateSelection();
-	if (isSub){
-		localStorage.setItem('selected', JSON.stringify(searchItems));
+	NgChm.DET.clearLabels();
+	NgChm.SUM.clearSelectionMarks();
+	NgChm.DET.detailDrawRowClassBarLabels();
+	NgChm.DET.detailDrawColClassBarLabels();
+	NgChm.DET.drawRowAndColLabels();
+	NgChm.SEL.updateSelection();
+	if (NgChm.SEL.isSub){
+		localStorage.setItem('selected', JSON.stringify(NgChm.SEL.searchItems));
 	}
-	if (!isSub){
-		drawRowSelectionMarks();
-		drawColSelectionMarks();
+	if (!NgChm.SEL.isSub){
+		NgChm.SUM.drawRowSelectionMarks();
+		NgChm.SUM.drawColSelectionMarks();
 	}
 }
 
-function clearSearchItems(clickAxis){ // clears the search items on a particular axis
-	var length = searchItems[clickAxis].length;
-//	searchItems[clickAxis] = new Array(length);
-	searchItems[clickAxis] = {};
+//clears the search items on a particular axis
+NgChm.DET.clearSearchItems = function (clickAxis) {
+	var length = NgChm.SEL.searchItems[clickAxis].length;
+	NgChm.SEL.searchItems[clickAxis] = {};
 	if (clickAxis == "Row"){
-		summaryRowDendro.clearSelectedBars();
+		NgChm.SUM.rowDendro.clearSelectedBars();
 	} else if (clickAxis == "Column"){
-		summaryColumnDendro.clearSelectedBars();
+		NgChm.SUM.colDendro.clearSelectedBars();
 	}
 	var markLabels = document.getElementsByClassName('MarkLabel');
 	while (markLabels.length>0){ // clear tick marks
@@ -1707,102 +1666,47 @@ function clearSearchItems(clickAxis){ // clears the search items on a particular
 	}
 }
 
-
-function highlightColLabelsRange(){
-	//var selectionSize = start - stop + 1;
-	var labels = document.getElementsByClassName("DynamicLabel");
-	for (var i = 0; i < labels.length; i++){
-		var label = labels[i];
-		if (label.getAttribute('axis') == 'Column' && !label.classList.contains('ClassBar')){
-			searchItems["Column"][label.getAttribute('index')] = 1;
-			label.classList.add('searchItem');
-		}
-	}
-	drawRowSelectionMarks();
-	drawColSelectionMarks();
-}
-
-
-
-function highlightAllColLabels(){
-	var selectionSize = selectedStop - selectedStart + 1;
-	if ((mode == "RIBBONH" || mode === "RIBBONH_DETAIL") && selectionSize > 1){
-//		clearSearchItems("Column");
-		var labels = document.getElementsByClassName("DynamicLabel");
-		for (var i = 0; i < labels.length; i++){
-			var label = labels[i];
-			if (label.getAttribute('axis') == 'Column' && !label.classList.contains('ClassBar')){
-				searchItems["Column"][label.getAttribute('index')] = 1;
-				label.classList.add('searchItem');
-			}
-		}
-	}
-	if (!isSub){
-		drawRowSelectionMarks();
-		drawColSelectionMarks();
-	}
-}
-
-function highlightAllRowLabels(){
-	var selectionSize = selectedStop - selectedStart + 1;
-	if ((mode == "RIBBONV" || mode === "RIBBONV_DETAIL") && selectionSize > 1){
-//		clearSearchItems("Row");
-		var labels = document.getElementsByClassName("DynamicLabel");
-		for (var i = 0; i < labels.length; i++){
-			var label = labels[i];
-			if (label.getAttribute('axis') == 'Row' && !label.classList.contains('ClassBar')){
-				searchItems["Row"][label.getAttribute('index')] = 1;
-				label.classList.add('searchItem');
-			}
-		}
-	}
-	if (!isSub){
-		drawRowSelectionMarks();
-		drawColSelectionMarks();	
-	}
-}
-
-function labelRightClick(e) {
+NgChm.DET.labelRightClick = function (e) {
     e.preventDefault();
     var axis = e.target.getAttribute('axis');
-    var labels = searchItems;
-    labelHelpClose(axis);
-    labelHelpOpen(axis,e);
+    var labels = NgChm.SEL.searchItems;
+    NgChm.LNK.labelHelpClose(axis);
+    NgChm.LNK.labelHelpOpen(axis,e);
     var selection = window.getSelection();
     selection.removeAllRanges();
     return false;
 }
 
-function matrixRightClick(e){
+NgChm.DET.matrixRightClick = function (e) {
 	e.preventDefault();
-	labelHelpClose("Matrix");
-    labelHelpOpen("Matrix",e);
+	NgChm.LNK.labelHelpClose("Matrix");
+    NgChm.LNK.labelHelpOpen("Matrix",e);
     var selection = window.getSelection();
     selection.removeAllRanges();
     return false;
 }
 
-function labelIndexInSearch(index,axis){ // basically a Array.contains function, but for searchItems
+//basically a Array.contains function, but for searchItems
+NgChm.DET.labelIndexInSearch = function (index,axis) {
 	if (index == null || axis == null){
 		return false;
 	}
-	if (searchItems[axis][index] == 1){
+	if (NgChm.SEL.searchItems[axis][index] == 1){
 		return true;
 	}else{
 		return false;
 	}
 }
 
-
-function getSearchLabelsByAxis(axis, labelType){
+NgChm.DET.getSearchLabelsByAxis = function (axis, labelType) {
 	var searchLabels;
-	var keys = Object.keys(heatMap.getColClassificationConfig());
-	var labels = axis == 'Row' ? heatMap.getRowLabels()["labels"] : axis == "Column" ? heatMap.getColLabels()['labels'] : 
-		axis == "ColumnCovar" ? Object.keys(heatMap.getColClassificationConfig()) : axis == "ColumnCovar" ? Object.keys(heatMap.getRowClassificationConfig()) : 
-			[heatMap.getRowLabels()["labels"], heatMap.getColLabels()['labels'] ];
+	var keys = Object.keys(NgChm.heatMap.getColClassificationConfig());
+	var labels = axis == 'Row' ? NgChm.heatMap.getRowLabels()["labels"] : axis == "Column" ? NgChm.heatMap.getColLabels()['labels'] : 
+		axis == "ColumnCovar" ? Object.keys(NgChm.heatMap.getColClassificationConfig()) : axis == "ColumnCovar" ? Object.keys(NgChm.heatMap.getRowClassificationConfig()) : 
+			[NgChm.heatMap.getRowLabels()["labels"], NgChm.heatMap.getColLabels()['labels'] ];
 	if (axis !== "Matrix"){
 		searchLabels = [];
-		for (var i in searchItems[axis]){
+		for (var i in NgChm.SEL.searchItems[axis]){
 			if (axis.includes("Covar")){
 				if (labelType == linkouts.VISIBLE_LABELS){
 					searchLabels.push(labels[i].split("|")[0])
@@ -1823,7 +1727,7 @@ function getSearchLabelsByAxis(axis, labelType){
 		}
 	} else {
 		searchLabels = {"Row" : [], "Column" : []};
-		for (var i in searchItems["Row"]){
+		for (var i in NgChm.SEL.searchItems["Row"]){
 			if (labelType == linkouts.VISIBLE_LABELS){
 				searchLabels["Row"].push(labels[0][i-1].split("|")[0])
 			}else if (labelType == linkouts.HIDDEN_LABELS){
@@ -1832,7 +1736,7 @@ function getSearchLabelsByAxis(axis, labelType){
 				searchLabels["Row"].push(labels[0][i-1])
 			}
 		}
-		for (var i in searchItems["Column"]){
+		for (var i in NgChm.SEL.searchItems["Column"]){
 			if (labelType == linkouts.VISIBLE_LABELS){
 				searchLabels["Column"].push(labels[1][i-1].split("|")[0])
 			}else if (labelType == linkouts.HIDDEN_LABELS){
@@ -1845,15 +1749,15 @@ function getSearchLabelsByAxis(axis, labelType){
 	return searchLabels;
 }
 
-function detailDrawColClassBars(){
-	var colClassBarConfig = heatMap.getColClassificationConfig();
-	var colClassBarConfigOrder = heatMap.getColClassificationOrder();
-	var colClassBarData = heatMap.getColClassificationData();
-	var rowClassBarWidth = calculateTotalClassBarHeight("row");
-	var fullWidth = detailDataViewWidth + rowClassBarWidth + detailDendroWidth;
-	var mapHeight = detailDataViewHeight;
-	var pos = fullWidth*mapHeight*BYTE_PER_RGBA;
-	var colorMapMgr = heatMap.getColorMapManager();
+NgChm.DET.detailDrawColClassBars = function () {
+	var colClassBarConfig = NgChm.heatMap.getColClassificationConfig();
+	var colClassBarConfigOrder = NgChm.heatMap.getColClassificationOrder();
+	var colClassBarData = NgChm.heatMap.getColClassificationData();
+	var rowClassBarWidth = NgChm.DET.calculateTotalClassBarHeight("row");
+	var fullWidth = NgChm.DET.dataViewWidth + rowClassBarWidth + NgChm.DET.dendroWidth;
+	var mapHeight = NgChm.DET.dataViewHeight;
+	var pos = fullWidth*mapHeight*NgChm.SUM.BYTE_PER_RGBA;
+	var colorMapMgr = NgChm.heatMap.getColorMapManager();
 	
 	for (var i=colClassBarConfigOrder.length-1; i>= 0;i--) {
 		var key = colClassBarConfigOrder[i];
@@ -1864,28 +1768,28 @@ function detailDrawColClassBars(){
 		if (currentClassBar.show === 'Y') {
 			var colorMap = colorMapMgr.getColorMap("col",key); // assign the proper color scheme...
 			var classBarValues = colClassBarData[key].values;
-			var classBarLength = getCurrentDetDataPerRow() * dataBoxWidth;
-			pos += fullWidth*paddingHeight*BYTE_PER_RGBA; // draw padding between class bars
-			var line = new Uint8Array(new ArrayBuffer(classBarLength * BYTE_PER_RGBA)); // save a copy of the class bar
+			var classBarLength = NgChm.SEL.getCurrentDetDataPerRow() * NgChm.DET.dataBoxWidth;
+			pos += fullWidth*NgChm.DET.paddingHeight*NgChm.SUM.BYTE_PER_RGBA; // draw padding between class bars
+			var line = new Uint8Array(new ArrayBuffer(classBarLength * NgChm.SUM.BYTE_PER_RGBA)); // save a copy of the class bar
 			var loc = 0;
-			for (var k = currentCol; k <= currentCol + getCurrentDetDataPerRow() -1; k++) { 
+			for (var k = NgChm.SEL.currentCol; k <= NgChm.SEL.currentCol + NgChm.SEL.getCurrentDetDataPerRow() -1; k++) { 
 				var val = classBarValues[k-1];
 				var color = colorMap.getClassificationColor(val);
-				for (var j = 0; j < dataBoxWidth; j++) {
+				for (var j = 0; j < NgChm.DET.dataBoxWidth; j++) {
 					line[loc] = color['r'];
 					line[loc + 1] = color['g'];
 					line[loc + 2] = color['b'];
 					line[loc + 3] = color['a'];
-					loc += BYTE_PER_RGBA;
+					loc += NgChm.SUM.BYTE_PER_RGBA;
 				}
 			}
-			for (var j = 0; j < currentClassBar.height-paddingHeight; j++){ // draw the class bar into the dataBuffer
-				pos += (rowClassBarWidth + detailDendroWidth + 1)*BYTE_PER_RGBA;
+			for (var j = 0; j < currentClassBar.height-NgChm.DET.paddingHeight; j++){ // draw the class bar into the dataBuffer
+				pos += (rowClassBarWidth + NgChm.DET.dendroWidth + 1)*NgChm.SUM.BYTE_PER_RGBA;
 				for (var k = 0; k < line.length; k++) { 
-					detTexPixels[pos] = line[k];
+					NgChm.DET.texPixels[pos] = line[k];
 					pos++;
 				}
-				pos+=BYTE_PER_RGBA;
+				pos+=NgChm.SUM.BYTE_PER_RGBA;
 			}
 		  }
 
@@ -1893,42 +1797,42 @@ function detailDrawColClassBars(){
 
 }
 
-function detailDrawColClassBarLabels() {
+NgChm.DET.detailDrawColClassBarLabels = function () {
 	if (document.getElementById("missingDetColClassBars"))document.getElementById("missingDetColClassBars").remove();
-	var scale =  detCanvas.clientHeight / (detailDataViewHeight + calculateTotalClassBarHeight("column")+detailDendroHeight);
-	var colClassBarConfig = heatMap.getColClassificationConfig();
-	var colClassBarConfigOrder = heatMap.getColClassificationOrder();
+	var scale =  NgChm.DET.canvas.clientHeight / (NgChm.DET.dataViewHeight + NgChm.DET.calculateTotalClassBarHeight("column")+NgChm.DET.dendroHeight);
+	var colClassBarConfig = NgChm.heatMap.getColClassificationConfig();
+	var colClassBarConfigOrder = NgChm.heatMap.getColClassificationOrder();
 	var colClassLength = Object.keys(colClassBarConfig).length;
 	if (colClassBarConfig != null && colClassLength > 0) {
-		var fontSize = getLabelFontSize(colClassBarConfig,scale);
+		var fontSize = NgChm.DET.getLabelFontSize(colClassBarConfig,scale);
 		if (fontSize > 7) {
-			var xPos = detCanvas.clientWidth + 3;
-			var startingPoint = detailDendroHeight*scale-2;
-			var yPos = detailDendroHeight*scale;
+			var xPos = NgChm.DET.canvas.clientWidth + 3;
+			var startingPoint = NgChm.DET.dendroHeight*scale-2;
+			var yPos = NgChm.DET.dendroHeight*scale;
 			for (var i=0;i< colClassBarConfigOrder.length;i++) {
 				var key = colClassBarConfigOrder[i];
 				var currentClassBar = colClassBarConfig[key];
 				if (currentClassBar.show === 'Y') {
-					var currFont = Math.min((currentClassBar.height - paddingHeight) * scale, 11);
+					var currFont = Math.min((currentClassBar.height - NgChm.DET.paddingHeight) * scale, 11);
 					if (currFont >= fontSize) {
 						var yOffset = yPos - 1;
 						//Reposition label to center of large-height bars
 						if (currentClassBar.height >= 20) {
 							yOffset += ((((currentClassBar.height/2) - (fontSize/2)) - 3) * scale);
 						}
-						addLabelDiv(labelElement, 'detail_col_class' + i, 'DynamicLabel ClassBar', key, xPos, yOffset, fontSize, 'F', i, "ColumnCovar");
+						NgChm.DET.addLabelDiv(NgChm.DET.labelElement, 'detail_col_class' + i, 'DynamicLabel ClassBar', key, xPos, yOffset, fontSize, 'F', i, "ColumnCovar");
 					}
 					yPos += (currentClassBar.height * scale);
 				} else {
 					if (!document.getElementById("missingDetColClassBars")){
-						var x =  detCanvas.clientWidth+2;
-						var y = detailDendroHeight*scale-13;
-						addLabelDiv(labelElement, "missingDetColClassBars", "ClassBar MarkLabel", "...", x, y, 10, "F", null,"Column")
+						var x =  NgChm.DET.canvas.clientWidth+2;
+						var y = NgChm.DET.dendroHeight*scale-13;
+						NgChm.DET.addLabelDiv(NgChm.DET.labelElement, "missingDetColClassBars", "ClassBar MarkLabel", "...", x, y, 10, "F", null,"Column")
 					}
 					if (!document.getElementById("missingColClassBars")){
-						var x =  detCanvas.clientWidth + 2;
-						var y = columnDendroHeight*detCanvas.clientHeight/summaryTotalHeight - 10;
-						addLabelDiv(document.getElementById('sumlabelDiv'), "missingColClassBars", "ClassBar MarkLabel", "...", x, y, 10, "F", null,"Column")
+						var x =  NgChm.DET.canvas.clientWidth + 2;
+						var y = NgChm.DET.canvas.clientHeight/NgChm.SUM.totalHeight - 10;
+						NgChm.DET.addLabelDiv(document.getElementById('sumlabelDiv'), "missingColClassBars", "ClassBar MarkLabel", "...", x, y, 10, "F", null,"Column")
 					}	
 				}
 			}	
@@ -1943,11 +1847,11 @@ function detailDrawColClassBarLabels() {
  * (row/col) that have a size greater than 7.  Those <= 7 are ignored as they will have "..."
  * placed next to them as labels.
  *********************************************************************************************/
-function getLabelFontSize(classBarConfig,scale) {
+NgChm.DET.getLabelFontSize = function (classBarConfig,scale) {
 	var minFont = 999;
 	for (key in classBarConfig) {
 		var classBar = classBarConfig[key];
-		var fontSize = Math.min(((classBar.height - paddingHeight) * scale) - 2, 10);
+		var fontSize = Math.min(((classBar.height - NgChm.DET.paddingHeight) * scale) - 2, 10);
 		if ((fontSize > 7) && (fontSize < minFont)) {
 			minFont = fontSize
 		}
@@ -1955,16 +1859,16 @@ function getLabelFontSize(classBarConfig,scale) {
 	return minFont;
 }
 
-function detailDrawRowClassBars(){
-	var rowClassBarConfig = heatMap.getRowClassificationConfig();
-	var rowClassBarConfigOrder = heatMap.getRowClassificationOrder();
-	var rowClassBarData = heatMap.getRowClassificationData();
-	var rowClassBarWidth = calculateTotalClassBarHeight("row");
-	var detailTotalWidth = detailDendroWidth + calculateTotalClassBarHeight("row") + detailDataViewWidth;
-	var offset = ((detailTotalWidth*detailDataViewBorder/2)+detailDendroWidth) * BYTE_PER_RGBA; // start position of very bottom dendro
-	var mapWidth = detailDendroWidth + calculateTotalClassBarHeight("row") + detailDataViewWidth;
-	var mapHeight = detailDataViewHeight;
-	var colorMapMgr = heatMap.getColorMapManager();
+NgChm.DET.detailDrawRowClassBars = function () {
+	var rowClassBarConfig = NgChm.heatMap.getRowClassificationConfig();
+	var rowClassBarConfigOrder = NgChm.heatMap.getRowClassificationOrder();
+	var rowClassBarData = NgChm.heatMap.getRowClassificationData();
+	var rowClassBarWidth = NgChm.DET.calculateTotalClassBarHeight("row");
+	var detailTotalWidth = NgChm.DET.dendroWidth + NgChm.DET.calculateTotalClassBarHeight("row") + NgChm.DET.dataViewWidth;
+	var offset = ((detailTotalWidth*NgChm.DET.dataViewBorder/2)+NgChm.DET.dendroWidth) * NgChm.SUM.BYTE_PER_RGBA; // start position of very bottom dendro
+	var mapWidth = NgChm.DET.dendroWidth + NgChm.DET.calculateTotalClassBarHeight("row") + NgChm.DET.dataViewWidth;
+	var mapHeight = NgChm.DET.dataViewHeight;
+	var colorMapMgr = NgChm.heatMap.getColorMapManager();
 	for (var i=0;i< rowClassBarConfigOrder.length;i++) {
 		var key = rowClassBarConfigOrder[i];
 		if (!rowClassBarConfig.hasOwnProperty(key)) {
@@ -1976,60 +1880,60 @@ function detailDrawRowClassBars(){
 			var colorMap = colorMapMgr.getColorMap("row",key); // assign the proper color scheme...
 			var classBarValues = rowClassBarData[key].values;
 			var classBarLength = classBarValues.length;
-			for (var j = currentRow + getCurrentDetDataPerCol() - 1; j >= currentRow; j--){ // for each row shown in the detail panel
+			for (var j = NgChm.SEL.currentRow + NgChm.SEL.getCurrentDetDataPerCol() - 1; j >= NgChm.SEL.currentRow; j--){ // for each row shown in the detail panel
 				var val = classBarValues[j-1];
 				var color = colorMap.getClassificationColor(val);
-				for (var boxRows = 0; boxRows < dataBoxHeight; boxRows++) { // draw this color to the proper height
-					for (var k = 0; k < currentClassBar.height-paddingHeight; k++){ // draw this however thick it needs to be
-						detTexPixels[pos] = color['r'];
-						detTexPixels[pos + 1] = color['g'];
-						detTexPixels[pos + 2] = color['b'];
-						detTexPixels[pos + 3] = color['a'];
-						pos+=BYTE_PER_RGBA;	// 4 bytes per color
+				for (var boxRows = 0; boxRows < NgChm.DET.dataBoxHeight; boxRows++) { // draw this color to the proper height
+					for (var k = 0; k < currentClassBar.height-NgChm.DET.paddingHeight; k++){ // draw this however thick it needs to be
+						NgChm.DET.texPixels[pos] = color['r'];
+						NgChm.DET.texPixels[pos + 1] = color['g'];
+						NgChm.DET.texPixels[pos + 2] = color['b'];
+						NgChm.DET.texPixels[pos + 3] = color['a'];
+						pos+=NgChm.SUM.BYTE_PER_RGBA;	// 4 bytes per color
 					}
 	
 					// padding between class bars
-					pos+=paddingHeight*BYTE_PER_RGBA;
-					pos+=(mapWidth - currentClassBar.height)*BYTE_PER_RGBA;
+					pos+=NgChm.DET.paddingHeight*NgChm.SUM.BYTE_PER_RGBA;
+					pos+=(mapWidth - currentClassBar.height)*NgChm.SUM.BYTE_PER_RGBA;
 				}
 			}
-			offset+= currentClassBar.height*BYTE_PER_RGBA;
+			offset+= currentClassBar.height*NgChm.SUM.BYTE_PER_RGBA;
 		}
 	}	
 }
 
-function detailDrawRowClassBarLabels() {
-	var rowClassBarConfigOrder = heatMap.getRowClassificationOrder();
+NgChm.DET.detailDrawRowClassBarLabels = function () {
+	var rowClassBarConfigOrder = NgChm.heatMap.getRowClassificationOrder();
 	if (document.getElementById("missingDetRowClassBars"))document.getElementById("missingDetRowClassBars").remove();
-	var scale =  detCanvas.clientWidth / (detailDataViewWidth + calculateTotalClassBarHeight("row")+detailDendroWidth);
-	var rowClassBarConfig = heatMap.getRowClassificationConfig();
+	var scale =  NgChm.DET.canvas.clientWidth / (NgChm.DET.dataViewWidth + NgChm.DET.calculateTotalClassBarHeight("row")+NgChm.DET.dendroWidth);
+	var rowClassBarConfig = NgChm.heatMap.getRowClassificationConfig();
 	var rowClassLength = Object.keys(rowClassBarConfig).length;
 	if (rowClassBarConfig != null && rowClassLength > 0) {
-		var fontSize = getLabelFontSize(rowClassBarConfig,scale);
-		var startingPoint = (detailDendroWidth*scale)+fontSize + 5;
+		var fontSize = NgChm.DET.getLabelFontSize(rowClassBarConfig,scale);
+		var startingPoint = (NgChm.DET.dendroWidth*scale)+fontSize + 5;
 		if (fontSize > 7) {
 			for (var i=0;i< rowClassBarConfigOrder.length;i++) {
 				var key = rowClassBarConfigOrder[i];
 				var currentClassBar = rowClassBarConfig[rowClassBarConfigOrder[i]];
 				var textLoc = (currentClassBar.height/2) - Math.floor(fontSize/2);
 				var xPos = startingPoint+(textLoc*scale);
-				var yPos = detCanvas.clientHeight + 4;
+				var yPos = NgChm.DET.canvas.clientHeight + 4;
 				if (currentClassBar.show === 'Y') {
-					var currFont = Math.min((currentClassBar.height - paddingHeight) * scale, 11);
+					var currFont = Math.min((currentClassBar.height - NgChm.DET.paddingHeight) * scale, 11);
 					if (currFont >= fontSize) {
-						addLabelDiv(labelElement, 'detail_row_class' + i, 'DynamicLabel ClassBar', key, xPos, yPos, fontSize, 'T', i, "RowCovar");
+						NgChm.DET.addLabelDiv(NgChm.DET.labelElement, 'detail_row_class' + i, 'DynamicLabel ClassBar', key, xPos, yPos, fontSize, 'T', i, "RowCovar");
 					}
 					yPos += (currentClassBar.height * scale);
 				} else {
 					if (!document.getElementById("missingDetRowClassBars")){
-						var x = detailDendroWidth*scale + 10;
-						var y = detCanvas.clientHeight+2;
-						addLabelDiv(labelElement, "missingDetRowClassBars", "ClassBar MarkLabel", "...", x, y, 10, 'T', i, "Row");
+						var x = NgChm.DET.dendroWidth*scale + 10;
+						var y = NgChm.DET.canvas.clientHeight+2;
+						NgChm.DET.addLabelDiv(NgChm.DET.labelElement, "missingDetRowClassBars", "ClassBar MarkLabel", "...", x, y, 10, 'T', i, "Row");
 					}
 					if (!document.getElementById("missingRowClassBars")){
-						var x = rowDendroHeight*detCanvas.clientWidth/summaryTotalWidth + 10;
-						var y = detCanvas.clientHeight + 2;
-						addLabelDiv(document.getElementById('sumlabelDiv'), "missingRowClassBars", "ClassBar MarkLabel", "...", x, y, 10, "T", null,"Row");
+						var x = NgChm.DET.canvas.clientWidth/NgChm.SUM.totalWidth + 10;
+						var y = NgChm.DET.canvas.clientHeight + 2;
+						NgChm.DET.addLabelDiv(document.getElementById('sumlabelDiv'), "missingRowClassBars", "ClassBar MarkLabel", "...", x, y, 10, "T", null,"Row");
 					}
 				}
 				startingPoint += (currentClassBar.height*scale);
@@ -2038,12 +1942,12 @@ function detailDrawRowClassBarLabels() {
 	}
 }
 
-function calculateTotalClassBarHeight(axis){
+NgChm.DET.calculateTotalClassBarHeight = function (axis) {
 	var totalHeight = 0;
 	if (axis === "row") {
-		var classBars = heatMap.getRowClassificationConfig();
+		var classBars = NgChm.heatMap.getRowClassificationConfig();
 	} else {
-		var classBars = heatMap.getColClassificationConfig();
+		var classBars = NgChm.heatMap.getColClassificationConfig();
 	}
 	for (var key in classBars){
 		if (classBars[key].show === 'Y') {
@@ -2053,14 +1957,13 @@ function calculateTotalClassBarHeight(axis){
 	return totalHeight;
 }
 
-
 /******************************************************
  *****  DETAIL DENDROGRAM FUNCTIONS START HERE!!! *****
  ******************************************************/
 
 //Note: stop position passed in is actually one past the last row/column to be displayed.
 
-function buildDetailDendroMatrix(axis, start, stop, heightRatio){
+NgChm.DET.buildDetailDendroMatrix = function (axis, start, stop, heightRatio) {
 	var start3NIndex = convertMapIndexTo3NSpace(start);
 	var stop3NIndex = convertMapIndexTo3NSpace(stop);
 	var boxLength, currentIndex, matrixWidth, dendroBars, dendroInfo;
@@ -2068,22 +1971,22 @@ function buildDetailDendroMatrix(axis, start, stop, heightRatio){
 	var selectedBars;
 	
 	if (axis =='col'){ // assign proper axis-specific variables
-		dendroInfo = heatMap.getColDendroData(); // dendro JSON object
-		boxLength = dataBoxWidth;
-		matrixWidth = detailDataViewWidth;
-		dendroBars = summaryColumnDendro.getBars(); // array of the dendro bars
-		selectedBars = summaryColumnDendro.getSelectedBars(); 
+		dendroInfo = NgChm.heatMap.getColDendroData(); // dendro JSON object
+		boxLength = NgChm.DET.dataBoxWidth;
+		matrixWidth = NgChm.DET.dataViewWidth;
+		dendroBars = NgChm.SUM.colDendro.getBars(); // array of the dendro bars
+		selectedBars = NgChm.SUM.colDendro.getSelectedBars(); 
 	} else {
-		dendroInfo = heatMap.getRowDendroData(); // dendro JSON object
-		boxLength = dataBoxHeight;
-		matrixWidth = detailDataViewHeight;
-		dendroBars = summaryRowDendro.getBars();
-		selectedBars = summaryRowDendro.getSelectedBars();
+		dendroInfo = NgChm.heatMap.getRowDendroData(); // dendro JSON object
+		boxLength = NgChm.DET.dataBoxHeight;
+		matrixWidth = NgChm.DET.dataViewHeight;
+		dendroBars = NgChm.SUM.rowDendro.getBars();
+		selectedBars = NgChm.SUM.rowDendro.getSelectedBars();
 	}
 	var numNodes = dendroInfo.length;
 	var lastRow = dendroInfo[numNodes-1];
-	var matrix = new Array(normDetailDendroMatrixHeight+1);
-	for (var i = 0; i < normDetailDendroMatrixHeight+1; i++){
+	var matrix = new Array(NgChm.DET.normDendroMatrixHeight+1);
+	for (var i = 0; i < NgChm.DET.normDendroMatrixHeight+1; i++){
 		matrix[i] = new Array(matrixWidth-1);
 	}
 	var topLineArray = new Array(matrixWidth-1); // this array is made to keep track of which bars have vertical lines that extend outside the matrix
@@ -2104,7 +2007,7 @@ function buildDetailDendroMatrix(axis, start, stop, heightRatio){
 		
 		var leftLoc = convertJsonIndexToDataViewSpace(leftJsonIndex); // Loc is the location in the dendro matrix
 		var rightLoc = convertJsonIndexToDataViewSpace(rightJsonIndex);
-		var normHeight = Math.round(normDetailDendroMatrixHeight*height/maxHeight); // height in matrix
+		var normHeight = Math.round(NgChm.DET.normDendroMatrixHeight*height/maxHeight); // height in matrix
 		var leftEnd = Math.max(leftLoc, 0);
 		var rightEnd = Math.min(rightLoc, matrixWidth-1);
 		
@@ -2119,14 +2022,14 @@ function buildDetailDendroMatrix(axis, start, stop, heightRatio){
 		}
 		if (height > maxHeight){ // if this line is beyond the viewport max height
 			if (start3NIndex < right3NIndex &&  right3NIndex< stop3NIndex && topLineArray[rightLoc] != 1){ // check to see if it will be connecting vertically to a line in the matrix 
-				var drawHeight = normDetailDendroMatrixHeight;
+				var drawHeight = NgChm.DET.normDendroMatrixHeight;
 				while (drawHeight > 0 && !matrix[drawHeight][rightLoc]){ // these are the lines that will be connected to the highest level dendro leaves
 					matrix[drawHeight][rightLoc] = value;
 					drawHeight--;
 				}
 			}
 			if (start3NIndex < left3NIndex &&  left3NIndex< stop3NIndex && topLineArray[leftLoc] != 1){// these are the lines that will be connected to the highest level dendro leaves
-				var drawHeight = normDetailDendroMatrixHeight;
+				var drawHeight = NgChm.DET.normDendroMatrixHeight;
 				while (drawHeight > 0 && !matrix[drawHeight][leftLoc]){
 					matrix[drawHeight][leftLoc] = value;
 					drawHeight--;
@@ -2161,7 +2064,7 @@ function buildDetailDendroMatrix(axis, start, stop, heightRatio){
 			for (var i = 0; i < stop-start; i++){
 				var height = 1;
 				if (matrix[height][pos] != 1){
-					while (height < normDetailDendroMatrixHeight+1){
+					while (height < NgChm.DET.normDendroMatrixHeight+1){
 						matrix[height][pos] = 1;
 						height++;
 					}
@@ -2175,12 +2078,12 @@ function buildDetailDendroMatrix(axis, start, stop, heightRatio){
 	
 	// HELPER FUNCTIONS
 	function convertMapIndexTo3NSpace(index){
-		return index*pointsPerLeaf - 2;
+		return index*NgChm.DDR.pointsPerLeaf - 2;
 	}
 	function convertJsonIndexTo3NSpace(index){
 		if (index < 0){
 			index = 0-index; // make index a positive number to find the leaf
-			return index*pointsPerLeaf - 2;
+			return index*NgChm.DDR.pointsPerLeaf - 2;
 		} else {
 			index--; // dendroBars is stored in 3N, so we convert back
 			return Math.round((dendroBars[index].left + dendroBars[index].right)/2); // gets the middle point of the bar
@@ -2198,37 +2101,38 @@ function buildDetailDendroMatrix(axis, start, stop, heightRatio){
 	}
 }
 
-function colDendroMatrixCoordToDetailTexturePos(matrixRow,matrixCol){ // convert the matrix coord to the data buffer position (start of the RGBA block)
-	var mapx = matrixCol*getSamplingRatio('row');
-	var mapy = Math.round(matrixRow/normDetailDendroMatrixHeight * (detailDendroHeight-1));
-	var detailTotalWidth = detailDendroWidth + calculateTotalClassBarHeight("row") + detailDataViewWidth;
-	var pos = (detailTotalWidth*(calculateTotalClassBarHeight("column") + detailDataViewHeight))*BYTE_PER_RGBA;
-	pos += (detailDendroWidth + calculateTotalClassBarHeight("row")-1)*BYTE_PER_RGBA;
-	pos += ((mapy)*detailTotalWidth)*BYTE_PER_RGBA + matrixCol*BYTE_PER_RGBA;
+NgChm.DET.colDendroMatrixCoordToDetailTexturePos = function (matrixRow,matrixCol) {
+	var mapx = matrixCol*NgChm.DET.getSamplingRatio('row');
+	var mapy = Math.round(matrixRow/NgChm.DET.normDendroMatrixHeight * (NgChm.DET.dendroHeight-1));
+	var detailTotalWidth = NgChm.DET.dendroWidth + NgChm.DET.calculateTotalClassBarHeight("row") + NgChm.DET.dataViewWidth;
+	var pos = (detailTotalWidth*(NgChm.DET.calculateTotalClassBarHeight("column") + NgChm.DET.dataViewHeight))*NgChm.SUM.BYTE_PER_RGBA;
+	pos += (NgChm.DET.dendroWidth + NgChm.DET.calculateTotalClassBarHeight("row")-1)*NgChm.SUM.BYTE_PER_RGBA;
+	pos += ((mapy)*detailTotalWidth)*NgChm.SUM.BYTE_PER_RGBA + matrixCol*NgChm.SUM.BYTE_PER_RGBA;
 	return pos;
 }
 
-function rowDendroMatrixCoordToDetailTexturePos(matrixRow,matrixCol){ // convert matrix coord to data buffer position (leftmost column of matrix corresponds to the top row of the map)
-	var mapx = detailDataViewHeight - matrixCol-detailDataViewBorder/2;
-	var mapy = detailDendroWidth - Math.round(matrixRow/normDetailDendroMatrixHeight * detailDendroWidth); // bottom most row of matrix is at the far-right of the map dendrogram 
-	var detailTotalWidth = detailDendroWidth + calculateTotalClassBarHeight("row") + detailDataViewWidth;
-	var pos = (mapx*detailTotalWidth)*BYTE_PER_RGBA + (mapy)*BYTE_PER_RGBA; // pass the empty space (if any) and the border width, to get to the height on the map
+//convert matrix coord to data buffer position (leftmost column of matrix corresponds to the top row of the map)
+NgChm.DET.rowDendroMatrixCoordToDetailTexturePos = function (matrixRow,matrixCol) {
+	var mapx = NgChm.DET.dataViewHeight - matrixCol-NgChm.DET.dataViewBorder/2;
+	var mapy = NgChm.DET.dendroWidth - Math.round(matrixRow/NgChm.DET.normDendroMatrixHeight * NgChm.DET.dendroWidth); // bottom most row of matrix is at the far-right of the map dendrogram 
+	var detailTotalWidth = NgChm.DET.dendroWidth + NgChm.DET.calculateTotalClassBarHeight("row") + NgChm.DET.dataViewWidth;
+	var pos = (mapx*detailTotalWidth)*NgChm.SUM.BYTE_PER_RGBA + (mapy)*NgChm.SUM.BYTE_PER_RGBA; // pass the empty space (if any) and the border width, to get to the height on the map
 	return pos;
 }
 
-function detailDrawColDendrogram(dataBuffer, shift){
-	var detailTotalWidth = detailDendroWidth + calculateTotalClassBarHeight("row") + detailDataViewWidth;
+NgChm.DET.detailDrawColDendrogram = function (dataBuffer, shift) {
+	var detailTotalWidth = NgChm.DET.dendroWidth + NgChm.DET.calculateTotalClassBarHeight("row") + NgChm.DET.dataViewWidth;
 	shift = !shift || isNaN(shift) ? 0 : shift;
-	for (var i = 0; i < colDetailDendroMatrix.length; i++){
-		var line = colDetailDendroMatrix[i]; // line = each row of the col dendro matrix
+	for (var i = 0; i < NgChm.DET.colDendroMatrix.length; i++){
+		var line = NgChm.DET.colDendroMatrix[i]; // line = each row of the col dendro matrix
 		for (var j in line){
-			var pos = colDendroMatrixCoordToDetailTexturePos(i,Number(j));// + shift*BYTE_PER_RGBA;
-			if (j > detailDataViewWidth){ // TODO: find out why some rows in the dendro matrix are longer than they should be
+			var pos = NgChm.DET.colDendroMatrixCoordToDetailTexturePos(i,Number(j));// + shift*NgChm.SUM.BYTE_PER_RGBA;
+			if (j > NgChm.DET.dataViewWidth){ // TODO: find out why some rows in the dendro matrix are longer than they should be
 				continue;
 			}else {
-				if (colDetailDendroMatrix[i][j] == 1)
+				if (NgChm.DET.colDendroMatrix[i][j] == 1)
 					dataBuffer[pos] = 3,dataBuffer[pos+1] = 3,dataBuffer[pos+2] = 3,dataBuffer[pos+3] = 255;
-				else if (colDetailDendroMatrix[i][j] == 2) {
+				else if (NgChm.DET.colDendroMatrix[i][j] == 2) {
 					var posB = pos-4;
 					dataBuffer[posB] = 3,dataBuffer[posB+1] = 3,dataBuffer[posB+2] = 3,dataBuffer[posB+3] = 255;
 					dataBuffer[pos] = 3,dataBuffer[pos+1] = 3,dataBuffer[pos+2] = 3,dataBuffer[pos+3] = 255;
@@ -2237,10 +2141,10 @@ function detailDrawColDendrogram(dataBuffer, shift){
 				}
 				//	dataBuffer[pos] = 3,dataBuffer[pos+1] = 255,dataBuffer[pos+2] = 3,dataBuffer[pos+3] = 255;
 				// if the dendro size has been changed in preferences, make sure the pixels above and below are filled in
-				if (heatMap.getColDendroConfig().height/100 > 1.5 && colDetailDendroMatrix[i+1] && colDetailDendroMatrix[i+1][j] && colDetailDendroMatrix[i-1][j]){
-					pos -= (detailDendroWidth + calculateTotalClassBarHeight("row") + detailDataViewWidth)*BYTE_PER_RGBA;
+				if (NgChm.heatMap.getColDendroConfig().height/100 > 1.5 && NgChm.DET.colDendroMatrix[i+1] && NgChm.DET.colDendroMatrix[i+1][j] && NgChm.DET.colDendroMatrix[i-1][j]){
+					pos -= (NgChm.DET.dendroWidth + NgChm.DET.calculateTotalClassBarHeight("row") + NgChm.DET.dataViewWidth)*NgChm.SUM.BYTE_PER_RGBA;
 					dataBuffer[pos] = 3,dataBuffer[pos+1] = 3,dataBuffer[pos+2] = 3,dataBuffer[pos+3] = 255;
-					pos += (detailDendroWidth + calculateTotalClassBarHeight("row") + detailDataViewWidth)*2*BYTE_PER_RGBA;
+					pos += (NgChm.DET.dendroWidth + NgChm.DET.calculateTotalClassBarHeight("row") + NgChm.DET.dataViewWidth)*2*NgChm.SUM.BYTE_PER_RGBA;
 					dataBuffer[pos] = 3,dataBuffer[pos+1] = 3,dataBuffer[pos+2] = 3,dataBuffer[pos+3] = 255;
 				}
 			}
@@ -2248,48 +2152,47 @@ function detailDrawColDendrogram(dataBuffer, shift){
 	}
 }
 
-function drawDetMap(){ // draw the green dots *** is this a debug function? ***
+NgChm.DET.drawDetMap = function () { // draw the green dots *** is this a debug function? ***
 	
-	det_gl.activeTexture(det_gl.TEXTURE0);
-	det_gl.texImage2D(
-			det_gl.TEXTURE_2D, 
+	NgChm.DET.gl.activeTexture(NgChm.DET.gl.TEXTURE0);
+	NgChm.DET.gl.texImage2D(
+			NgChm.DET.gl.TEXTURE_2D, 
 			0, 
-			det_gl.RGBA, 
-			detTextureParams['width'], 
-			detTextureParams['height'], 
+			NgChm.DET.gl.RGBA, 
+			NgChm.DET.textureParams['width'], 
+			NgChm.DET.textureParams['height'], 
 			0, 
-			det_gl.RGBA,
-			det_gl.UNSIGNED_BYTE, 
-			detTexPixels);
-	det_gl.uniform2fv(detUScale, detCanvasScaleArray);
-	det_gl.uniform2fv(detUTranslate, detCanvasTranslateArray);
-	det_gl.drawArrays(det_gl.TRIANGLE_STRIP, 0, det_gl.buffer.numItems);
+			NgChm.DET.gl.RGBA,
+			NgChm.DET.gl.UNSIGNED_BYTE, 
+			NgChm.DET.texPixels);
+	NgChm.DET.gl.uniform2fv(NgChm.DET.uScale, NgChm.DET.canvasScaleArray);
+	NgChm.DET.gl.uniform2fv(NgChm.DET.uTranslate, NgChm.DET.canvasTranslateArray);
+	NgChm.DET.gl.drawArrays(NgChm.DET.gl.TRIANGLE_STRIP, 0, NgChm.DET.gl.buffer.numItems);
 }
 
-function detailDrawRowDendrogram(dataBuffer){
+NgChm.DET.detailDrawRowDendrogram = function (dataBuffer) {
 	var selectionColor = "#000000";
-	for (var i = 0; i <= rowDetailDendroMatrix.length+1; i++){
-		var line = rowDetailDendroMatrix[i]; // line = each row of the col dendro matrix
+	for (var i = 0; i <= NgChm.DET.rowDendroMatrix.length+1; i++){
+		var line = NgChm.DET.rowDendroMatrix[i]; // line = each row of the col dendro matrix
 		for (var j  in line){
-			var pos = rowDendroMatrixCoordToDetailTexturePos(i,Number(j));
-			if (j > detailDataViewHeight){ // TODO: find out why some rows in the dendro matrix are longer than they should be
+			var pos = NgChm.DET.rowDendroMatrixCoordToDetailTexturePos(i,Number(j));
+			if (j > NgChm.DET.dataViewHeight){ // TODO: find out why some rows in the dendro matrix are longer than they should be
 				continue;
 			} else {
-				if (rowDetailDendroMatrix[i][j] == 1)
+				if (NgChm.DET.rowDendroMatrix[i][j] == 1)
 					dataBuffer[pos] = 3,dataBuffer[pos+1] = 3,dataBuffer[pos+2] = 3,dataBuffer[pos+3] = 255;
-				else if (rowDetailDendroMatrix[i][j] == 2) {
+				else if (NgChm.DET.rowDendroMatrix[i][j] == 2) {
 					var posB = pos-4;
 					dataBuffer[posB] = 3,dataBuffer[posB+1] = 3,dataBuffer[posB+2] = 3,dataBuffer[posB+3] = 255;
 					dataBuffer[pos] = 3,dataBuffer[pos+1] = 3,dataBuffer[pos+2] = 3,dataBuffer[pos+3] = 255;
 					posB = pos+4;
 					dataBuffer[posB] = 3,dataBuffer[posB+1] = 3,dataBuffer[posB+2] = 3,dataBuffer[posB+3] = 255;
 				}
-//					dataBuffer[pos] = 3,dataBuffer[pos+1] = 255,dataBuffer[pos+2] = 3,dataBuffer[pos+3] = 255;
 				// this prevents gaps from appearing in the dendro when the user scales the dendro beyond 150%
-				if (heatMap.getRowDendroConfig().height/100 > 1.5 && rowDetailDendroMatrix[i+1] && rowDetailDendroMatrix[i+1][j] && rowDetailDendroMatrix[i-1][j]){
-					pos -= BYTE_PER_RGBA;
+				if (NgChm.heatMap.getRowDendroConfig().height/100 > 1.5 && NgChm.DET.rowDendroMatrix[i+1] && NgChm.DET.rowDendroMatrix[i+1][j] && NgChm.DET.rowDendroMatrix[i-1][j]){
+					pos -= NgChm.SUM.BYTE_PER_RGBA;
 					dataBuffer[pos] = 3,dataBuffer[pos+1] = 3,dataBuffer[pos+2] = 3,dataBuffer[pos+3] = 255;
-					pos += 2*BYTE_PER_RGBA;
+					pos += 2*NgChm.SUM.BYTE_PER_RGBA;
 					dataBuffer[pos] = 3,dataBuffer[pos+1] = 3,dataBuffer[pos+2] = 3,dataBuffer[pos+3] = 255;
 				}
 			}
@@ -2297,40 +2200,40 @@ function detailDrawRowDendrogram(dataBuffer){
 	}
 }
 
-function clearDetailDendrograms(){
-	var rowClassWidth = calculateTotalClassBarHeight('row');
-	var detailFullWidth = detailDendroWidth + rowClassWidth  + detailDataViewWidth;
+NgChm.DET.clearDetailDendrograms = function () {
+	var rowClassWidth = NgChm.DET.calculateTotalClassBarHeight('row');
+	var detailFullWidth = NgChm.DET.dendroWidth + rowClassWidth  + NgChm.DET.dataViewWidth;
 	var pos = 0;
 	// clear the row dendro pixels
-	for (var i =0; i < detailDataViewHeight*BYTE_PER_RGBA; i++){
-		for (var j = 0; j < detailDendroWidth*BYTE_PER_RGBA; j++){
-			detTexPixels[pos] = 0;
+	for (var i =0; i < NgChm.DET.dataViewHeight*NgChm.SUM.BYTE_PER_RGBA; i++){
+		for (var j = 0; j < NgChm.DET.dendroWidth*NgChm.SUM.BYTE_PER_RGBA; j++){
+			NgChm.DET.texPixels[pos] = 0;
 			pos++;
 		};
-		pos += ( detailDataViewWidth + rowClassWidth)*BYTE_PER_RGBA;
+		pos += ( NgChm.DET.dataViewWidth + rowClassWidth)*NgChm.SUM.BYTE_PER_RGBA;
 	}
 	//clear the column dendro pixels
-	pos = (detailFullWidth) * (detailDataViewHeight + calculateTotalClassBarHeight("column")) * BYTE_PER_RGBA;
-	for (var i =0; i < detailDendroHeight; i++){
-		for (var j = 0; j < detailFullWidth*BYTE_PER_RGBA; j++){
-			detTexPixels[pos] = 0;
+	pos = (detailFullWidth) * (NgChm.DET.dataViewHeight + NgChm.DET.calculateTotalClassBarHeight("column")) * NgChm.SUM.BYTE_PER_RGBA;
+	for (var i =0; i < NgChm.DET.dendroHeight; i++){
+		for (var j = 0; j < detailFullWidth*NgChm.SUM.BYTE_PER_RGBA; j++){
+			NgChm.DET.texPixels[pos] = 0;
 			pos++;
 		}
 	}
 }
 
-function getSamplingRatio(axis){
+NgChm.DET.getSamplingRatio = function (axis) {
 	if (axis == 'row'){
-		switch (mode){
-			case 'RIBBONH': return heatMap.getRowSummaryRatio(MatrixManager.RIBBON_HOR_LEVEL);
-			case 'RIBBONV': return heatMap.getRowSummaryRatio(MatrixManager.RIBBON_VERT_LEVEL);
-			default:        return heatMap.getRowSummaryRatio(MatrixManager.DETAIL_LEVEL);
+		switch (NgChm.SEL.mode){
+			case 'RIBBONH': return NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.RIBBON_HOR_LEVEL);
+			case 'RIBBONV': return NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.RIBBON_VERT_LEVEL);
+			default:        return NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.DETAIL_LEVEL);
 		}
 	} else {
-		switch (mode){
-			case 'RIBBONH': return heatMap.getColSummaryRatio(MatrixManager.RIBBON_HOR_LEVEL);
-			case 'RIBBONV': return heatMap.getColSummaryRatio(MatrixManager.RIBBON_VERT_LEVEL);
-			default:        return  heatMap.getColSummaryRatio(MatrixManager.DETAIL_LEVEL);
+		switch (NgChm.SEL.mode){
+			case 'RIBBONH': return NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.RIBBON_HOR_LEVEL);
+			case 'RIBBONV': return NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.RIBBON_VERT_LEVEL);
+			default:        return  NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.DETAIL_LEVEL);
 		}
 	}
 }
@@ -2339,27 +2242,27 @@ function getSamplingRatio(axis){
  *****  DETAIL DENDROGRAM FUNCTIONS END HERE!!! *****
  ****************************************************/
 
+/****************************************************
+ *****  WebGL stuff *****
+ ****************************************************/
 
-//WebGL stuff
+NgChm.DET.detSetupGl = function () {
+	NgChm.DET.gl = NgChm.DET.canvas.getContext("experimental-webgl", {preserveDrawingBuffer: true});
+	NgChm.DET.gl.viewportWidth = NgChm.DET.dataViewWidth+NgChm.DET.calculateTotalClassBarHeight("row")+NgChm.DET.dendroWidth;
+	NgChm.DET.gl.viewportHeight = NgChm.DET.dataViewHeight+NgChm.DET.calculateTotalClassBarHeight("column")+NgChm.DET.dendroHeight;
+	NgChm.DET.gl.clearColor(1, 1, 1, 1);
 
-function detSetupGl() {
-	det_gl = detCanvas.getContext("experimental-webgl", {preserveDrawingBuffer: true});
-	det_gl.viewportWidth = detailDataViewWidth+calculateTotalClassBarHeight("row")+detailDendroWidth;
-	det_gl.viewportHeight = detailDataViewHeight+calculateTotalClassBarHeight("column")+detailDendroHeight;
-	det_gl.clearColor(1, 1, 1, 1);
-
-	var program = det_gl.createProgram();
-	var vertexShader = getDetVertexShader(det_gl);
-	var fragmentShader = getDetFragmentShader(det_gl);
-	det_gl.program = program;
-	det_gl.attachShader(program, vertexShader);
-	det_gl.attachShader(program, fragmentShader);
-	det_gl.linkProgram(program);
-	det_gl.useProgram(program);
+	var program = NgChm.DET.gl.createProgram();
+	var vertexShader = NgChm.DET.getDetVertexShader(NgChm.DET.gl);
+	var fragmentShader = NgChm.DET.getDetFragmentShader(NgChm.DET.gl);
+	NgChm.DET.gl.program = program;
+	NgChm.DET.gl.attachShader(program, vertexShader);
+	NgChm.DET.gl.attachShader(program, fragmentShader);
+	NgChm.DET.gl.linkProgram(program);
+	NgChm.DET.gl.useProgram(program);
 }
 
-
-function getDetVertexShader(theGL) {
+NgChm.DET.getDetVertexShader = function (theGL) {
 	var source = 'attribute vec2 position;    ' +
 		         'varying vec2 v_texPosition; ' +
 		         'uniform vec2 u_translate;   ' +
@@ -2382,8 +2285,7 @@ function getDetVertexShader(theGL) {
 	return shader;
 }
 
-
-function getDetFragmentShader(theGL) {
+NgChm.DET.getDetFragmentShader = function (theGL) {
 	var source = 'precision mediump float;        ' +
 		  		 'varying vec2 v_texPosition;     ' +
  		 		 'varying float v_boxFlag;        ' +
@@ -2393,7 +2295,7 @@ function getDetFragmentShader(theGL) {
  		 		 '}'; 
 
 
-	var shader = theGL.createShader(theGL.FRAGMENT_SHADER);;
+	var shader = theGL.createShader(theGL.FRAGMENT_SHADER);
 	theGL.shaderSource(shader, source);
 	theGL.compileShader(shader);
 	if (!theGL.getShaderParameter(shader, theGL.COMPILE_STATUS)) {
@@ -2403,77 +2305,68 @@ function getDetFragmentShader(theGL) {
 	return shader;
 }
 
-
-
-function detInitGl () {
-	det_gl.viewport(0, 0, det_gl.viewportWidth, det_gl.viewportHeight);
-	det_gl.clear(det_gl.COLOR_BUFFER_BIT);
+NgChm.DET.detInitGl = function () {
+	NgChm.DET.gl.viewport(0, 0, NgChm.DET.gl.viewportWidth, NgChm.DET.gl.viewportHeight);
+	NgChm.DET.gl.clear(NgChm.DET.gl.COLOR_BUFFER_BIT);
 
 	// Vertices
-	var buffer = det_gl.createBuffer();
-	det_gl.buffer = buffer;
-	det_gl.bindBuffer(det_gl.ARRAY_BUFFER, buffer);
+	var buffer = NgChm.DET.gl.createBuffer();
+	NgChm.DET.gl.buffer = buffer;
+	NgChm.DET.gl.bindBuffer(NgChm.DET.gl.ARRAY_BUFFER, buffer);
 	var vertices = [ -1, -1, 1, -1, 1, 1, -1, -1, -1, 1, 1, 1 ];
-	det_gl.bufferData(det_gl.ARRAY_BUFFER, new Float32Array(vertices), det_gl.STATIC_DRAW);
+	NgChm.DET.gl.bufferData(NgChm.DET.gl.ARRAY_BUFFER, new Float32Array(vertices), NgChm.DET.gl.STATIC_DRAW);
 	var byte_per_vertex = Float32Array.BYTES_PER_ELEMENT;
 	var component_per_vertex = 2;
 	buffer.numItems = vertices.length / component_per_vertex;
 	var stride = component_per_vertex * byte_per_vertex;
-	var program = det_gl.program;
-	var position = det_gl.getAttribLocation(program, 'position');
-	detUScale = det_gl.getUniformLocation(program, 'u_scale');
-	detUTranslate = det_gl.getUniformLocation(program, 'u_translate');
-	det_gl.enableVertexAttribArray(position);
-	det_gl.vertexAttribPointer(position, 2, det_gl.FLOAT, false, stride, 0);
+	var program = NgChm.DET.gl.program;
+	var position = NgChm.DET.gl.getAttribLocation(program, 'position');
+	NgChm.DET.uScale = NgChm.DET.gl.getUniformLocation(program, 'u_scale');
+	NgChm.DET.uTranslate = NgChm.DET.gl.getUniformLocation(program, 'u_translate');
+	NgChm.DET.gl.enableVertexAttribArray(position);
+	NgChm.DET.gl.vertexAttribPointer(position, 2, NgChm.DET.gl.FLOAT, false, stride, 0);
 
 	// Texture
-	var texture = det_gl.createTexture();
-	det_gl.bindTexture(det_gl.TEXTURE_2D, texture);
-	det_gl.texParameteri(
-			det_gl.TEXTURE_2D, 
-			det_gl.TEXTURE_WRAP_S, 
-			det_gl.CLAMP_TO_EDGE);
-	det_gl.texParameteri(
-			det_gl.TEXTURE_2D, 
-			det_gl.TEXTURE_WRAP_T, 
-			det_gl.CLAMP_TO_EDGE);
-	det_gl.texParameteri(
-			det_gl.TEXTURE_2D, 
-			det_gl.TEXTURE_MIN_FILTER,
-			det_gl.NEAREST);
-	det_gl.texParameteri(
-			det_gl.TEXTURE_2D, 
-			det_gl.TEXTURE_MAG_FILTER, 
-			det_gl.NEAREST);
+	var texture = NgChm.DET.gl.createTexture();
+	NgChm.DET.gl.bindTexture(NgChm.DET.gl.TEXTURE_2D, texture);
+	NgChm.DET.gl.texParameteri(
+			NgChm.DET.gl.TEXTURE_2D, 
+			NgChm.DET.gl.TEXTURE_WRAP_S, 
+			NgChm.DET.gl.CLAMP_TO_EDGE);
+	NgChm.DET.gl.texParameteri(
+			NgChm.DET.gl.TEXTURE_2D, 
+			NgChm.DET.gl.TEXTURE_WRAP_T, 
+			NgChm.DET.gl.CLAMP_TO_EDGE);
+	NgChm.DET.gl.texParameteri(
+			NgChm.DET.gl.TEXTURE_2D, 
+			NgChm.DET.gl.TEXTURE_MIN_FILTER,
+			NgChm.DET.gl.NEAREST);
+	NgChm.DET.gl.texParameteri(
+			NgChm.DET.gl.TEXTURE_2D, 
+			NgChm.DET.gl.TEXTURE_MAG_FILTER, 
+			NgChm.DET.gl.NEAREST);
 	
-	detTextureParams = {};
+	NgChm.DET.textureParams = {};
 
 	var texWidth = null, texHeight = null, texData;
-	texWidth = detailDataViewWidth + calculateTotalClassBarHeight("row")+detailDendroWidth;
-	texHeight = detailDataViewHeight + calculateTotalClassBarHeight("column")+detailDendroHeight;
+	texWidth = NgChm.DET.dataViewWidth + NgChm.DET.calculateTotalClassBarHeight("row")+NgChm.DET.dendroWidth;
+	texHeight = NgChm.DET.dataViewHeight + NgChm.DET.calculateTotalClassBarHeight("column")+NgChm.DET.dendroHeight;
 	texData = new ArrayBuffer(texWidth * texHeight * 4);
-	detTexPixels = new Uint8Array(texData);
-	detTextureParams['width'] = texWidth;
-	detTextureParams['height'] = texHeight; 
+	NgChm.DET.texPixels = new Uint8Array(texData);
+	NgChm.DET.textureParams['width'] = texWidth;
+	NgChm.DET.textureParams['height'] = texHeight; 
 	
 }
-/*  Disabled until we decide to add a toggle button.
- *  when we do we will need to use the grid_show
- *  parameter on the DataLayer
-function toggleGrid(){
-	detailGrid = !detailGrid;
-	drawDetailHeatMap();
-}
-*/
 
-function detSizerStart(){
-	userHelpClose();
-	document.addEventListener('mousemove', detSizerMove);
-	document.addEventListener('touchmove', detSizerMove);
-	document.addEventListener('mouseup', detSizerEnd);
-	document.addEventListener('touchend',detSizerEnd);
+NgChm.DET.detSizerStart = function () {
+	NgChm.UHM.userHelpClose();
+	document.addEventListener('mousemove', NgChm.DET.detSizerMove);
+	document.addEventListener('touchmove', NgChm.DET.detSizerMove);
+	document.addEventListener('mouseup', NgChm.DET.detSizerEnd);
+	document.addEventListener('touchend',NgChm.DET.detSizerEnd);
 }
-function detSizerMove(e){
+
+NgChm.DET.detSizerMove = function (e) {
 	var summary = document.getElementById('summary_chm');
 	var detail = document.getElementById('detail_chm');
 	var divider = document.getElementById('divider');
@@ -2495,21 +2388,16 @@ function detSizerMove(e){
 	}
 	
 	detail.style.height=detailY+'px';
-//	if (!isSub){
-//		summary.style.height=detailY+'px';
-//		setSummarySize();
-//		summaryColumnDendro.resize();
-//		summaryRowDendro.resize();
-//	}
-	divider.style.height=Math.max(document.getElementById('detail_canvas').offsetHeight,document.getElementById('summary_canvas').offsetHeight + summaryColumnDendro.getDivHeight())+'px';
-	clearLabels();
-	clearSelectionMarks();
+	divider.style.height=Math.max(document.getElementById('detail_canvas').offsetHeight,document.getElementById('summary_canvas').offsetHeight + NgChm.SUM.colDendro.getDivHeight())+'px';
+	NgChm.DET.clearLabels();
+	NgChm.SUM.clearSelectionMarks();
 }
-function detSizerEnd(){
-	document.removeEventListener('mousemove', detSizerMove);
-	document.removeEventListener('mouseup', detSizerEnd);
-	document.removeEventListener('touchmove',detSizerMove);
-	document.removeEventListener('touchend',detSizerEnd);
+
+NgChm.DET.detSizerEnd = function () {
+	document.removeEventListener('mousemove', NgChm.DET.detSizerMove);
+	document.removeEventListener('mouseup', NgChm.DET.detSizerEnd);
+	document.removeEventListener('touchmove',NgChm.DET.detSizerMove);
+	document.removeEventListener('touchend',NgChm.DET.detSizerEnd);
 	// set summary and detail canvas sizes to percentages to avoid map getting pushed down on resize
 	var container = document.getElementById('container');
 	var summary = document.getElementById('summary_chm');
@@ -2518,9 +2406,9 @@ function detSizerEnd(){
 	var detail = document.getElementById('detail_chm');
 	var detPercent = 100*detail.clientWidth/container.clientWidth;
 	detail.style.width = detPercent + "%";
-	if (!isSub){
-		summaryResize();
+	if (!NgChm.SEL.isSub){
+		NgChm.SUM.summaryResize();
 	}
-	detailResize();
+	NgChm.DET.detailResize();
 }
 

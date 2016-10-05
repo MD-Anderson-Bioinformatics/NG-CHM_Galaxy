@@ -1,16 +1,19 @@
+//Define Namespace for NgChm Dendrogram
+NgChm.createNS('NgChm.DDR');
+
 /******************************
  *  SUMMARY COLUMN DENDROGRAM *
  ******************************/
-function SummaryColumnDendrogram(){
+NgChm.DDR.SummaryColumnDendrogram = function() {
 	var normDendroMatrixHeight = 500; // this is the height of the dendro matrices created in buildDendroMatrix
 	var pointsPerLeaf = 3; // each leaf will get 3 points in the dendrogram array. This is to avoid lines being right next to each other
 	
 	var bars = [];
 	var chosenBar = {}; // this is the bar that is clicked on the summary side (Subdendro selection)
 	var dendroCanvas = document.getElementById('column_dendro_canvas');
-	var dendroConfig = heatMap.getColDendroConfig();
-	var dendroData = heatMap.getColDendroData();
-	var maxHeight = Number(dendroData[dendroData.length-1].split(",")[2]); // this assumes the heightData is ordered from lowest height to highest
+	var dendroConfig = NgChm.heatMap.getColDendroConfig();
+	var dendroData = NgChm.heatMap.getColDendroData();
+	var maxHeight = dendroData.length > 0 ? Number(dendroData[dendroData.length-1].split(",")[2]) : 0; // this assumes the heightData is ordered from lowest height to highest
 	
 	var dendroMatrix = buildMatrix();
 	var originalDendroMatrix = dendroMatrix;
@@ -24,7 +27,7 @@ function SummaryColumnDendrogram(){
 		return parseInt(dendroCanvas.clientWidth);
 	}
 	this.getDivHeight = function(){
-		return parseInt(dendroConfig.height)/500*sumChm.clientHeight*summaryHeightPercentage;
+		return parseInt(dendroConfig.height)/500*sumChm.clientHeight*NgChm.SUM.heightPct;
 	}
 	this.getBars = function(){
 		return bars;
@@ -41,11 +44,11 @@ function SummaryColumnDendrogram(){
 				var selectLeft = Math.round((left+2)/3);
 				var selectRight =Math.round((right+2)/3);
 				for (var j = selectLeft; j < selectRight+1;j++){
-					delete searchItems["Column"][j];
+					delete NgChm.SEL.searchItems["Column"][j];
 				}
-				clearSelectionMarks();
-				drawColSelectionMarks();
-				drawRowSelectionMarks();
+				NgChm.SUM.clearSelectionMarks();
+				NgChm.SUM.drawColSelectionMarks();
+				NgChm.SUM.drawRowSelectionMarks();
 				if (bar.left == selectedBar.left && bar.right == selectedBar.right && bar.height == selectedBar.height){
 					addBar = false;
 				}
@@ -57,14 +60,14 @@ function SummaryColumnDendrogram(){
 		if (addBar){
 			if (shift){
 				for (var i = selectLeft; i < selectRight+1;i++){
-					searchItems["Column"][i] = 1;
+					NgChm.SEL.searchItems["Column"][i] = 1;
 				}
 				
 				selectedBars.push(selectedBar);
 			} else {
-				clearSearchItems("Column");
+				NgChm.DET.clearSearchItems("Column");
 				for (var i = selectLeft; i < selectRight+1;i++){
-					searchItems["Column"][i] = 1;
+					NgChm.SEL.searchItems["Column"][i] = 1;
 				}
 				
 				selectedBars = [selectedBar];
@@ -85,7 +88,7 @@ function SummaryColumnDendrogram(){
 	}
 	
 	this.findExtremes = function(i,j){
-		return findExtremes(i,j,dendroMatrix);
+		return NgChm.DDR.findExtremes(i,j,dendroMatrix);
 	}
 	
 	this.resize = function(){
@@ -94,42 +97,48 @@ function SummaryColumnDendrogram(){
 
 	this.draw = function(){
 		resize();
-		dendroCanvas.width = canvas.clientWidth*summaryMatrixWidth/summaryTotalWidth;
-		dendroCanvas.height = parseInt(dendroConfig.height)/500 * sumChm.clientHeight*summaryHeightPercentage;
+		dendroCanvas.width = NgChm.SUM.canvas.clientWidth*NgChm.SUM.matrixWidth/NgChm.SUM.totalWidth;
+		dendroCanvas.height = parseInt(dendroConfig.height)/500 * sumChm.clientHeight*NgChm.SUM.heightPct;
 		draw();
 	}
+	
+	this.drawNoResize = function () {
+		draw();
+	}
+	
 	this.clearSelection = function(){
 		clearSelection();
 	}
 	
 	function subDendroClick(event){
+		NgChm.DET.canvas.focus();
 		var clickX = event.offsetX, clickY = this.height-event.offsetY;
 		var matrixX = Math.round(clickX/(this.width/dendroMatrix[0].length)), matrixY = Math.round(clickY/(this.height/dendroMatrix.length));
-		summaryRowDendro.clearSelection();
-		summaryColumnDendro.clearSelection();
+		NgChm.SUM.rowDendro.clearSelection();
+		NgChm.SUM.colDendro.clearSelection();
 		dendroMatrix = buildMatrix();
 		highlightMatrix(matrixY,matrixX);
-		summaryRowDendro.draw();
-		summaryColumnDendro.draw();
+		NgChm.SUM.rowDendro.draw();
+		NgChm.SUM.colDendro.draw();
 	}
 	
 	function clearSelection(){
 		chosenBar = {};
-		selectedStart = 0;
-		selectedStop = 0;
-		if (!isSub) {
+		NgChm.SEL.selectedStart = 0;
+		NgChm.SEL.selectedStop = 0;
+		if (!NgChm.SEL.isSub) {
 			dendroBoxLeftTopArray = new Float32Array([0, 0]);
 			dendroBoxRightBottomArray = new Float32Array([0, 0]);
-			if (heatMap.showColDendrogram("summary")) {
+			if (NgChm.heatMap.showColDendrogram("summary")) {
 				dendroMatrix = buildMatrix();
 			}
 		}
 	}
 	function resize(){
-		dendroCanvas.style.width = canvas.clientWidth*summaryMatrixWidth/summaryTotalWidth;
-		dendroCanvas.style.left = canvas.offsetLeft + (1-summaryMatrixWidth/summaryTotalWidth)*canvas.offsetWidth;
+		dendroCanvas.style.width = NgChm.SUM.canvas.clientWidth*NgChm.SUM.matrixWidth/NgChm.SUM.totalWidth;
+		dendroCanvas.style.left = NgChm.SUM.canvas.offsetLeft + (1-NgChm.SUM.matrixWidth/NgChm.SUM.totalWidth)*NgChm.SUM.canvas.offsetWidth;
 		if (dendroConfig.show !== "NONE"){
-			dendroCanvas.style.height = parseInt(dendroConfig.height)/500*sumChm.clientHeight*summaryHeightPercentage; // the dendro should take 1/5 of the height at 100% dendro height
+			dendroCanvas.style.height = parseInt(dendroConfig.height)/500*sumChm.clientHeight*NgChm.SUM.heightPct; // the dendro should take 1/5 of the height at 100% dendro height
 		}else{
 			dendroCanvas.style.height = 0;
 		}
@@ -173,7 +182,7 @@ function SummaryColumnDendrogram(){
 		var numNodes = dendroData.length;
 		var matrix = new Array(normDendroMatrixHeight+1);
 		for (var i = 0; i < normDendroMatrixHeight+1; i++){ // 500rows * (3xWidth)cols matrix
-			matrix[i] = new Array(pointsPerLeaf*heatMap.getNumColumns('d'));
+			matrix[i] = new Array(pointsPerLeaf*NgChm.heatMap.getNumColumns('d'));
 		}
 		for (var i = 0; i < numNodes; i++){
 			var tokes = dendroData[i].split(",");
@@ -221,7 +230,7 @@ function SummaryColumnDendrogram(){
 		} else {
 			i = ip;
 		}
-		var leftAndRightExtremes = exploreToEndOfBar(i,j,dendroMatrix); // find the endpoints of the highest level node
+		var leftAndRightExtremes = NgChm.DDR.exploreToEndOfBar(i,j,dendroMatrix); // find the endpoints of the highest level node
 		var thisBar = {height:i, left: leftAndRightExtremes[0], right: leftAndRightExtremes[1]};
 		var sameBarClicked = true;
 		for (var key in thisBar){ 
@@ -232,32 +241,32 @@ function SummaryColumnDendrogram(){
 		leftExtreme = leftAndRightExtremes[0], rightExtreme = leftAndRightExtremes[1];
 		if (!sameBarClicked){ // new bar clicked
 			chosenBar = {height:i, left: leftExtreme, right: rightExtreme};
-			leftExtreme = findLeftEnd(i,leftExtreme,dendroMatrix);
-			rightExtreme = findRightEnd(i,rightExtreme,dendroMatrix); // L and R extreme values are in dendro matrix coords right now
-			highlightAllBranchesInRange(i,leftExtreme,rightExtreme,dendroMatrix);
-			leftExtreme = getTranslatedLocation(leftExtreme); // L and R extreme values gets converted to heatmap locations
-			rightExtreme = getTranslatedLocation(rightExtreme);
+			leftExtreme = NgChm.DDR.findLeftEnd(i,leftExtreme,dendroMatrix);
+			rightExtreme = NgChm.DDR.findRightEnd(i,rightExtreme,dendroMatrix); // L and R extreme values are in dendro matrix coords right now
+			NgChm.DDR.highlightAllBranchesInRange(i,leftExtreme,rightExtreme,dendroMatrix);
+			leftExtreme = NgChm.DDR.getTranslatedLocation(leftExtreme); // L and R extreme values gets converted to heatmap locations
+			rightExtreme = NgChm.DDR.getTranslatedLocation(rightExtreme);
 									
 			
 			// Set start and stop coordinates
-			var rhRatio = heatMap.getColSummaryRatio(MatrixManager.RIBBON_HOR_LEVEL);
-			var summaryRatio = heatMap.getRowSummaryRatio(MatrixManager.SUMMARY_LEVEL);
-			selectedStart = Math.round(leftExtreme*summaryRatio) +1;
-			selectedStop = Math.round(rightExtreme*summaryRatio) +1;
-			clearSearchItems("Column");
-			drawColSelectionMarks();
-			changeMode('RIBBONH');
+			var rhRatio = NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.RIBBON_HOR_LEVEL);
+			var summaryRatio = NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL);
+			NgChm.SEL.selectedStart = Math.round(leftExtreme*summaryRatio) +1;
+			NgChm.SEL.selectedStop = Math.round(rightExtreme*summaryRatio) +1;
+			NgChm.DET.clearSearchItems("Column");
+			NgChm.SUM.drawColSelectionMarks();
+			NgChm.SEL.changeMode('RIBBONH');
 		} else { // same bar clicked
 			chosenBar = {};
-			clearSelectionMarks();
-			clearSearchItems("Column");
-			drawColSelectionMarks();
-			if (getSearchLabelsByAxis("Column").length == 0){
-				clearSearch();
+			NgChm.SUM.clearSelectionMarks();
+			NgChm.DET.clearSearchItems("Column");
+			NgChm.SUM.drawColSelectionMarks();
+			if (NgChm.DET.getSearchLabelsByAxis("Column").length == 0){
+				NgChm.DET.clearSearch();
 			}
-			selectedStart = 0;
-			selectedStop = 0;
-			changeMode('NORMAL');
+			NgChm.SEL.selectedStart = 0;
+			NgChm.SEL.selectedStop = 0;
+			NgChm.SEL.changeMode('NORMAL');
 		}
 	}
 }
@@ -268,7 +277,7 @@ function SummaryColumnDendrogram(){
 /***************************
  *  SUMMARY ROW DENDROGRAM *
  ***************************/
-function SummaryRowDendrogram(){
+NgChm.DDR.SummaryRowDendrogram = function() {
 	// internal variables
 	var normDendroMatrixHeight = 500; // this is the height of the dendro matrices created in buildMatrix
 	var pointsPerLeaf = 3; // each leaf will get 3 points in the dendrogram array. This is to avoid lines being right next to each other
@@ -276,9 +285,9 @@ function SummaryRowDendrogram(){
 	var bars = [];
 	var chosenBar = {};
 	var dendroCanvas = document.getElementById('row_dendro_canvas');
-	var dendroConfig = heatMap.getRowDendroConfig();
-	var dendroData = heatMap.getRowDendroData();
-	var maxHeight = Number(dendroData[dendroData.length-1].split(",")[2]); // this assumes the heightData is ordered from lowest height to highest
+	var dendroConfig = NgChm.heatMap.getRowDendroConfig();
+	var dendroData = NgChm.heatMap.getRowDendroData();
+	var maxHeight = dendroData.length > 0 ? Number(dendroData[dendroData.length-1].split(",")[2]) : 0; // this assumes the heightData is ordered from lowest height to highest
 	
 	var dendroMatrix = buildMatrix();
 	var originalDendroMatrix = dendroMatrix;
@@ -312,11 +321,11 @@ function SummaryRowDendrogram(){
 				var selectLeft = Math.round((left+2)/3);
 				var selectRight =Math.round((right+2)/3);
 				for (var j = selectLeft; j < selectRight+1;j++){
-					delete searchItems["Row"][j];
+					delete NgChm.SEL.searchItems["Row"][j];
 				}
-				clearSelectionMarks();
-				drawColSelectionMarks();
-				drawRowSelectionMarks();
+				NgChm.SUM.clearSelectionMarks();
+				NgChm.SUM.drawColSelectionMarks();
+				NgChm.SUM.drawRowSelectionMarks();
 				if (bar.left == selectedBar.left && bar.right == selectedBar.right && bar.height == selectedBar.height){
 					addBar = false;		
 				}
@@ -328,14 +337,14 @@ function SummaryRowDendrogram(){
 		if (addBar){
 			if (shift){
 				for (var i = selectLeft; i < selectRight+1;i++){
-					searchItems["Row"][i] = 1;
+					NgChm.SEL.searchItems["Row"][i] = 1;
 				}
 				
 				selectedBars.push(selectedBar);
 			} else {
-				clearSearchItems("Row");
+				NgChm.DET.clearSearchItems("Row");
 				for (var i = selectLeft; i < selectRight+1;i++){
-					searchItems["Row"][i] = 1;
+					NgChm.SEL.searchItems["Row"][i] = 1;
 				}
 				
 				selectedBars = [selectedBar];
@@ -359,48 +368,54 @@ function SummaryRowDendrogram(){
 	}
 	
 	this.findExtremes = function(i,j){
-		return findExtremes(i,j,dendroMatrix);
+		return NgChm.DDR.findExtremes(i,j,dendroMatrix);
 	}
 	
 	this.draw = function(){
 		resize();
-		dendroCanvas.height = canvas.clientHeight*summaryMatrixHeight/summaryTotalHeight;
-		dendroCanvas.width = dendroConfig.height/500*sumChm.clientWidth*summaryWidthPercentage;
+		dendroCanvas.height = NgChm.SUM.canvas.clientHeight*NgChm.SUM.matrixHeight/NgChm.SUM.totalHeight;
+		dendroCanvas.width = dendroConfig.height/500*sumChm.clientWidth*NgChm.SUM.widthPct;
 		draw();
 	}
+	
+	this.drawNoResize = function(){
+		draw();
+	}
+	
 	this.clearSelection = function(){
 		clearSelection();
 	}
 	
 	// internal functions
 	function subDendroClick(event){
+		NgChm.DET.canvas.focus();
 		var clickX = event.offsetX, clickY = event.offsetY;
 		var matrixX = Math.round(clickY/(this.height/dendroMatrix[0].length)), matrixY = Math.round((this.width-clickX)/(this.width/dendroMatrix.length));
-		summaryColumnDendro.clearSelection();
-		summaryRowDendro.clearSelection();
+		NgChm.SUM.colDendro.clearSelection();
+		NgChm.SUM.rowDendro.clearSelection();
 		dendroMatrix = buildMatrix();
 		highlightMatrix(matrixY,matrixX);
-		summaryRowDendro.draw();
-		summaryColumnDendro.draw();
+		NgChm.SUM.rowDendro.draw();
+		NgChm.SUM.colDendro.draw();
 	}
 	function clearSelection(){
 		chosenBar = {};
-		selectedStart = 0;
-		selectedStop = 0;
-		if (!isSub) {
+		NgChm.SEL.selectedStart = 0;
+		NgChm.SEL.selectedStop = 0;
+		if (!NgChm.SEL.isSub) {
 			dendroBoxLeftTopArray = new Float32Array([0, 0]);
 			dendroBoxRightBottomArray = new Float32Array([0, 0]);
-			if (heatMap.showRowDendrogram("summary")) {
+			if (NgChm.heatMap.showRowDendrogram("summary")) {
 				dendroMatrix = buildMatrix();
 			}
 		}
 	}
 	
 	function resize(){
-		dendroCanvas.style.height = canvas.clientHeight*summaryMatrixHeight/summaryTotalHeight;
-		dendroCanvas.style.top = canvas.offsetTop + (summaryTotalHeight - summaryMatrixHeight)/summaryTotalHeight*canvas.offsetHeight;
+		dendroCanvas.style.height = NgChm.SUM.canvas.clientHeight*NgChm.SUM.matrixHeight/NgChm.SUM.totalHeight;
+		dendroCanvas.style.top = NgChm.SUM.canvas.offsetTop + (NgChm.SUM.totalHeight - NgChm.SUM.matrixHeight)/NgChm.SUM.totalHeight*NgChm.SUM.canvas.offsetHeight;
 		if (dendroConfig.show !== "NONE"){
-			dendroCanvas.style.width = dendroConfig.height/500*sumChm.clientWidth*summaryWidthPercentage;
+			dendroCanvas.style.width = dendroConfig.height/500*sumChm.clientWidth*NgChm.SUM.widthPct;
 		} else {
 			dendroCanvas.style.width = 0;
 		}
@@ -445,7 +460,7 @@ function SummaryRowDendrogram(){
 		var maxHeight = Number(lastRow.split(",")[2]); // this assumes the heightData is ordered from lowest height to highest
 		var matrix = new Array(normDendroMatrixHeight+1);
 		for (var i = 0; i < normDendroMatrixHeight+1; i++){ // 500rows * (3xWidth)cols matrix
-			matrix[i] = new Array(pointsPerLeaf*heatMap.getNumRows('d'));
+			matrix[i] = new Array(pointsPerLeaf*NgChm.heatMap.getNumRows('d'));
 		}
 		for (var i = 0; i < numNodes; i++){
 			var tokes = dendroData[i].split(",");
@@ -493,7 +508,7 @@ function SummaryRowDendrogram(){
 		} else {
 			i = ip;
 		}
-		var leftAndRightExtremes = exploreToEndOfBar(i,j,dendroMatrix); // find the endpoints of the highest level node
+		var leftAndRightExtremes = NgChm.DDR.exploreToEndOfBar(i,j,dendroMatrix); // find the endpoints of the highest level node
 		var thisBar = {height:i, left: leftAndRightExtremes[0], right: leftAndRightExtremes[1]};
 		var sameBarClicked = true;
 		for (var key in thisBar){ 
@@ -504,34 +519,34 @@ function SummaryRowDendrogram(){
 		leftExtreme = leftAndRightExtremes[0], rightExtreme = leftAndRightExtremes[1];
 		if (!sameBarClicked){ // new bar clicked
 			chosenBar = {height:i, left: leftExtreme, right: rightExtreme};
-			leftExtreme = findLeftEnd(i,leftExtreme,dendroMatrix);
-			rightExtreme = findRightEnd(i,rightExtreme,dendroMatrix); // L and R extreme values are in dendro matrix coords right now
-			highlightAllBranchesInRange(i,leftExtreme,rightExtreme,dendroMatrix);
+			leftExtreme = NgChm.DDR.findLeftEnd(i,leftExtreme,dendroMatrix);
+			rightExtreme = NgChm.DDR.findRightEnd(i,rightExtreme,dendroMatrix); // L and R extreme values are in dendro matrix coords right now
+			NgChm.DDR.highlightAllBranchesInRange(i,leftExtreme,rightExtreme,dendroMatrix);
 			
-			leftExtreme = getTranslatedLocation(leftExtreme); // L and R extreme values gets converted to heatmap locations
-			rightExtreme = getTranslatedLocation(rightExtreme);
+			leftExtreme = NgChm.DDR.getTranslatedLocation(leftExtreme); // L and R extreme values gets converted to heatmap locations
+			rightExtreme = NgChm.DDR.getTranslatedLocation(rightExtreme);
 			
 			// Set start and stop coordinates
-			var rvRatio = heatMap.getRowSummaryRatio(MatrixManager.RIBBON_VERT_LEVEL);
-			var summaryRatio = heatMap.getRowSummaryRatio(MatrixManager.SUMMARY_LEVEL);
-			selectedStart = Math.round(leftExtreme*summaryRatio) +1;
-			selectedStop = Math.round(rightExtreme*summaryRatio) +1;
-			clearSearchItems("Row");
-			changeMode('RIBBONV');
-			drawRowSelectionMarks();
+			var rvRatio = NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.RIBBON_VERT_LEVEL);
+			var summaryRatio = NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL);
+			NgChm.SEL.selectedStart = Math.round(leftExtreme*summaryRatio) +1;
+			NgChm.SEL.selectedStop = Math.round(rightExtreme*summaryRatio) +1;
+			NgChm.DET.clearSearchItems("Row");
+			NgChm.SEL.changeMode('RIBBONV');
+			NgChm.SUM.drawRowSelectionMarks();
 		}else{
 			chosenBar = {};
-			clearSelectionMarks();
-			clearSearchItems("Row");
-			drawRowSelectionMarks();
-			if (getSearchLabelsByAxis("Row").length == 0){
+			NgChm.SUM.clearSelectionMarks();
+			NgChm.DET.clearSearchItems("Row");
+			NgChm.SUM.drawRowSelectionMarks();
+			if (NgChm.DET.getSearchLabelsByAxis("Row").length == 0){
 				clearSearch();
 			}
-			selectedStart = 0;
-			selectedStop = 0;
+			NgChm.SEL.selectedStart = 0;
+			NgChm.SEL.selectedStop = 0;
 			dendroBoxLeftTopArray = new Float32Array([0, 0]); 
 			dendroBoxRightBottomArray = new Float32Array([0, 0]);  
-			changeMode('NORMAL');
+			NgChm.SEL.changeMode('NORMAL');
 		}
 		
 	}
@@ -542,9 +557,9 @@ function SummaryRowDendrogram(){
 /********************************************
  *  FUNCTIONS SHARED BY ROW AND COL DENDROS *
 *********************************************/
-var pointsPerLeaf = 3; // each leaf will get 3 points in the dendrogram array. This is to avoid lines being right next to each other
+NgChm.DDR.pointsPerLeaf = 3; // each leaf will get 3 points in the dendrogram array. This is to avoid lines being right next to each other
 
-function findExtremes(i,j,matrix){
+NgChm.DDR.findExtremes = function(i,j,matrix) {
 	var top = i;
 	var left = j;
 	var right = j;
@@ -566,12 +581,12 @@ function findExtremes(i,j,matrix){
 	return [left,right];
 }
 
-function getTranslatedLocation(location){
-	var summaryRatio = heatMap.getRowSummaryRatio(MatrixManager.SUMMARY_LEVEL);
-	return (location/summaryRatio)/pointsPerLeaf;
+NgChm.DDR.getTranslatedLocation = function(location) {
+	var summaryRatio = NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL);
+	return (location/summaryRatio)/NgChm.DDR.pointsPerLeaf;
 }
 
-function exploreToEndOfBar(i,j, dendroMatrix){
+NgChm.DDR.exploreToEndOfBar = function(i,j, dendroMatrix) {
 	var leftExtreme = j, rightExtreme = j;
 	while (dendroMatrix[i][rightExtreme+1]==1 || dendroMatrix[i][rightExtreme+1]==2){ // now find the right and left end points of the line in the matrix and highlight as we go
 		rightExtreme++;
@@ -582,7 +597,7 @@ function exploreToEndOfBar(i,j, dendroMatrix){
 	return [leftExtreme,rightExtreme];
 }
 
-function findLeftEnd(i,j,dendroMatrix){
+NgChm.DDR.findLeftEnd = function(i,j, dendroMatrix) {
 	dendroMatrix[i][j] = 2;
 	while (i != 0 && j != 0){ // as long as we aren't at the far left or the very bottom, keep moving
 		if (dendroMatrix[i][j-1] == 1 ||dendroMatrix[i][j-1] == 2){ // can we keep moving left?
@@ -596,7 +611,7 @@ function findLeftEnd(i,j,dendroMatrix){
 	return j;
 }
 
-function findRightEnd(i,j,dendroMatrix){
+NgChm.DDR.findRightEnd = function(i,j, dendroMatrix) {
 	dendroMatrix[i][j] = 2;
 	while (i != 0 && j <= dendroMatrix[1].length){
 		if (dendroMatrix[i][j+1] == 1 ||dendroMatrix[i][j+1] == 2){
@@ -610,7 +625,7 @@ function findRightEnd(i,j,dendroMatrix){
 	return j;
 }
 
-function highlightAllBranchesInRange(height,leftExtreme,rightExtreme,dendroMatrix){
+NgChm.DDR.highlightAllBranchesInRange = function(height,leftExtreme,rightExtreme,dendroMatrix) {
 	for (var i = height; i >= 0; i--){
 		for (var loc in dendroMatrix[i]){
 			if (leftExtreme < loc && loc < rightExtreme){
@@ -621,25 +636,25 @@ function highlightAllBranchesInRange(height,leftExtreme,rightExtreme,dendroMatri
 	return dendroMatrix;
 }
 
-function clearDendroSelection(){
+NgChm.DDR.clearDendroSelection = function() {
 	//clearSearch();    //FUTA
-	selectedStart = 0;
-	selectedStop = 0;
-	if (!isSub) {
+	NgChm.SEL.selectedStart = 0;
+	NgChm.SEL.selectedStop = 0;
+	if (!NgChm.SEL.isSub) {
 		dendroBoxLeftTopArray = new Float32Array([0, 0]);
 		dendroBoxRightBottomArray = new Float32Array([0, 0]);
-		if (heatMap.showRowDendrogram("summary")) {
-			summaryRowDendro.rebuildMatrix();
-			summaryRowDendro.draw();
+		if (NgChm.heatMap.showRowDendrogram("summary")) {
+			NgChm.SUM.rowDendro.rebuildMatrix();
+			NgChm.SUM.rowDendro.draw();
 		}
-		if (heatMap.showColDendrogram("summary")) {
-			summaryColumnDendro.rebuildMatrix();
-			summaryColumnDendro.draw();
+		if (NgChm.heatMap.showColDendrogram("summary")) {
+			NgChm.SUM.colDendro.rebuildMatrix();
+			NgChm.SUM.colDendro.draw();
 		}
 	}
 }
 
-function matrixToAsciiPrint(matrix){// this is just a debug function to see if the dendrogram looks correct. paste "line" into a text editor and decrease the font. input is the dendrogram matrix.
+NgChm.DDR.matrixToAsciiPrint = function(matrix) { // this is just a debug function to see if the dendrogram looks correct. paste "line" into a text editor and decrease the font. input is the dendrogram matrix.
 	var line = "";
 	for (var i = matrix.length-1; i > -1; i--){
 		for (var j = 0; j < matrix[i].length; j++){

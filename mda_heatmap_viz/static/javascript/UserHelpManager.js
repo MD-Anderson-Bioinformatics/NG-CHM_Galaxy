@@ -3,122 +3,132 @@
  * for user help popup windows for the detail canvas and the detail canvas buttons.
  **********************************************************************************/
 
+//Define Namespace for NgChm UserHelpManager
+NgChm.createNS('NgChm.UHM');
+
 /**********************************************************************************
  * FUNCTION - userHelpOpen: This function handles all of the tasks necessary to 
  * generate help pop-up panels for the detail heat map and the detail heat map 
  * classification bars.  
  **********************************************************************************/
-function userHelpOpen(e){ 
-    userHelpClose();
-    clearTimeout(detailPoint);
+NgChm.UHM.userHelpOpen = function(e) {
+    NgChm.UHM.userHelpClose();
+    clearTimeout(NgChm.DET.detailPoint);
     var orgW = window.innerWidth+window.pageXOffset;
     var orgH = window.innerHeight+window.pageYOffset;
-    var helptext = getDivElement("helptext");    
+    var helptext = NgChm.UHM.getDivElement("helptext");    
     helptext.style.position = "absolute";
     document.getElementsByTagName('body')[0].appendChild(helptext);
-    var rowElementSize = dataBoxWidth * detCanvas.clientWidth/detCanvas.width; // px/Glpoint
-    var colElementSize = dataBoxHeight * detCanvas.clientHeight/detCanvas.height;
+    var rowElementSize = NgChm.DET.dataBoxWidth * NgChm.DET.canvas.clientWidth/NgChm.DET.canvas.width; // px/Glpoint
+    var colElementSize = NgChm.DET.dataBoxHeight * NgChm.DET.canvas.clientHeight/NgChm.DET.canvas.height;
 
     // pixels
-    var rowClassWidthPx = getRowClassPixelWidth();
-    var colClassHeightPx = getColClassPixelHeight();
-    var rowDendroWidthPx =  getRowDendroPixelWidth();
-    var colDendroHeightPx = getColDendroPixelHeight();
+    var rowClassWidthPx = NgChm.DET.getRowClassPixelWidth();
+    var colClassHeightPx = NgChm.DET.getColClassPixelHeight();
+    var rowDendroWidthPx =  NgChm.DET.getRowDendroPixelWidth();
+    var colDendroHeightPx = NgChm.DET.getColDendroPixelHeight();
 	var mapLocY = e.layerY - colClassHeightPx - colDendroHeightPx;
 	var mapLocX = e.layerX - rowClassWidthPx - rowDendroWidthPx;
 	
-    if (isOnObject(e,"map")) {
-    	var row = Math.floor(currentRow + (mapLocY/colElementSize)*getSamplingRatio('row'));
-    	var col = Math.floor(currentCol + (mapLocX/rowElementSize)*getSamplingRatio('col'));
-    	var rowLabels = heatMap.getRowLabels().labels;
-    	var colLabels = heatMap.getColLabels().labels;
+    if (NgChm.DET.isOnObject(e,"map")) {
+    	var row = Math.floor(NgChm.SEL.currentRow + (mapLocY/colElementSize)*NgChm.DET.getSamplingRatio('row'));
+    	var col = Math.floor(NgChm.SEL.currentCol + (mapLocX/rowElementSize)*NgChm.DET.getSamplingRatio('col'));
+    	var rowLabels = NgChm.heatMap.getRowLabels().labels;
+    	var colLabels = NgChm.heatMap.getColLabels().labels;
     	var helpContents = document.createElement("TABLE");
-    	setTableRow(helpContents, ["<u>"+"Data Details"+"</u>", "&nbsp;"], 2);
-    	var matrixValue = heatMap.getValue(MatrixManager.DETAIL_LEVEL,row,col);
-    	if (matrixValue >= max_values) {
+    	NgChm.UHM.setTableRow(helpContents, ["<u>"+"Data Details"+"</u>", "&nbsp;"], 2);
+    	var matrixValue = NgChm.heatMap.getValue(NgChm.MMGR.DETAIL_LEVEL,row,col);
+    	if (matrixValue >= NgChm.SUM.maxValues) {
     		matrixValue = "Missing Value";
     	} else {
     		matrixValue = matrixValue.toFixed(5);
     	}
-    	setTableRow(helpContents,["&nbsp;Value:", matrixValue]);
-    	setTableRow(helpContents,[ "&nbsp;Row:", rowLabels[row-1]]);
-    	setTableRow(helpContents,["&nbsp;Column:", colLabels[col-1]]);
-    	helpContents.insertRow().innerHTML = formatBlankRow();
+    	NgChm.UHM.setTableRow(helpContents,["&nbsp;Value:", matrixValue]);
+    	NgChm.UHM.setTableRow(helpContents,[ "&nbsp;Row:", rowLabels[row-1]]);
+    	NgChm.UHM.setTableRow(helpContents,["&nbsp;Column:", colLabels[col-1]]);
+    	helpContents.insertRow().innerHTML = NgChm.UHM.formatBlankRow();
     	var writeFirstCol = true;
-    	var pos = col;
-		var classBars = heatMap.getRowClassificationData(); 
+    	var pos = row;
+		var classBars = NgChm.heatMap.getRowClassificationData(); 
    	    var classLen = Object.keys(classBars).length;
     	if (classLen > 0) {
-			setTableRow(helpContents, ["&nbsp;<u>"+"Row Classifications"+"</u>", "&nbsp;"], 2);
+			NgChm.UHM.setTableRow(helpContents, ["&nbsp;<u>"+"Row Classifications"+"</u>", "&nbsp;"], 2);
 	    	for (var key in classBars){
 				var displayName = key;
-				if (key.length > 20){
-					displayName = key.substring(0,20) + "...";
+				var classConfig = NgChm.heatMap.getRowClassificationConfig()[key];
+				if (classConfig.show === 'Y') {
+					if (key.length > 20){
+						displayName = key.substring(0,20) + "...";
+					}
+		    		NgChm.UHM.setTableRow(helpContents,["&nbsp;&nbsp;&nbsp;"+displayName+":"+"</u>", classBars[key].values[pos-1]]);	
 				}
-	    		setTableRow(helpContents,["&nbsp;&nbsp;&nbsp;"+displayName+":"+"</u>", classBars[key].values[pos-1]]);	    		
 	    	}
     	}
-    	helpContents.insertRow().innerHTML = formatBlankRow();
-		var classBars = heatMap.getColClassificationData(); 
+    	helpContents.insertRow().innerHTML = NgChm.UHM.formatBlankRow();
+    	pos = col
+		var classBars = NgChm.heatMap.getColClassificationData(); 
    	    var classLen = Object.keys(classBars).length;
     	if (classLen > 0) {
-			setTableRow(helpContents, ["&nbsp;<u>"+"Column Classifications"+"</u>", "&nbsp;"], 2);
+			NgChm.UHM.setTableRow(helpContents, ["&nbsp;<u>"+"Column Classifications"+"</u>", "&nbsp;"], 2);
 	    	for (var key in classBars){
 				var displayName = key;
-				if (key.length > 20){
-					displayName = key.substring(0,20) + "...";
+				var classConfig = NgChm.heatMap.getColClassificationConfig()[key];
+				if (classConfig.show === 'Y') {
+					if (key.length > 20){
+						displayName = key.substring(0,20) + "...";
+					}
+		    		NgChm.UHM.setTableRow(helpContents,["&nbsp;&nbsp;&nbsp;"+displayName+":"+"</u>", classBars[key].values[pos-1]]);	    		
 				}
-	    		setTableRow(helpContents,["&nbsp;&nbsp;&nbsp;"+displayName+":"+"</u>", classBars[key].values[pos-1]]);	    		
 	    	}
     	}
         helptext.style.display="inherit";
     	helptext.appendChild(helpContents);
-    	locateHelpBox(e, helptext);
-    } else if (isOnObject(e,"rowClass") || isOnObject(e,"colClass")) {
+    	NgChm.UHM.locateHelpBox(e, helptext);
+    } else if (NgChm.DET.isOnObject(e,"rowClass") || NgChm.DET.isOnObject(e,"colClass")) {
     	var pos, value, label;
     	var hoveredBar, hoveredBarColorScheme;                                                     //coveredWidth = 0, coveredHeight = 0;
-    	if (isOnObject(e,"colClass")) {
-        	var col = Math.floor(currentCol + (mapLocX/rowElementSize)*getSamplingRatio('col'));
-        	var colLabels = heatMap.getColLabels().labels;
+    	if (NgChm.DET.isOnObject(e,"colClass")) {
+        	var col = Math.floor(NgChm.SEL.currentCol + (mapLocX/rowElementSize)*NgChm.DET.getSamplingRatio('col'));
+        	var colLabels = NgChm.heatMap.getColLabels().labels;
         	label = colLabels[col-1];
-    		var coveredHeight = detCanvas.clientHeight*detailDendroHeight/detCanvas.height
-    		pos = Math.floor(currentCol + (mapLocX/rowElementSize));
-    		var classBarsConfig = heatMap.getColClassificationConfig(); 
-    		var classBarsConfigOrder = heatMap.getColClassificationOrder();
+    		var coveredHeight = NgChm.DET.canvas.clientHeight*NgChm.DET.dendroHeight/NgChm.DET.canvas.height
+    		pos = Math.floor(NgChm.SEL.currentCol + (mapLocX/rowElementSize));
+    		var classBarsConfig = NgChm.heatMap.getColClassificationConfig(); 
+    		var classBarsConfigOrder = NgChm.heatMap.getColClassificationOrder();
 			for (var i = 0; i <  classBarsConfigOrder.length; i++) {
 				var key = classBarsConfigOrder[i];
     			var currentBar = classBarsConfig[key];
     			if (currentBar.show === 'Y') {
-	        		coveredHeight += detCanvas.clientHeight*currentBar.height/detCanvas.height;
+	        		coveredHeight += NgChm.DET.canvas.clientHeight*currentBar.height/NgChm.DET.canvas.height;
 	        		if (coveredHeight >= e.layerY) {
 	        			hoveredBar = key;
-	        			hoveredBarValues = heatMap.getColClassificationData()[key].values;
+	        			hoveredBarValues = NgChm.heatMap.getColClassificationData()[key].values;
 	        			break;
 	        		}
     			}
     		}
-        	var colorMap = heatMap.getColorMapManager().getColorMap("col",hoveredBar);
+        	var colorMap = NgChm.heatMap.getColorMapManager().getColorMap("col",hoveredBar);
     	} else {
-    		var row = Math.floor(currentRow + (mapLocY/colElementSize)*getSamplingRatio('row'));
-        	var rowLabels = heatMap.getRowLabels().labels;
+    		var row = Math.floor(NgChm.SEL.currentRow + (mapLocY/colElementSize)*NgChm.DET.getSamplingRatio('row'));
+        	var rowLabels = NgChm.heatMap.getRowLabels().labels;
         	label = rowLabels[row-1];
-    		var coveredWidth = detCanvas.clientWidth*detailDendroWidth/detCanvas.width
-    		pos = Math.floor(currentRow + (mapLocY/colElementSize));
-    		var classBarsConfig = heatMap.getRowClassificationConfig(); 
-    		var classBarsConfigOrder = heatMap.getRowClassificationOrder();
+    		var coveredWidth = NgChm.DET.canvas.clientWidth*NgChm.DET.dendroWidth/NgChm.DET.canvas.width
+    		pos = Math.floor(NgChm.SEL.currentRow + (mapLocY/colElementSize));
+    		var classBarsConfig = NgChm.heatMap.getRowClassificationConfig(); 
+    		var classBarsConfigOrder = NgChm.heatMap.getRowClassificationOrder();
 			for (var i = 0; i <  classBarsConfigOrder.length; i++) {
 				var key = classBarsConfigOrder[i];
 				var currentBar = classBarsConfig[key];
     			if (currentBar.show === 'Y') {
-	        		coveredWidth += detCanvas.clientWidth*currentBar.height/detCanvas.width;
+	        		coveredWidth += NgChm.DET.canvas.clientWidth*currentBar.height/NgChm.DET.canvas.width;
 	        		if (coveredWidth >= e.layerX){
 	        			hoveredBar = key;
-	        			hoveredBarValues = heatMap.getRowClassificationData()[key].values;
+	        			hoveredBarValues = NgChm.heatMap.getRowClassificationData()[key].values;
 	        			break;
 	        		}
     			}
     		}
-    		var colorMap = heatMap.getColorMapManager().getColorMap("row",hoveredBar);
+    		var colorMap = NgChm.heatMap.getColorMapManager().getColorMap("row",hoveredBar);
     	}
     	var value = hoveredBarValues[pos-1];
     	var colors = colorMap.getColors();
@@ -150,10 +160,10 @@ function userHelpOpen(e){
 		if (hoveredBar.length > 20){
 			displayName = displayName.substring(0,20) + "...";
 		}
-		setTableRow(helpContents, ["Label: ", "&nbsp;"+label]);
-    	setTableRow(helpContents, ["Covariate: ", "&nbsp;"+displayName]);
-    	setTableRow(helpContents, ["Value: ", "&nbsp;"+value]);
-    	helpContents.insertRow().innerHTML = formatBlankRow();
+		NgChm.UHM.setTableRow(helpContents, ["Label: ", "&nbsp;"+label]);
+    	NgChm.UHM.setTableRow(helpContents, ["Covariate: ", "&nbsp;"+displayName]);
+    	NgChm.UHM.setTableRow(helpContents, ["Value: ", "&nbsp;"+value]);
+    	helpContents.insertRow().innerHTML = NgChm.UHM.formatBlankRow();
     	var rowCtr = 3 + thresholds.length;
     	var prevThresh = currThresh;
     	for (var i = 0; i < thresholds.length; i++){ // generate the color scheme diagram
@@ -205,7 +215,7 @@ function userHelpOpen(e){
         		}
         	}
         	var selPct = Math.round(((valSelected / valTotal) * 100) * 100) / 100;  //new line
-        	setTableRow(helpContents, ["<div class='input-color'><div class='color-box' style='background-color: " + color + ";'></div></div>", modThresh + " (n = " + valSelected + ", " + selPct+ "%)"]);
+        	NgChm.UHM.setTableRow(helpContents, ["<div class='input-color'><div class='color-box' style='background-color: " + color + ";'></div></div>", modThresh + " (n = " + valSelected + ", " + selPct+ "%)"]);
         	prevThresh = currThresh;
     	}
     	var valSelected = 0;  
@@ -216,10 +226,10 @@ function userHelpOpen(e){
     		} 
     	} 
     	var selPct = Math.round(((valSelected / valTotal) * 100) * 100) / 100;  //new line
-    	setTableRow(helpContents, ["<div class='input-color'><div class='color-box' style='background-color: " +  colorMap.getMissingColor() + ";'></div></div>", "Missing Color (n = " + valSelected + ", " + selPct+ "%)"]);
+    	NgChm.UHM.setTableRow(helpContents, ["<div class='input-color'><div class='color-box' style='background-color: " +  colorMap.getMissingColor() + ";'></div></div>", "Missing Color (n = " + valSelected + ", " + selPct+ "%)"]);
         helptext.style.display="inherit";
     	helptext.appendChild(helpContents);
-    	locateHelpBox(e, helptext);
+    	NgChm.UHM.locateHelpBox(e, helptext);
     } else {  // on the blank area in the top left corner
     }
     
@@ -230,9 +240,9 @@ function userHelpOpen(e){
  * for the display of a pop-up help panel based upon the cursor location and the
  * size of the panel.
  **********************************************************************************/
-function locateHelpBox(e, helptext) {
-    var rowClassWidthPx = getRowClassPixelWidth();
-    var colClassHeightPx = getColClassPixelHeight();
+NgChm.UHM.locateHelpBox = function(e, helptext) {
+    var rowClassWidthPx = NgChm.DET.getRowClassPixelWidth();
+    var colClassHeightPx = NgChm.DET.getColClassPixelHeight();
 	var mapLocY = e.layerY - colClassHeightPx;
 	var mapLocX = e.layerX - rowClassWidthPx;
 	var mapH = e.target.clientHeight - colClassHeightPx;
@@ -250,6 +260,10 @@ function locateHelpBox(e, helptext) {
 			boxTop = e.pageY - helptext.clientHeight;
 		}
 	}
+	//Keep box from going off top of screen so data values always visible.
+	if (boxTop < 0) {
+		boxTop = 0;
+	}
 	helptext.style.top = boxTop;
 }
 
@@ -259,39 +273,35 @@ function locateHelpBox(e, helptext) {
  * text from chm.html. If the screen has been split, it changes the test for the 
  * split screen button
  **********************************************************************************/
-function detailDataToolHelp(e,text,width) {
-	userHelpClose();
-	detailPoint = setTimeout(function(){
+NgChm.UHM.detailDataToolHelp = function(e,text,width) {
+	NgChm.UHM.userHelpClose();
+	NgChm.DET.detailPoint = setTimeout(function(){
 		if (typeof width === "undefined") {
 			width=50;
 		}
-		if ((isSub) && (text == "Split Into Two Windows")) {
+		if ((NgChm.SEL.isSub) && (text == "Split Into Two Windows")) {
 			text = "Join Screens";
 		}
-	    var helptext = getDivElement("helptext");
+	    var helptext = NgChm.UHM.getDivElement("helptext");
 	    helptext.style.position = "absolute";
 	    e.parentElement.appendChild(helptext);
-//	    document.getElementsByTagName('body')[0].appendChild(helptext);
-//	    if ((text === "Modify Map Preferences") || (text === "Save as PDF")){
 	    if (2*width + e.getBoundingClientRect().right > document.body.offsetWidth-50){ // 2*width and -50 from window width to force elements close to right edge to move
-	    	helptext.style.left = e.offsetLeft - 125;
+	    	if (e.offsetLeft === 0) {
+		    	helptext.style.left = e.offsetLeft - 40;
+	    	} else {
+		    	helptext.style.left = e.offsetLeft - 180;
+	    	}
 	    } else {
 	    	if (e.offsetLeft !== 0) {
 	    		helptext.style.left = e.offsetLeft ;
-	    	} else {
-	    		var pdfButt = document.getElementById('pdf_btn')
-	    		helptext.style.left = pdfButt.offsetLeft - 150;
-	    		helptext.style.top = pdfButt.offsetTop + (pdfButt.offsetHeight);
 	    	}
 	    }
 	    // Unless close to the bottom, set help text below cursor
 	    // Else, set to right of cursor.
-    	if (e.offsetTop !== 0) {
-    		if (e.offsetTop > 500) {
-    			helptext.style.top = e.offsetTop - 25;
-	    	} else {
-	    		helptext.style.top = e.offsetTop + 15;
-	    	}
+    	if (e.offsetTop > 10) {
+    		helptext.style.top = e.offsetTop + 20;
+    	} else {
+    		helptext.style.top = e.offsetTop + 45;
     	}
 	    helptext.style.width = width;
 		var htmlclose = "</font></b>";
@@ -304,7 +314,7 @@ function detailDataToolHelp(e,text,width) {
  * FUNCTION - getDivElement: The purpose of this function is to create and 
  * return a DIV html element that is configured for a help pop-up panel.
  **********************************************************************************/
-function getDivElement(elemName) {
+NgChm.UHM.getDivElement = function(elemName) {
     var divElem = document.createElement('div');
     divElem.id = elemName;
     divElem.style.backgroundColor = 'CBDBF6'; 
@@ -317,7 +327,7 @@ function getDivElement(elemName) {
  * or configuration html TABLE item for a given help pop-up panel. It receives text for 
  * the header column, detail column, and the number of columns to span as inputs.
  **********************************************************************************/
-function setTableRow(tableObj, tdArray, colSpan, align) {
+NgChm.UHM.setTableRow = function(tableObj, tdArray, colSpan, align) {
 	var tr = tableObj.insertRow();
 	tr.className = "show";
 	for (var i = 0; i < tdArray.length; i++) {
@@ -336,27 +346,10 @@ function setTableRow(tableObj, tdArray, colSpan, align) {
 }
 
 /**********************************************************************************
- * FUNCTION - setTableRow: The purpose of this function is to set a row into a help
- * or configuration html TABLE item for a given help pop-up panel. It receives text for 
- * the header column, detail column, and the number of columns to span as inputs.
- **********************************************************************************/
-function setErrorRow(tableObj, errorMsg) {
-	var tr = tableObj.insertRow();
-	var td = tr.insertCell(0);
-	td.colSpan = 2;
-	td.align="center";
-	td.style.fontWeight="bold";
-	td.style.color="red";
-	td.innerHTML = errorMsg;
-}
-
-
-
-/**********************************************************************************
  * FUNCTION - formatBlankRow: The purpose of this function is to return the html
  * text for a blank row.
  **********************************************************************************/
-function formatBlankRow() {
+NgChm.UHM.formatBlankRow = function() {
 	return "<td style='line-height:4px;' colspan=2>&nbsp;</td>";
 }
 
@@ -364,11 +357,11 @@ function formatBlankRow() {
  * FUNCTION - addBlankRow: The purpose of this function is to return the html
  * text for a blank row.
  **********************************************************************************/
-function addBlankRow(addDiv, rowCnt) {
-	addDiv.insertRow().innerHTML = formatBlankRow();
+NgChm.UHM.addBlankRow = function(addDiv, rowCnt) {
+	addDiv.insertRow().innerHTML = NgChm.UHM.formatBlankRow();
 	if (typeof rowCnt !== 'undefined') {
 		for (var i=1;i<rowCnt;i++) {
-			addDiv.insertRow().innerHTML = formatBlankRow();
+			addDiv.insertRow().innerHTML = NgChm.UHM.formatBlankRow();
 		}
 	}
 	return;
@@ -378,24 +371,24 @@ function addBlankRow(addDiv, rowCnt) {
  * FUNCTION - userHelpClose: The purpose of this function is to close any open 
  * user help pop-ups and any active timeouts associated with those pop-up panels.
  **********************************************************************************/
-function userHelpClose(){
-	clearTimeout(detailPoint);
+NgChm.UHM.userHelpClose = function() {
+	clearTimeout(NgChm.DET.detailPoint);
 	var helptext = document.getElementById('helptext');
 	if (helptext){
 		helptext.remove();
 	}
 }
 
-function showSearchError(type){
-	var searchError = getDivElement('searchError');
+NgChm.UHM.showSearchError = function(type) {
+	var searchError = NgChm.UHM.getDivElement('searchError');
 	searchError.style.display = 'inherit';
 	var searchBar = document.getElementById('search_text');
 	searchError.style.top = searchBar.offsetTop + searchBar.offsetHeight;
 	searchError.style.left = searchBar.offsetLeft + searchBar.offsetWidth;
 	switch (type){
 		case 0: searchError.innerHTML = "No matching labels found"; break;
-		case 1: searchError.innerHTML = "Exit dendrogram selection to go to " + currentSearchItem.label;break;
-		case 2: searchError.innerHTML = "All " + currentSearchItem.axis +  " items are visible. Change the view mode to see " + currentSearchItem.label;break;
+		case 1: searchError.innerHTML = "Exit dendrogram selection to go to " + NgChm.DET.currentSearchItem.label;break;
+		case 2: searchError.innerHTML = "All " + NgChm.DET.currentSearchItem.axis +  " items are visible. Change the view mode to see " + NgChm.DET.currentSearchItem.label;break;
 	}
 	document.body.appendChild(searchError);
 	setTimeout(function(){
@@ -408,49 +401,49 @@ function showSearchError(type){
  * FUNCTION - saveHeatMapChanges: This function handles all of the tasks necessary 
  * display a modal window whenever the user requests to save heat map changes.  
  **********************************************************************************/
-function saveHeatMapChanges() {
-	initMessageBox();
-	setMessageBoxHeader("Save Heat Map");
+NgChm.UHM.saveHeatMapChanges = function() {
+	NgChm.UHM.initMessageBox();
+	NgChm.UHM.setMessageBoxHeader("Save Heat Map");
 	//Have changes been made?
-	if (heatMap.getUnAppliedChanges()) {
-		if ((heatMap.isFileMode()) || (staticPath !== "")) {
-			if (staticPath !== "") {
+	if (NgChm.heatMap.getUnAppliedChanges()) {
+		if ((NgChm.heatMap.isFileMode()) || (NgChm.staticPath !== "")) {
+			if (NgChm.staticPath !== "") {
 				text = "<br>Changes to the heatmap cannot be saved in the Galaxy history.  Your modifications to the heatmap may be written to a downloaded NG-CHM file.";
 			} else {
 				text = "<br>You have elected to save changes made to this NG-CHM heat map file.<br><br>You may save them to a new NG-CHM file that may be opened using the NG-CHM File Viewer application.<br><br>";
 			}
-			setMessageBoxText(text);
-			setMessageBoxButton(1, "images/saveNgchm.png", "Save To NG-CHM File", "heatMap.saveHeatMapToNgchm");
-			setMessageBoxButton(4, "images/closeButton.png", "Cancel Save", "messageBoxCancel");
+			NgChm.UHM.setMessageBoxText(text);
+			NgChm.UHM.setMessageBoxButton(1, "images/saveNgchm.png", "Save To NG-CHM File", "NgChm.heatMap.saveHeatMapToNgchm");
+			NgChm.UHM.setMessageBoxButton(4, "images/closeButton.png", "Cancel Save", "NgChm.UHM.messageBoxCancel");
 		} else {
 			// If so, is read only?
-			if (heatMap.isReadOnly()) {
+			if (NgChm.heatMap.isReadOnly()) {
 				text = "<br>You have elected to save changes made to this READ-ONLY heat map file. READ-ONLY files cannot be updated.<br><br>However, you may save these changes to an NG-CHM file that may be opened using the NG-CHM File Viewer application.<br><br>";
-				setMessageBoxText(text);
-				setMessageBoxButton(1, "images/saveNgchm.png", "Save To NG-CHM File", "heatMap.saveHeatMapToNgchm");
-				setMessageBoxButton(4, "images/closeButton.png", "Cancel Save", "messageBoxCancel");
+				NgChm.UHM.setMessageBoxText(text);
+				NgChm.UHM.setMessageBoxButton(1, "images/saveNgchm.png", "Save To NG-CHM File", "NgChm.heatMap.saveHeatMapToNgchm");
+				NgChm.UHM.setMessageBoxButton(4, "images/closeButton.png", "Cancel Save", "NgChm.UHM.messageBoxCancel");
 			} else {
 				text = "<br>You have elected to save changes made to this heat map.<br><br>You have the option to save these changes to the original map OR to save them to an NG-CHM file that may be opened using the NG-CHM File Viewer application.<br><br>";
-				setMessageBoxText(text);
-				setMessageBoxButton(1, "images/saveNgchm.png", "Save To NG-CHM File", "heatMap.saveHeatMapToNgchm");
-				setMessageBoxButton(2, "images/saveOriginal.png", "Save Original Heat Map", "heatMap.saveHeatMapToServer");
-				setMessageBoxButton(3, "images/closeButton.png", "Cancel Save", "messageBoxCancel");
+				NgChm.UHM.setMessageBoxText(text);
+				NgChm.UHM.setMessageBoxButton(1, "images/saveNgchm.png", "Save To NG-CHM File", "NgChm.heatMap.saveHeatMapToNgchm");
+				NgChm.UHM.setMessageBoxButton(2, "images/saveOriginal.png", "Save Original Heat Map", "NgChm.heatMap.saveHeatMapToServer");
+				NgChm.UHM.setMessageBoxButton(3, "images/closeButton.png", "Cancel Save", "NgChm.UHM.messageBoxCancel");
 			}
 		}
 	} else {
-		if ((heatMap.isFileMode()) || (staticPath !== "")) {
-			if (staticPath !== "") {
+		if ((NgChm.heatMap.isFileMode()) || (NgChm.staticPath !== "")) {
+			if (NgChm.staticPath !== "") {
 				text = "<br>There are no changes to save to this Galaxy heat map file at this time.<br><br>";
 			} else {
 				text = "<br>There are no changes to save to this NG-CHM heat map file at this time.<br><br>";
 			}
-			setMessageBoxText(text);
-			setMessageBoxButton(4, "images/closeButton.png", "OK", "messageBoxCancel");
+			NgChm.UHM.setMessageBoxText(text);
+			NgChm.UHM.setMessageBoxButton(4, "images/closeButton.png", "OK", "NgChm.UHM.messageBoxCancel");
 		} else {
 			text = "<br>There are no changes to save to this heat map at this time.<br><br>However, you may save the map as an NG-CHM file that may be opened using the NG-CHM File Viewer application.<br><br>";
-			setMessageBoxText(text);
-			setMessageBoxButton(1, "images/saveNgchm.png", "Save To NG-CHM File", "heatMap.saveHeatMapToNgchm");
-			setMessageBoxButton(4, "images/closeButton.png", "Cancel Save", "messageBoxCancel");
+			NgChm.UHM.setMessageBoxText(text);
+			NgChm.UHM.setMessageBoxButton(1, "images/saveNgchm.png", "Save To NG-CHM File", "NgChm.heatMap.saveHeatMapToNgchm");
+			NgChm.UHM.setMessageBoxButton(4, "images/closeButton.png", "Cancel Save", "NgChm.UHM.messageBoxCancel");
 		}
 	}
 	document.getElementById('msgBox').style.display = '';
@@ -461,18 +454,18 @@ function saveHeatMapChanges() {
  * display a modal window whenever a zip file is being saved. The textId passed in
  * instructs the code to display either the startup save OR preferences save message.  
  **********************************************************************************/
-function zipSaveNotification(autoSave) {
+NgChm.UHM.zipSaveNotification = function(autoSave) {
 	var text;
-	initMessageBox();
-	setMessageBoxHeader("NG-CHM File Save");
+	NgChm.UHM.initMessageBox();
+	NgChm.UHM.setMessageBoxHeader("NG-CHM File Save");
 	if (autoSave) {
 		text = "<br>The NG-CHM archive file that you have just opened contains out dated heat map configuration information and is being updated.<br><br>In order to avoid the need for this update in the future, you will want to replace the NG-CHM file that you opened with the new file.";
 	} else {
 		text = "<br>You have just saved a heat map as a NG-CHM file.<br><br>In order to see your saved changes, you will want to open this new file using the NG-CHM File Viewer application."
-		setMessageBoxButton(1, "images/getZipViewer.png", "Download NG-CHM Viewer App", "zipRequestAppDownload");
+		NgChm.UHM.setMessageBoxButton(1, "images/getZipViewer.png", "Download NG-CHM Viewer App", "NgChm.UHM.zipRequestAppDownload");
 	}
-	setMessageBoxText(text);
-	setMessageBoxButton(3, "images/closeButton.png", "", "messageBoxCancel");
+	NgChm.UHM.setMessageBoxText(text);
+	NgChm.UHM.setMessageBoxButton(3, "images/closeButton.png", "", "NgChm.UHM.messageBoxCancel");
 	document.getElementById('msgBox').style.display = '';
 }
 
@@ -481,20 +474,20 @@ function zipSaveNotification(autoSave) {
  * display a modal window whenever an NG-CHM File Viewer Application download is 
  * requested.  
  **********************************************************************************/
-function zipRequestAppDownload(){
+NgChm.UHM.zipRequestAppDownload = function() {
 	var text;
-	initMessageBox();
-	setMessageBoxHeader("Download NG-CHM File Viewer Application");
-	setMessageBoxText("<br>The NG-CHM File Viewer application may be used to open NG-CHM files. Press the Download button to get the NG-CHM File Viewer application.<br><br>When the download completes, extract the contents to a location of your choice and click on the extracted chm.html file to begin viewing NG-CHM heatmap file downloads.<br><br>");
-	setMessageBoxButton(1, "images/downloadButton.png", "Download App", "zipAppDownload");
-	setMessageBoxButton(3, "images/closeButton.png", "", "messageBoxCancel");
+	NgChm.UHM.initMessageBox();
+	NgChm.UHM.setMessageBoxHeader("Download NG-CHM File Viewer Application");
+	NgChm.UHM.setMessageBoxText("<br>The NG-CHM File Viewer application may be used to open NG-CHM files. Press the Download button to get the NG-CHM File Viewer application.<br><br>When the download completes, extract the contents to a location of your choice and click on the extracted chm.html file to begin viewing NG-CHM heatmap file downloads.<br><br>");
+	NgChm.UHM.setMessageBoxButton(1, "images/downloadButton.png", "Download App", "NgChm.UHM.zipAppDownload");
+	NgChm.UHM.setMessageBoxButton(3, "images/closeButton.png", "", "NgChm.UHM.messageBoxCancel");
 	document.getElementById('msgBox').style.display = '';
 }
 
-function zipAppDownload(){
+NgChm.UHM.zipAppDownload = function() {
 	var dlButton = document.getElementById('msgBoxBtnImg_1');
 	dlButton.style.display = 'none';
-	heatMap.downloadFileApplication();
+	NgChm.heatMap.downloadFileApplication();
 }
 
 /**********************************************************************************
@@ -502,18 +495,18 @@ function zipAppDownload(){
  * display a modal window whenever an unapplied change notification is required when
  * attempting to split screens after preferences have been applied.  
  **********************************************************************************/
-function unappliedChangeNotification() {
+NgChm.UHM.unappliedChangeNotification = function() {
 	var text;
-	initMessageBox();
-	setMessageBoxHeader("Split Screen Preference Conflict");
-	if (heatMap.isReadOnly()) {
+	NgChm.UHM.initMessageBox();
+	NgChm.UHM.setMessageBoxHeader("Split Screen Preference Conflict");
+	if (NgChm.heatMap.isReadOnly()) {
 		text = "<br>There are un-applied preference changes that prevent the split-screen process from completing.<br><br>Since this is a READ-ONLY heatmap, you will need to reload the map without preference changes to access split screen mode.";
 	} else {
 		text = "<br>There are un-applied preference changes that prevent the split-screen process from completing.<br><br>You will need to either save them or cancel the process before the screen may be split.";
-		setMessageBoxButton(1, "images/prefSave.png", "Save Unapplied Changes", "unappliedChangeSave");
+		NgChm.UHM.setMessageBoxButton(1, "images/prefSave.png", "Save Unapplied Changes", "NgChm.UHM.unappliedChangeSave");
 	} 
-	setMessageBoxText(text);
-	setMessageBoxButton(3, "images/prefCancel.png", "", "messageBoxCancel");
+	NgChm.UHM.setMessageBoxText(text);
+	NgChm.UHM.setMessageBoxButton(3, "images/prefCancel.png", "", "NgChm.UHM.messageBoxCancel");
 	document.getElementById('msgBox').style.display = '';
 }
 
@@ -522,13 +515,13 @@ function unappliedChangeNotification() {
  * save when the user chooses to save unapplied changes when performing a split
  * screen operation.  
  **********************************************************************************/
-function unappliedChangeSave() {
-	var success = heatMap.saveHeatMapToServer();
+NgChm.UHM.unappliedChangeSave = function() {
+	var success = NgChm.heatMap.saveHeatMapToServer();
 	if (success === "true") {
-		heatMap.setUnAppliedChanges(false);
-		detailSplit();
+		NgChm.heatMap.setUnAppliedChanges(false);
+		NgChm.DET.detailSplit();
 	}
-	initMessageBox();
+	NgChm.UHM.initMessageBox();
 }
 
 /**********************************************************************************
@@ -542,7 +535,7 @@ function unappliedChangeSave() {
  * 4. setMessageBoxButton - Configures and places a button on the message box.
  * 5. messageBoxCancel - Closes the message box when a Cancel is requested.  
  **********************************************************************************/
-function initMessageBox() {
+NgChm.UHM.initMessageBox = function() {
 	document.getElementById('msgBox').style.display = 'none';
 	document.getElementById('msgBoxBtnImg_1').style.display = 'none';
 	document.getElementById('msgBoxBtnImg_2').style.display = 'none';
@@ -553,24 +546,29 @@ function initMessageBox() {
 	document.getElementById('msgBoxBtnImg_3')['onclick'] = null;
 	document.getElementById('msgBoxBtnImg_4')['onclick'] = null;
 }
-function setMessageBoxHeader(headerText) {
+
+NgChm.UHM.setMessageBoxHeader = function(headerText) {
 	var msgBoxHdr = document.getElementById('msgBoxHdr');
 	msgBoxHdr.innerHTML = headerText;
 }
-function setMessageBoxText(text) {
+
+NgChm.UHM.setMessageBoxText = function(text) {
 	var msgBoxTxt = document.getElementById('msgBoxTxt');
 	msgBoxTxt.innerHTML = text;
 }
-function setMessageBoxButton(buttonId, imageSrc, altText, onClick) {
+
+NgChm.UHM.setMessageBoxButton = function(buttonId, imageSrc, altText, onClick) {
 	var buttonImg = document.getElementById('msgBoxBtnImg_'+buttonId);
 	buttonImg.style.display = '';
-	buttonImg.src = staticPath + imageSrc;
+	buttonImg.src = NgChm.staticPath + imageSrc;
 	buttonImg.alt = altText;
 	var fn = eval("(function() {"+onClick+"();})");
 	buttonImg.onclick=fn;
+	NgChm.DET.canvas.focus();
 }
 
-function messageBoxCancel(){
-	initMessageBox();
+NgChm.UHM.messageBoxCancel = function() {
+	NgChm.UHM.initMessageBox();
+	NgChm.DET.canvas.focus();
 }
 

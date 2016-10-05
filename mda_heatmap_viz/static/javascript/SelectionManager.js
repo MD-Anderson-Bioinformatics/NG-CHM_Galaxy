@@ -6,74 +6,73 @@
  * changes between the two windows.  
  */
 
+//Define Namespace for NgChm SelectionManager  
+NgChm.createNS('NgChm.SEL');
+
 //Globals that provide information about heat map position selection.
-
-mode = null;          // Set to normal or ribbon vertical or ribbon horizontal 
-currentDl = "dl1";    // Set (default) to Data Layer 1 (set in application by user when flick views are toggled)
-currentRow=null;      // Top row of current selected position
-currentCol=null;      // Left column of the current selected position
-dataPerRow=null;      // How many rows are included in the current selection
-dataPerCol=null;      // How many columns in the current selection
-selectedStart=0;      // If dendrogram selection is used to limit ribbon view - which position to start selection.
-selectedStop=0;       // If dendrogram selection is used to limit ribbon view - which position is last of selection.
-var searchItems={};   // Valid labels found from a user search
-                      
-isSub = getURLParameter('sub') == 'true';  //isSub will be set to true if windows are split and this is the child.
-hasSub = false;       //hasSub set to true if windows are split and this is the parent.
-
-
+NgChm.SEL.mode = 'NORMAL';      // Set to normal or ribbon vertical or ribbon horizontal 
+NgChm.SEL.currentDl = "dl1";    // Set (default) to Data Layer 1 (set in application by user when flick views are toggled)
+NgChm.SEL.currentRow=null;      // Top row of current selected position
+NgChm.SEL.currentCol=null;      // Left column of the current selected position
+NgChm.SEL.dataPerRow=null;      // How many rows are included in the current selection
+NgChm.SEL.dataPerCol=null;      // How many columns in the current selection
+NgChm.SEL.selectedStart=0;      // If dendrogram selection is used to limit ribbon view - which position to start selection.
+NgChm.SEL.selectedStop=0;       // If dendrogram selection is used to limit ribbon view - which position is last of selection.
+NgChm.SEL.searchItems={};
+NgChm.SEL.isSub = NgChm.UTIL.getURLParameter('sub') == 'true';  //isSub will be set to true if windows are split and this is the child.
+NgChm.SEL.hasSub = false;       //hasSub set to true if windows are split and this is the parent.
 
 /* This function is called on detailInit to initialize the searchItems arrays */
-function createEmptySearchItems(){
-	searchItems["Row"]= {};
-	searchItems["Column"]= {};
-	searchItems["RowCovar"] = {};
-	searchItems["ColumnCovar"]= {};
+NgChm.SEL.createEmptySearchItems = function() {
+	NgChm.SEL.searchItems["Row"]= {};
+	NgChm.SEL.searchItems["Column"]= {};
+	NgChm.SEL.searchItems["RowCovar"] = {};
+	NgChm.SEL.searchItems["ColumnCovar"]= {};
 }
 /* This routine is called when the selected row / column is changed.
  * It is assumed that the caller modified currentRow, currentCol, dataPerRow,
  * and dataPerCol as desired. This method does redrawing and notification as necessary.  
  */
-function updateSelection() {
-	if (!isSub) {
+NgChm.SEL.updateSelection = function() {
+	if (!NgChm.SEL.isSub) {
 		//We have the summary heat map so redraw the yellow selection box.
-		drawLeftCanvasBox();
+		NgChm.SUM.drawLeftCanvasBox();
 	} 
-	if (!hasSub) {
+	if (!NgChm.SEL.hasSub) {
 		// Redraw based on mode type and selection. 
-		heatMap.setReadWindow(getLevelFromMode(MatrixManager.DETAIL_LEVEL),getCurrentDetRow(),getCurrentDetCol(),getCurrentDetDataPerCol(),getCurrentDetDataPerRow());
-		drawDetailHeatMap();
+		NgChm.heatMap.setReadWindow(NgChm.SEL.getLevelFromMode(NgChm.MMGR.DETAIL_LEVEL),NgChm.SEL.getCurrentDetRow(),NgChm.SEL.getCurrentDetCol(),NgChm.SEL.getCurrentDetDataPerCol(),NgChm.SEL.getCurrentDetDataPerRow());
+		NgChm.DET.drawDetailHeatMap();
 	} 
 	
  	//If summary and detail as split into two browsers.  Communicate the selection change
 	//to the other browser.
-	if (isSub || hasSub) {
+	if (NgChm.SEL.isSub || NgChm.SEL.hasSub) {
 		localStorage.removeItem('event');
-		localStorage.setItem('currentDl', '' + currentDl);
-		localStorage.setItem('currentRow', '' + currentRow);
-		localStorage.setItem('currentCol', '' + currentCol);
-		localStorage.setItem('dataPerRow', '' + dataPerRow);
-		localStorage.setItem('dataPerCol', '' + dataPerCol);
-		localStorage.setItem('selectedStart', '' + selectedStart);
-		localStorage.setItem('selectedStop', '' + selectedStop);
-		localStorage.setItem('mode', mode);
-		localStorage.setItem('selected', JSON.stringify(searchItems));
+		localStorage.setItem('currentDl', '' + NgChm.SEL.currentDl);
+		localStorage.setItem('currentRow', '' + NgChm.SEL.currentRow);
+		localStorage.setItem('currentCol', '' + NgChm.SEL.currentCol);
+		localStorage.setItem('dataPerRow', '' + NgChm.SEL.dataPerRow);
+		localStorage.setItem('dataPerCol', '' + NgChm.SEL.dataPerCol); 
+		localStorage.setItem('selectedStart', '' + NgChm.SEL.selectedStart);
+		localStorage.setItem('selectedStop', '' + NgChm.SEL.selectedStop);
+		localStorage.setItem('mode', NgChm.SEL.mode);
+		localStorage.setItem('selected', JSON.stringify(NgChm.SEL.searchItems));
 		localStorage.setItem('event', 'changePosition');
 	}		
 }
 
-function changeMode(newMode) {
+NgChm.SEL.changeMode = function(newMode) {
 	
-	if (!hasSub) {
-		callDetailDrawFunction(newMode);
+	if (!NgChm.SEL.hasSub) {
+		NgChm.SEL.callDetailDrawFunction(newMode);
 	} else {
-		mode = newMode;
+		NgChm.SEL.mode = newMode;
 		localStorage.removeItem('event');
-		localStorage.setItem('selectedStart', '' + selectedStart);
-		localStorage.setItem('selectedStop', '' + selectedStop);
+		localStorage.setItem('selectedStart', '' + NgChm.SEL.selectedStart);
+		localStorage.setItem('selectedStop', '' + NgChm.SEL.selectedStop);
 		localStorage.setItem('mode', newMode);
 		localStorage.setItem('event', 'changeMode');
-		localStorage.setItem('selected', JSON.stringify(searchItems));
+		localStorage.setItem('selected', JSON.stringify(NgChm.SEL.searchItems));
 	}
 }
 
@@ -82,11 +81,11 @@ function changeMode(newMode) {
  * with a given mode.  A level is passed in from either the summary or detail display
  * as a default value and returned if the mode is not one of the Ribbon modes.
  **********************************************************************************/
-function getLevelFromMode(lvl) {
-	if (mode == 'RIBBONV') {
-		return MatrixManager.RIBBON_VERT_LEVEL;
-	} else if (mode == 'RIBBONH') {
-		return MatrixManager.RIBBON_HOR_LEVEL;
+NgChm.SEL.getLevelFromMode = function(lvl) {
+	if (NgChm.SEL.mode == 'RIBBONV') {
+		return NgChm.MMGR.RIBBON_VERT_LEVEL;
+	} else if (NgChm.SEL.mode == 'RIBBONH') {
+		return NgChm.MMGR.RIBBON_HOR_LEVEL;
 	} else {
 		return lvl;
 	} 
@@ -94,18 +93,18 @@ function getLevelFromMode(lvl) {
 
 /* Handle mouse scroll wheel events to zoom in / out.
  */
-function handleScroll(evt) {
+NgChm.SEL.handleScroll = function(evt) {
 	evt.preventDefault();
 	if (evt.wheelDelta < 0 || evt.deltaY > 0 || evt.scale < 1) { //Zoom out
-		if (!hasSub)
-			detailDataZoomOut();
+		if (!NgChm.SEL.hasSub)
+			NgChm.DET.detailDataZoomOut();
 		else {
 			localStorage.removeItem('event');
 			localStorage.setItem('event', 'zoomOut' )
 		}
 	} else { // Zoom in
-		if (!hasSub)
-			detailDataZoomIn();
+		if (!NgChm.SEL.hasSub)
+			NgChm.DET.detailDataZoomIn();
 		else {
 			localStorage.removeItem('event');
 			localStorage.setItem('event', 'zoomIn' )
@@ -115,89 +114,91 @@ function handleScroll(evt) {
 } 		
 
 
-function keyNavigate(e){
-	userHelpClose();
-    clearTimeout(detailPoint);
+NgChm.SEL.keyNavigate = function(e) {
+	NgChm.UHM.userHelpClose();
+    clearTimeout(NgChm.DET.detailPoint);
 	switch(e.keyCode){ // prevent default added redundantly to each case so that other key inputs won't get ignored
 		case 37: // left key 
 			if (document.activeElement.id !== "search_text"){
 				e.preventDefault();
-				if (e.shiftKey){currentCol -= dataPerRow;} 
-				else {currentCol--;}
+				if (e.shiftKey){NgChm.SEL.currentCol -= NgChm.SEL.dataPerRow;} 
+				else {NgChm.SEL.currentCol--;}
 			}
 			break;
 		case 38: // up key
 			if (document.activeElement.id !== "search_text"){
 				e.preventDefault();
-				if (e.shiftKey){currentRow -= dataPerCol;} 
-				else {currentRow--;}
+				if (e.shiftKey){NgChm.SEL.currentRow -= NgChm.SEL.dataPerCol;} 
+				else {NgChm.SEL.currentRow--;}
 			}
 			break;
 		case 39: // right key
 			if (document.activeElement.id !== "search_text"){
 				e.preventDefault();
-				if (e.shiftKey){currentCol += dataPerRow;} 
-				else {currentCol++;}
+				if (e.shiftKey){NgChm.SEL.currentCol += NgChm.SEL.dataPerRow;} 
+				else {NgChm.SEL.currentCol++;}
 			}
 			break;
 		case 40: // down key
 			if (document.activeElement.id !== "search_text"){
 				e.preventDefault();
-				if (e.shiftKey){currentRow += dataPerCol;} 
-				else {currentRow++;}
+				if (e.shiftKey){NgChm.SEL.currentRow += NgChm.SEL.dataPerCol;} 
+				else {NgChm.SEL.currentRow++;}
 			}
 			break;
 		case 33: // page up
 			e.preventDefault();
 			if (e.shiftKey){
 				var newMode;
-				clearDendroSelection();
-				switch(mode){
+				NgChm.DDR.clearDendroSelection();
+				switch(NgChm.SEL.mode){
 					case "RIBBONV": newMode = 'RIBBONH'; break;
 					case "RIBBONH": newMode = 'NORMAL'; break;
-					default: newMode = mode;break;
+					default: newMode = NgChm.SEL.mode;break;
 				}
-				changeMode(newMode);
+				NgChm.SEL.changeMode(newMode);
 			} else {
-				detailDataZoomIn();;
+				NgChm.DET.detailDataZoomIn();
 			}
 			break;
 		case 34: // page down 
 			e.preventDefault();
 			if (e.shiftKey){
 				var newMode;
-				clearDendroSelection();
-				switch(mode){
+				NgChm.DDR.clearDendroSelection();
+				switch(NgChm.SEL.mode){
 					case "NORMAL": newMode = 'RIBBONH'; break;
 					case "RIBBONH": newMode = 'RIBBONV'; break;
-					default: newMode = mode;break;
+					default: newMode = NgChm.SEL.mode;break;
 				}
-				changeMode(newMode);
+				NgChm.SEL.changeMode(newMode);
 			} else {
-				detailDataZoomOut();
+				NgChm.DET.detailDataZoomOut();
 			}
 			break;
 		case 113: // F2 key 
-			if (flickIsOn()) {
+			if (NgChm.SEL.flickIsOn()) {
 				var flickBtnSrc = document.getElementById("flick_btn").src;
 				if (flickBtnSrc.indexOf("Up") >= 0) {
-					flickChange("toggle2");
+					NgChm.SEL.flickChange("toggle2");
 				} else {
-					flickChange("toggle1");
+					NgChm.SEL.flickChange("toggle1");
 				}
 			}
 			break;
-		case 191: // "divide key" /
-			detailSplit();
+		case 191: // "divide key" BUT not "? key"/
+			if (!e.shiftKey) {
+				NgChm.DET.detailSplit();
+			}
 			break;
 		default:
 			return;
 	}
 	
-	checkRow();
-	checkColumn();
+	NgChm.SEL.checkRow();
+	NgChm.SEL.checkColumn();
     
-    updateSelection();
+    NgChm.SEL.updateSelection();
 }
 
 /*==============================================================================================
@@ -211,11 +212,11 @@ function keyNavigate(e){
  * when the display is split. Setup an event to be notified when contents of local storage are 
  * modified.
  ***********************************************************************************************/ 
-function setupLocalStorage () {
+NgChm.SEL.setupLocalStorage = function() {
 	window.addEventListener('storage', function (evt) {
 		console.log('localstorage event ' + evt.key);
 		if (evt.key == 'event') {
-			handleLocalStorageEvent(evt);
+			NgChm.SEL.handleLocalStorageEvent(evt);
 		} 
 	}, false);
 }
@@ -224,48 +225,53 @@ function setupLocalStorage () {
  * FUNCTION: handleLocalStorageEvent - When the detail pane is in a separate window, local storage 
  * is used to send it updates from clicks in the summary view.
  ***********************************************************************************************/ 
-function handleLocalStorageEvent(evt) {
+NgChm.SEL.handleLocalStorageEvent = function(evt) {
 	if (evt.newValue == null)
 		return;
 	
 	var type = localStorage.getItem('event');
 
 	if (type == 'changePosition') {
-		getLocalStorageValues();
-		if (mode != localStorage.getItem('mode') && selectedStart == 0 && selectedStop == 0){
-			clearDendroSelection();
+		NgChm.SEL.currentRow = Number(localStorage.getItem('currentRow'));
+		NgChm.SEL.currentCol = Number(localStorage.getItem('currentCol'));
+		NgChm.SEL.dataPerRow = Number(localStorage.getItem('dataPerRow'));
+		NgChm.SEL.dataPerCol = Number(localStorage.getItem('dataPerCol'));
+		NgChm.SEL.selectedStart = Number(localStorage.getItem('selectedStart'));
+		NgChm.SEL.selectedStop = Number(localStorage.getItem('selectedStop'));
+		if (NgChm.SEL.mode != localStorage.getItem('mode') && NgChm.SEL.selectedStart == 0 && NgChm.SEL.selectedStop == 0){
+			NgChm.DDR.clearDendroSelection();
 		}
-		mode = localStorage.getItem('mode');
-		if (hasSub) {
-			if (currentDl != localStorage.getItem('currentDl')) {
-				currentDl = localStorage.getItem('currentDl');
-				summaryInit();
+		NgChm.SEL.mode = localStorage.getItem('mode');
+		if (NgChm.SEL.hasSub) {
+			if (NgChm.SEL.currentDl != localStorage.getItem('currentDl')) {
+				NgChm.SEL.currentDl = localStorage.getItem('currentDl');
+				NgChm.SUM.buildSummaryTexture();
 			}
 			// if the selection changes, redraw the selection marks
-			searchItems = JSON.parse(localStorage.getItem('selected'));
-			clearSelectionMarks();
-			drawRowSelectionMarks();
-			drawColSelectionMarks();
+			NgChm.SEL.searchItems = JSON.parse(localStorage.getItem('selected'));
+			NgChm.SUM.clearSelectionMarks();
+			NgChm.SUM.drawRowSelectionMarks();
+			NgChm.SUM.drawColSelectionMarks();
 			// Redraw the yellow selection box.
-			drawLeftCanvasBox ();
+			NgChm.SUM.drawLeftCanvasBox();
 		} 
-		if (isSub) {
-			callDetailDrawFunction(mode);
+		if (NgChm.SEL.isSub) {
+			NgChm.SEL.callDetailDrawFunction(NgChm.SEL.mode);
 		} 
 	} else if (type == 'zoomIn'){
-		detailDataZoomIn();
+		NgChm.DET.detailDataZoomIn();
 	} else if (type == 'zoomOut') {
-		detailDataZoomOut();
-	} else if ((type == 'changeMode') && (isSub))	{
-		clearDendroSelection();
+		NgChm.DET.detailDataZoomOut();
+	} else if ((type == 'changeMode') && (NgChm.SEL.isSub))	{
+		NgChm.DDR.clearDendroSelection();
 		var newMode = localStorage.getItem('mode');
-		selectedStart = Number(localStorage.getItem('selectedStart'));
-		selectedStop = Number(localStorage.getItem('selectedStop'));
-		searchItems = JSON.parse(localStorage.getItem('selected'));
-		callDetailDrawFunction(newMode);
-	} else if ((type == 'join') && hasSub) {
-		hasSub=false;
-		detailJoin();
+		NgChm.SEL.selectedStart = Number(localStorage.getItem('selectedStart'));
+		NgChm.SEL.selectedStop = Number(localStorage.getItem('selectedStop'));
+		NgChm.SEL.searchItems = JSON.parse(localStorage.getItem('selected'));
+		NgChm.SEL.callDetailDrawFunction(newMode);
+	} else if ((type == 'join') && NgChm.SEL.hasSub) {
+		NgChm.SEL.hasSub=false;
+		NgChm.DET.detailJoin();
 	}
 }
 
@@ -273,51 +279,52 @@ function handleLocalStorageEvent(evt) {
  * FUNCTION: initFromLocalStorage - If a second detail browser window is launched, use local 
  * storage when first setting up the detail chm to get current mode and selection settings.
  ***********************************************************************************************/ 
-function initFromLocalStorage() {
-	getLocalStorageValues();
-	if (heatMap.showColDendrogram("DETAIL")) {
-		summaryColumnDendro = new SummaryColumnDendrogram(); 
+NgChm.SEL.initFromLocalStorage = function() {
+	NgChm.SEL.getLocalStorageValues();
+	if (NgChm.heatMap.showColDendrogram("DETAIL")) {
+		NgChm.SUM.colDendro = new NgChm.DDR.SummaryColumnDendrogram(); 
 	} 
-	if (heatMap.showRowDendrogram("DETAIL")) {
-		summaryRowDendro = new SummaryRowDendrogram();
+	if (NgChm.heatMap.showRowDendrogram("DETAIL")) {
+		NgChm.SUM.rowDendro = new NgChm.DDR.SummaryRowDendrogram ();
 	}
-	heatMap.configureFlick();
+	NgChm.heatMap.configureFlick();
 	var nameDiv = document.getElementById("mapName");
-	nameDiv.innerHTML = "<b>Map Name:</b>&nbsp;&nbsp;"+heatMap.getMapInformation().name;
-	callDetailDrawFunction(mode);
+	nameDiv.innerHTML = "<b>Map Name:</b>&nbsp;&nbsp;"+NgChm.heatMap.getMapInformation().name;
+	NgChm.SEL.callDetailDrawFunction(NgChm.SEL.mode);
 }
 
-function callDetailDrawFunction(modeVal) {
+NgChm.SEL.callDetailDrawFunction = function(modeVal) {
 	if (modeVal == 'RIBBONH' || modeVal == 'RIBBONH_DETAIL')
-		detailHRibbon();
+		NgChm.DET.detailHRibbon();
 	if (modeVal == 'RIBBONV' || modeVal == 'RIBBONV_DETAIL')
-		detailVRibbon();
+		NgChm.DET.detailVRibbon();
 	if (modeVal == 'NORMAL') {
-		detailNormal();	
+		NgChm.DET.detailNormal();	
 	}
 }
-function getLocalStorageValues() {
-	currentDl = localStorage.getItem('currentDl');
-	currentRow = Number(localStorage.getItem('currentRow'));
-	currentCol = Number(localStorage.getItem('currentCol'));
-	dataPerRow = Number(localStorage.getItem('dataPerRow'));
-	dataPerCol = Number(localStorage.getItem('dataPerCol'));
-	selectedStart = Number(localStorage.getItem('selectedStart'));
-	selectedStop = Number(localStorage.getItem('selectedStop'));
-	searchItems = JSON.parse(localStorage.getItem('selected'));
-	mode = localStorage.getItem('mode');
 
-	heatMap.configureFlick();
+NgChm.SEL.getLocalStorageValues = function() {
+	NgChm.SEL.currentDl = localStorage.getItem('currentDl');
+	NgChm.SEL.currentRow = Number(localStorage.getItem('currentRow'));
+	NgChm.SEL.currentCol = Number(localStorage.getItem('currentCol'));
+	NgChm.SEL.dataPerRow = Number(localStorage.getItem('dataPerRow'));
+	NgChm.SEL.dataPerCol = Number(localStorage.getItem('dataPerCol'));
+	NgChm.SEL.selectedStart = Number(localStorage.getItem('selectedStart'));
+	NgChm.SEL.selectedStop = Number(localStorage.getItem('selectedStop'));
+	NgChm.SEL.searchItems = JSON.parse(localStorage.getItem('selected'));
+	NgChm.SEL.mode = localStorage.getItem('mode');
 
-	dataBoxHeight = (DETAIL_SIZE_NORMAL_MODE-detailDataViewBorder)/dataPerCol;
-	dataBoxWidth = (DETAIL_SIZE_NORMAL_MODE-detailDataViewBorder)/dataPerRow;
+	NgChm.heatMap.configureFlick();
+
+	NgChm.DET.dataBoxHeight = (NgChm.DET.SIZE_NORMAL_MODE-NgChm.DET.dataViewBorder)/NgChm.SEL.dataPerCol;
+	NgChm.DET.dataBoxWidth = (NgChm.DET.SIZE_NORMAL_MODE-NgChm.DET.dataViewBorder)/NgChm.SEL.dataPerRow;
 }
 
 /************************************************************************************************
  * FUNCTION: rejoinNotice - Called when a separate detail map window is joined back into the 
  * main chm browser window.
  ***********************************************************************************************/ 
-function rejoinNotice() {
+NgChm.SEL.rejoinNotice = function() {
 	localStorage.removeItem('event');
 	localStorage.setItem('event', 'join');	
 }
@@ -333,23 +340,23 @@ function rejoinNotice() {
  * is valid and adjusts that value into the viewing pane if it is not. It is called
  * just prior to calling UpdateSelection().
  **********************************************************************************/
-function checkRow() {
+NgChm.SEL.checkRow = function() {
     //Set column to one if off the row boundary when in ribbon vert view
-	if ((currentRow < 1) || ((mode == 'RIBBONV') && (selectedStart==0))) currentRow = 1;
-	if (((mode == 'RIBBONV') || (mode == 'RIBBONV_DETAIL')) && (selectedStart != 0)) currentRow = selectedStart;
+	if ((NgChm.SEL.currentRow < 1) || ((NgChm.SEL.mode == 'RIBBONV') && (NgChm.SEL.selectedStart==0))) NgChm.SEL.currentRow = 1;
+	if (((NgChm.SEL.mode == 'RIBBONV') || (NgChm.SEL.mode == 'RIBBONV_DETAIL')) && (NgChm.SEL.selectedStart != 0)) NgChm.SEL.currentRow = NgChm.SEL.selectedStart;
 	//Check row against detail boundaries
-	var numRows = heatMap.getNumRows(MatrixManager.DETAIL_LEVEL);
-	if (currentRow > ((numRows + 1) - dataPerCol)) currentRow = (numRows + 1) - dataPerCol;
+	var numRows = NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL);
+	if (NgChm.SEL.currentRow > ((numRows + 1) - NgChm.SEL.dataPerCol)) NgChm.SEL.currentRow = (numRows + 1) - NgChm.SEL.dataPerCol;
 }
 
-function checkColumn() {
+NgChm.SEL.checkColumn = function() {
     //Set column to one if off the column boundary when in ribbon horiz view
-    if ((currentCol < 1) || ((mode == 'RIBBONH') && selectedStart==0)) currentCol = 1;
-    if (((mode == 'RIBBONH') || (mode=='RIBBONH_DETAIL')) && selectedStart!= 0) currentCol = selectedStart;
+    if ((NgChm.SEL.currentCol < 1) || ((NgChm.SEL.mode == 'RIBBONH') && NgChm.SEL.selectedStart==0)) NgChm.SEL.currentCol = 1;
+    if (((NgChm.SEL.mode == 'RIBBONH') || (NgChm.SEL.mode=='RIBBONH_DETAIL')) && NgChm.SEL.selectedStart!= 0) NgChm.SEL.currentCol = NgChm.SEL.selectedStart;
     //Check column against detail boundaries
-    var numCols = heatMap.getNumColumns(MatrixManager.DETAIL_LEVEL);
-    if (currentCol > ((numCols + 1) - dataPerRow)) {
-    	currentCol = (numCols + 1) - dataPerRow;
+    var numCols = NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL);
+    if (NgChm.SEL.currentCol > ((numCols + 1) - NgChm.SEL.dataPerRow)) {
+    	NgChm.SEL.currentCol = (numCols + 1) - NgChm.SEL.dataPerRow;
     }
 }
 
@@ -360,14 +367,14 @@ function checkColumn() {
  * in the summary pane. The heatmap row/col summary ratios (ratio of detail to summary) 
  * are used to calculate the proper detail coordinates.  
  **********************************************************************************/
-function setCurrentRowFromSum(sumRow) {
+NgChm.SEL.setCurrentRowFromSum = function(sumRow) {
 	// Up scale current summary row to detail equivalent
-	currentRow = (sumRow*heatMap.getRowSummaryRatio(MatrixManager.SUMMARY_LEVEL));
-	checkRow();
+	NgChm.SEL.currentRow = (sumRow*NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL));
+	NgChm.SEL.checkRow();
 }
-function setCurrentColFromSum(sumCol) {
-	currentCol = (sumCol*heatMap.getColSummaryRatio(MatrixManager.SUMMARY_LEVEL));
-	checkColumn();
+NgChm.SEL.setCurrentColFromSum = function(sumCol) {
+	NgChm.SEL.currentCol = (sumCol*NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL));
+	NgChm.SEL.checkColumn();
 }
 
 /**********************************************************************************
@@ -378,16 +385,16 @@ function setCurrentColFromSum(sumCol) {
  * row/col summary ratios (ratio of detail to summary) are used to  calculate the 
  * proper detail coordinates.
  **********************************************************************************/
-function getCurrentSumRow() {
-	var currRow = currentRow;
+NgChm.SEL.getCurrentSumRow = function() {
+	var currRow = NgChm.SEL.currentRow;
 	// Convert selected current row value to Summary level
-	var rowSummaryRatio = heatMap.getRowSummaryRatio(MatrixManager.SUMMARY_LEVEL);
+	var rowSummaryRatio = NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL);
 	return  Math.round(currRow/rowSummaryRatio);
 }
 //Follow similar methodology for Column as is used in above row based function
-function getCurrentSumCol() {
-	var currCol = currentCol;
-	var colSummaryRatio = heatMap.getColSummaryRatio(MatrixManager.SUMMARY_LEVEL);
+NgChm.SEL.getCurrentSumCol = function() {
+	var currCol = NgChm.SEL.currentCol;
+	var colSummaryRatio = NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL);
 	return  Math.round(currCol/colSummaryRatio);
 }
 
@@ -397,16 +404,16 @@ function getCurrentSumCol() {
  * proper view pane can be calculated on the summary heat map when drawing the 
  * leftCanvasBox on that side of the screen.
  **********************************************************************************/
-function getCurrentSumDataPerRow() {
-	var rowSummaryRatio = heatMap.getColSummaryRatio(MatrixManager.SUMMARY_LEVEL);
+NgChm.SEL.getCurrentSumDataPerRow = function() {
+	var rowSummaryRatio = NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL);
 	// Summary data per row for  using the summary ration for that level
-	var	sumDataPerRow = Math.floor(dataPerRow/rowSummaryRatio);
+	var	sumDataPerRow = Math.floor(NgChm.SEL.dataPerRow/rowSummaryRatio);
 	return sumDataPerRow;
 }
 // Follow similar methodology for Column as is used in above row based function
-function getCurrentSumDataPerCol() {
-	var colSummaryRatio = heatMap.getRowSummaryRatio(MatrixManager.SUMMARY_LEVEL);
-	var	sumDataPerCol = Math.floor(dataPerCol/colSummaryRatio);
+NgChm.SEL.getCurrentSumDataPerCol = function() {
+	var colSummaryRatio = NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL);
+	var	sumDataPerCol = Math.floor(NgChm.SEL.dataPerCol/colSummaryRatio);
 	return sumDataPerCol;
 }
 
@@ -417,20 +424,20 @@ function getCurrentSumDataPerCol() {
  * position.  This is usually the same but when in ribbon view on a large matrix, 
  * the positions are scaled.
  **********************************************************************************/
-function getCurrentDetRow() {
-	var detRow = currentRow;
-	if ((mode == 'RIBBONV') && (selectedStart >= 1)) {
-		var rvRatio = heatMap.getRowSummaryRatio(MatrixManager.RIBBON_VERT_LEVEL);
-		detRow = Math.round(selectedStart/rvRatio);
+NgChm.SEL.getCurrentDetRow = function() {
+	var detRow = NgChm.SEL.currentRow;
+	if ((NgChm.SEL.mode == 'RIBBONV') && (NgChm.SEL.selectedStart >= 1)) {
+		var rvRatio = NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.RIBBON_VERT_LEVEL);
+		detRow = Math.round(NgChm.SEL.selectedStart/rvRatio);
 	}
 	return  detRow;
 }
 //Follow similar methodology for Column as is used in above row based function
-function getCurrentDetCol() {
-	var detCol = currentCol;
-	if ((mode == 'RIBBONH') && (selectedStart >= 1)) {
-		var rhRatio = heatMap.getColSummaryRatio(MatrixManager.RIBBON_HOR_LEVEL);
-		detCol = Math.round(selectedStart/rhRatio);
+NgChm.SEL.getCurrentDetCol = function() {
+	var detCol = NgChm.SEL.currentCol;
+	if ((NgChm.SEL.mode == 'RIBBONH') && (NgChm.SEL.selectedStart >= 1)) {
+		var rhRatio = NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.RIBBON_HOR_LEVEL);
+		detCol = Math.round(NgChm.SEL.selectedStart/rhRatio);
 	}
 	return  detCol;
 }
@@ -440,23 +447,21 @@ function getCurrentDetCol() {
  * and usually the detail view uses this value directly unless we are in ribbon
  * view where the value needs to be scaled in one dimension.
  **********************************************************************************/
-function getCurrentDetDataPerRow() {
+NgChm.SEL.getCurrentDetDataPerRow = function() {
 	// make sure dataPerCol is the correct value. split screen can cause issues with values updating properly.
-//	if (dataPerRow !== (detailDataViewWidth -2)/dataBoxWidth || dataPerRow !== ) dataPerRow = (detailDataViewWidth -2)/dataBoxWidth;
-	var	detDataPerRow = dataPerRow;
-	if (mode == 'RIBBONH') {
-		var rate = heatMap.getColSummaryRatio(MatrixManager.RIBBON_HOR_LEVEL);
+	var	detDataPerRow = NgChm.SEL.dataPerRow;
+	if (NgChm.SEL.mode == 'RIBBONH') {
+		var rate = NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.RIBBON_HOR_LEVEL);
 		detDataPerRow = Math.round(detDataPerRow/rate);
 	} 
 	return detDataPerRow;
 }
 // Follow similar methodology for Column as is used in above row based function
-function getCurrentDetDataPerCol() {
+NgChm.SEL.getCurrentDetDataPerCol = function() {
 	// make sure dataPerCol is the correct value. split screen can cause issues with values updating properly.
-//	if (dataPerCol !== (detailDataViewHeight -2)/dataBoxHeight) dataPerCol = (detailDataViewHeight -2)/dataBoxHeight;
-	var	detDataPerCol = dataPerCol;
-	if (mode == 'RIBBONV') {
-		var rate = heatMap.getRowSummaryRatio(MatrixManager.RIBBON_VERT_LEVEL);
+	var	detDataPerCol = NgChm.SEL.dataPerCol;
+	if (NgChm.SEL.mode == 'RIBBONV') {
+		var rate = NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.RIBBON_VERT_LEVEL);
 		detDataPerCol = Math.round(detDataPerCol/rate);
 	} 
 	return detDataPerCol;
@@ -466,26 +471,26 @@ function getCurrentDetDataPerCol() {
  * FUNCTIONS - setDataPerRowFromDet(): DataPerRow/Col is in full matrix coordinates
  * so sometimes in ribbon view this needs to be translated to full coordinates.
  **********************************************************************************/
-function setDataPerRowFromDet(detDataPerRow) {
-	dataPerRow = detDataPerRow;
-	if (mode == 'RIBBONH') {
-		if (selectedStart==0) {
-			dataPerRow = heatMap.getNumColumns(MatrixManager.DETAIL_LEVEL);
+NgChm.SEL.setDataPerRowFromDet = function(detDataPerRow) {
+	NgChm.SEL.dataPerRow = detDataPerRow;
+	if (NgChm.SEL.mode == 'RIBBONH') {
+		if (NgChm.SEL.selectedStart==0) {
+			NgChm.SEL.dataPerRow = NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL);
 		} else {
-			var rate = heatMap.getColSummaryRatio(MatrixManager.RIBBON_HOR_LEVEL);
-			dataPerRow = detDataPerRow * rate;
+			var rate = NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.RIBBON_HOR_LEVEL);
+			NgChm.SEL.dataPerRow = detDataPerRow * rate;
 		}
 	} 
 }
 // Follow similar methodology for Column as is used in above row based function
-function setDataPerColFromDet(detDataPerCol) {
-	dataPerCol = detDataPerCol;
-	if (mode == 'RIBBONV') {
-		if (selectedStart==0) {
-			dataPerCol = heatMap.getNumRows(MatrixManager.DETAIL_LEVEL);
+NgChm.SEL.setDataPerColFromDet = function(detDataPerCol) {
+	NgChm.SEL.dataPerCol = detDataPerCol;
+	if (NgChm.SEL.mode == 'RIBBONV') {
+		if (NgChm.SEL.selectedStart==0) {
+			NgChm.SEL.dataPerCol = NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL);
 		} else {
-			var rate = heatMap.getRowSummaryRatio(MatrixManager.RIBBON_VERT_LEVEL);
-			dataPerCol = detDataPerCol * rate;
+			var rate = NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.RIBBON_VERT_LEVEL);
+			NgChm.SEL.dataPerCol = detDataPerCol * rate;
 		}
 	} 
 }
@@ -500,7 +505,7 @@ function setDataPerColFromDet(detDataPerCol) {
  * FUNCTION: flickExists - Returns true if the heatmap contains multiple data layers by checking
  * to see if the "FLICK" button is present on the screen.
  ***********************************************************************************************/ 
-function flickExists() {
+NgChm.SEL.flickExists = function() {
 	var flicks = document.getElementById("flicks");
 	if ((flicks != null) && (flicks.style.display === '')) {
 		return true;
@@ -512,7 +517,7 @@ function flickExists() {
  * FUNCTION: flickIsOn - Returns true if the user has opened the flick control by checking to 
  * see if the flickViews DIV is visible.
  ***********************************************************************************************/ 
-function flickIsOn() {
+NgChm.SEL.flickIsOn = function() {
 	var flickViews = document.getElementById("flickViews");
 	if (flickViews.style.display === '') {
 		return true;
@@ -523,15 +528,15 @@ function flickIsOn() {
 /************************************************************************************************
  * FUNCTION: flickToggleOn - Opens the flick control.
  ***********************************************************************************************/ 
-function flickToggleOn() {
-	flickInit();
+NgChm.SEL.flickToggleOn = function() {
+	NgChm.SEL.flickInit();
 	var flicks = document.getElementById("flicks");
 	var flickViewsOff = document.getElementById("noFlickViews");
 	var flickViewsOn = document.getElementById("flickViews");
 	flickViewsOff.style.display="none";
 	flickViewsOn.style.display='';
 }
-function openFileToggle() {
+NgChm.SEL.openFileToggle = function() {
 	var fileButton = document.getElementById('fileButton');
 	if (fileButton.style.display === 'none') {
 		fileButton.style.display = '';
@@ -540,12 +545,10 @@ function openFileToggle() {
 	}
 }
 
-
-
 /************************************************************************************************
  * FUNCTION: flickToggleOff - Closes (hides) the flick control.
  ***********************************************************************************************/ 
-function flickToggleOff() {
+NgChm.SEL.flickToggleOff = function() {
 	var flicks = document.getElementById("flicks");
 	var flickViewsOff = document.getElementById("noFlickViews");
 	var flickViewsOn = document.getElementById("flickViews");
@@ -553,7 +556,7 @@ function flickToggleOff() {
 	flickViewsOff.style.display='';
 }
 
-function flickInit() {
+NgChm.SEL.flickInit = function() {
 	var flickBtn = document.getElementById("flick_btn");
 	var flickBtnSrc = flickBtn.src;
 	var flickDrop1 = document.getElementById("flick1");
@@ -568,7 +571,6 @@ function flickInit() {
 
 }
 
-
 /************************************************************************************************
  * FUNCTION: flickChange - Responds to a change in the flick view control.  All of these actions 
  * depend upon the flick control being visible (i.e. active) There are 3 types of changes 
@@ -577,43 +579,45 @@ function flickInit() {
  * to the 2 dropdowns, AND the current visible data layer is for the opposite dropdown. 
  * If any of the above cases are met, the currentDl is changed and the screen is redrawn.
  ***********************************************************************************************/ 
-function flickChange(fromList) {
+NgChm.SEL.flickChange = function(fromList) {
 	var flickBtn = document.getElementById("flick_btn");
 	var flickDrop1 = document.getElementById("flick1");
 	var flickDrop2 = document.getElementById("flick2");
 	var flickBtnSrc = flickBtn.src;
 	if (typeof fromList === 'undefined') {
 		if (flickBtnSrc.indexOf("Up") >= 0) {
-			flickBtn.setAttribute('src', staticPath + 'images/toggleDown.png');
-			currentDl = flickDrop2.value;
+			flickBtn.setAttribute('src', NgChm.staticPath + 'images/toggleDown.png');
+			NgChm.SEL.currentDl = flickDrop2.value;
 		} else {
-			flickBtn.setAttribute('src', staticPath + 'images/toggleUp.png');
-			currentDl = flickDrop1.value;
+			flickBtn.setAttribute('src', NgChm.staticPath + 'images/toggleUp.png');
+			NgChm.SEL.currentDl = flickDrop1.value;
 			flickDrop1.style.backgroundColor="yellow";
 		}
 	} else {
 		if ((fromList === "flick1") && (flickBtnSrc.indexOf("Up") >= 0)) {
-			currentDl = document.getElementById(fromList).value;
+			NgChm.SEL.currentDl = document.getElementById(fromList).value;
 		} else if ((fromList === "flick2") && (flickBtnSrc.indexOf("Down") >= 0)) {
-			currentDl = document.getElementById(fromList).value;
+			NgChm.SEL.currentDl = document.getElementById(fromList).value;
 		} else if ((fromList === "toggle1") && (flickBtnSrc.indexOf("Down") >= 0)) {
-			flickBtn.setAttribute('src', staticPath + 'images/toggleUp.png');
-			currentDl = flickDrop1.value;
+			flickBtn.setAttribute('src', NgChm.staticPath + 'images/toggleUp.png');
+			NgChm.SEL.currentDl = flickDrop1.value;
 		} else if ((fromList === "toggle2") && (flickBtnSrc.indexOf("Up") >= 0)) {
-			flickBtn.setAttribute('src', staticPath + 'images/toggleDown.png');
-			currentDl = flickDrop2.value;
+			flickBtn.setAttribute('src', NgChm.staticPath + 'images/toggleDown.png');
+			NgChm.SEL.currentDl = flickDrop2.value;
 		} else {
 			return;
 		}
-	}
-	flickInit();
+	} 
+	NgChm.SEL.flickInit();
 	
-	if (!isSub) {
-		summaryInit();
+	if (!NgChm.SEL.isSub) {
+		NgChm.SUM.summaryInit();
 	} else {
-		localStorage.setItem('currentDl', '' + currentDl);
+		localStorage.removeItem('event');
+		localStorage.setItem('currentDl', NgChm.SEL.currentDl);
+		localStorage.setItem('event', 'changePosition');
 	}
-	drawDetailHeatMap();
+	NgChm.DET.drawDetailHeatMap();
 }
 
 

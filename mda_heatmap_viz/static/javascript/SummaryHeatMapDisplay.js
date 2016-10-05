@@ -1,183 +1,174 @@
-var BYTE_PER_RGBA = 4;
+//Define Namespace for NgChm SummaryHeatMapDisplay
+NgChm.createNS('NgChm.SUM');
 
-var canvas;
-var box_canvas;  //canvas on top of WebGL canvas for selection box 
-var gl; // WebGL contexts
-var textureParams;
+NgChm.SUM.BYTE_PER_RGBA = 4;
+
+NgChm.SUM.canvas;
+NgChm.SUM.boxCanvas;  //canvas on top of WebGL canvas for selection box 
+NgChm.SUM.gl; // WebGL contexts
+NgChm.SUM.textureParams;
+NgChm.SUM.texPixels;
 
 //Size of heat map components
-var summaryHeightPercentage = .82; // this is the amount of vertical space the col dendro and the map should take up on the summary chm div (taken from the css)
-var summaryWidthPercentage = .78; // this is the amount of horizontal space the row dendro and the map should take up on the summary chm div (taken from the css)
-var dendroPaddingHeight = 2;
-var rowDendroHeight;      // this is the height of the row dendro in canvas coords (this value may be adjusted eventually by the user)
-var columnDendroHeight;   // this is the height of the col dendro in canvas coords (this value may be adjusted eventually by the user)
-var rowDendroBaseHeight = 100;
-var columnDendroBaseHeight = 100;
-var normDendroMatrixHeight = 500; // this is the height of the dendro matrices created in buildDendroMatrix
-var rowClassPadding = 2;          // space between classification bars
-var colClassPadding = 2;          // space between classification bars
-var rowClassBarWidth;
-var colClassBarHeight;
-var rowClassScale = 1;
-var colClassScale = 1;
-var summaryMatrixWidth;
-var summaryMatrixHeight;
-var summaryTotalHeight;
-var summaryTotalWidth;
-var max_values = 9999999999.99;
-var avg_value = 0;
+NgChm.SUM.heightPct = .96; // this is the amount of vertical space the col dendro and the map should take up on the summary chm div (taken from the css)
+NgChm.SUM.widthPct = .90; // this is the amount of horizontal space the row dendro and the map should take up on the summary chm div (taken from the css)
+NgChm.SUM.paddingHeight = 2;
 
-var summaryColumnDendro;
-var summaryRowDendro;
-var rowDendroBars;
-var colDendroBars;
-var colDendroMatrix;
-var rowDendroMatrix;
-var chosenBar = {axis: null, index: null};
+NgChm.SUM.colDendro;
+NgChm.SUM.rowDendro;
 
-var TexPixels;
+NgChm.SUM.rowClassPadding = 2;          // space between classification bars
+NgChm.SUM.colClassPadding = 2;          // space between classification bars
+NgChm.SUM.rowClassBarWidth;
+NgChm.SUM.colClassBarHeight;
+NgChm.SUM.rowClassScale = 1;
+NgChm.SUM.colClassScale = 1;
+NgChm.SUM.matrixWidth;
+NgChm.SUM.matrixHeight;
+NgChm.SUM.totalHeight;
+NgChm.SUM.totalWidth;
 
-var chmInitialized = 0;
-var dragSelect=false;	  // Indicates if user has made a drag selection on the summary panel
-var clickStartRow=null;   // End row of current selected position
-var clickStartCol=null;   // Left column of the current selected position
-var mouseEventActive = false;
+NgChm.SUM.maxValues = 9999999999.99;
+NgChm.SUM.avgValue = 0;
+NgChm.SUM.texProgram;
+NgChm.SUM.eventTimer = 0; // Used to delay draw updates
+NgChm.SUM.dragSelect=false;	  // Indicates if user has made a drag selection on the summary panel
+NgChm.SUM.clickStartRow=null;   // End row of current selected position
+NgChm.SUM.clickStartCol=null;   // Left column of the current selected position
+NgChm.SUM.mouseEventActive = false;
 
-var texProgram;
-
-var eventTimer = 0; // Used to delay draw updates
 
 //Main function that draws the summary heat map. chmFile is only used in file mode.
-function initSummaryDisplay() {
-	canvas = document.getElementById('summary_canvas');
-	box_canvas = document.getElementById('summary_box_canvas');
+NgChm.SUM.initSummaryDisplay = function() {
+	NgChm.SUM.canvas = document.getElementById('summary_canvas');
+	NgChm.SUM.boxCanvas = document.getElementById('summary_box_canvas');
 	
 	//Add necessary event listeners for canvas
-	canvas.addEventListener("touchstart", onMouseDownCanvas);
-	canvas.addEventListener("touchend", onMouseUpCanvas);
-	canvas.onmousedown = onMouseDownCanvas;
-	canvas.onmouseup = onMouseUpCanvas;
-	canvas.onmousemove = onMouseMoveCanvas;
-	canvas.onmouseout = onMouseOut;
+	NgChm.SUM.canvas.addEventListener("touchstart", NgChm.SUM.onMouseDownCanvas);
+	NgChm.SUM.canvas.addEventListener("touchend", NgChm.SUM.onMouseUpCanvas);
+	NgChm.SUM.canvas.onmousedown = NgChm.SUM.onMouseDownCanvas;
+	NgChm.SUM.canvas.onmouseup = NgChm.SUM.onMouseUpCanvas;
+	NgChm.SUM.canvas.onmousemove = NgChm.SUM.onMouseMoveCanvas;
+	NgChm.SUM.canvas.onmouseout = NgChm.SUM.onMouseOut;
 	
 	// set the position to (1,1) so that the detail pane loads at the top left corner of the summary.
-	currentRow = 1;
-	currentCol = 1;
-	if (getURLParameter("row") !== "" && !isNaN(Number(getURLParameter("row")))){
-		currentRow = Number(getURLParameter("row"))
+	NgChm.SEL.currentRow = 1;
+	NgChm.SEL.currentCol = 1;
+	if (NgChm.UTIL.getURLParameter("row") !== "" && !isNaN(Number(NgChm.UTIL.getURLParameter("row")))){
+		NgChm.SEL.currentRow = Number(NgChm.UTIL.getURLParameter("row"))
 	}
-	if (getURLParameter("column") !== "" && !isNaN(Number(getURLParameter("column")))){
-		currentCol = Number(getURLParameter("column"))
+	if (NgChm.UTIL.getURLParameter("column") !== "" && !isNaN(Number(NgChm.UTIL.getURLParameter("column")))){
+		NgChm.SEL.currentCol = Number(NgChm.UTIL.getURLParameter("column"))
 	}
 };
 
 // Callback that is notified every time there is an update to the heat map 
 // initialize, new data, etc.  This callback draws the summary heat map.
-function processSummaryMapUpdate (event, level) {   
+NgChm.SUM.processSummaryMapUpdate = function(event, level) {
 
-	if (event == MatrixManager.Event_INITIALIZED) {
-		heatMap.configureButtonBar();
-		heatMap.configureFlick();
-		summaryInit();
-	} else if (event == MatrixManager.Event_NEWDATA && level == MatrixManager.SUMMARY_LEVEL){
+	if (event == NgChm.MMGR.Event_INITIALIZED) {
+		NgChm.heatMap.configureButtonBar();
+		NgChm.heatMap.configureFlick();
+		NgChm.SUM.summaryInit();
+	} else if (event == NgChm.MMGR.Event_NEWDATA && level == NgChm.MMGR.SUMMARY_LEVEL){
 		//Summary tile - wait a bit to see if we get another tile quickly, then draw
-		if (eventTimer != 0) {
+		if (NgChm.SUM.eventTimer != 0) {
 			//New tile arrived - reset timer
-			clearTimeout(eventTimer);
+			clearTimeout(NgChm.SUM.eventTimer);
 		}
-		eventTimer = setTimeout(buildSummaryTexture, 200);
+		NgChm.SUM.eventTimer = setTimeout(NgChm.SUM.buildSummaryTexture, 200);
 	} 
 	//Ignore updates to other tile types.
 }
 
 // Perform all initialization functions for Summary heat map
-function summaryInit() {
-	if (!summaryColumnDendro){
-		summaryColumnDendro = new SummaryColumnDendrogram();
+NgChm.SUM.summaryInit = function() {
+	if (!NgChm.SUM.colDendro){
+		NgChm.SUM.colDendro = new NgChm.DDR.SummaryColumnDendrogram();
 	}
-	if (!summaryRowDendro){
-		summaryRowDendro = new SummaryRowDendrogram();
+	if (!NgChm.SUM.rowDendro){
+		NgChm.SUM.rowDendro = new NgChm.DDR.SummaryRowDendrogram ();
 	}
 	
-	summaryMatrixWidth = heatMap.getNumColumns(MatrixManager.SUMMARY_LEVEL);
-	summaryMatrixHeight = heatMap.getNumRows(MatrixManager.SUMMARY_LEVEL);
+	NgChm.SUM.matrixWidth = NgChm.heatMap.getNumColumns(NgChm.MMGR.SUMMARY_LEVEL);
+	NgChm.SUM.matrixHeight = NgChm.heatMap.getNumRows(NgChm.MMGR.SUMMARY_LEVEL);
 	
 	//Classificaton bars get stretched on small maps, scale down the bars and padding.
-	rowClassScale = Math.min(summaryMatrixWidth / 500, 1);
-	rowClassPadding = Math.ceil(rowClassPadding * rowClassScale);
-	colClassScale = Math.min(summaryMatrixHeight / 500, 1);
-	colClassPadding = Math.ceil(colClassPadding * colClassScale);
-	rowClassBarWidth = calculateSummaryTotalClassBarHeight("row");
-	colClassBarHeight = calculateSummaryTotalClassBarHeight("column");
+	NgChm.SUM.rowClassScale = Math.min(NgChm.SUM.matrixWidth / 500, 1);
+	NgChm.SUM.rowClassPadding = Math.ceil(NgChm.SUM.rowClassPadding * NgChm.SUM.rowClassScale);
+	NgChm.SUM.colClassScale = Math.min(NgChm.SUM.matrixHeight / 500, 1);
+	NgChm.SUM.colClassPadding = Math.ceil(NgChm.SUM.colClassPadding * NgChm.SUM.colClassScale);
+	NgChm.SUM.rowClassBarWidth = NgChm.SUM.calculateSummaryTotalClassBarHeight("row");
+	NgChm.SUM.colClassBarHeight = NgChm.SUM.calculateSummaryTotalClassBarHeight("column");
 
-	calcTotalSize();
+	NgChm.SUM.calcTotalSize();
 	//Resize summary area for small or skewed maps.
-	initSummarySize();
-	summaryRowDendro.resize();
-	summaryRowDendro.draw();
-	summaryColumnDendro.resize();
-	summaryColumnDendro.draw();
-	canvas.width =  summaryTotalWidth;
-	canvas.height = summaryTotalHeight;
+	NgChm.SUM.initSummarySize();
+	NgChm.SUM.rowDendro.resize();
+	NgChm.SUM.rowDendro.draw();
+	NgChm.SUM.colDendro.resize();
+	NgChm.SUM.colDendro.draw();
+	NgChm.SUM.canvas.width =  NgChm.SUM.totalWidth;
+	NgChm.SUM.canvas.height = NgChm.SUM.totalHeight;
 	
 	var nameDiv = document.getElementById("mapName");
-	nameDiv.innerHTML = "<b>Map Name:</b>&nbsp;&nbsp;"+heatMap.getMapInformation().name;
-	setupGl();
-	initGl();
-	buildSummaryTexture();
-	drawLeftCanvasBox();
-	clearSelectionMarks();
-	drawRowSelectionMarks();
-	drawColSelectionMarks();
+	nameDiv.innerHTML = "<b>Map Name:</b>&nbsp;&nbsp;"+NgChm.heatMap.getMapInformation().name;
+	NgChm.SUM.setupGl();
+	NgChm.SUM.initGl();
+	NgChm.SUM.buildSummaryTexture();
+	NgChm.SUM.drawLeftCanvasBox();
+	NgChm.SUM.clearSelectionMarks();
+	NgChm.SUM.drawRowSelectionMarks();
+	NgChm.SUM.drawColSelectionMarks();
 }
 
 // Sets summary and detail chm to the config height and width.
-function initSummarySize() {
+NgChm.SUM.initSummarySize = function() {
 	var summary = document.getElementById('summary_chm');
 	var divider = document.getElementById('divider');
 	var detail = document.getElementById('detail_chm');
-	summary.style.width = parseFloat(heatMap.getMapInformation().summary_width)*.96 + "%";
+	summary.style.width = parseFloat(NgChm.heatMap.getMapInformation().summary_width)*.96 + "%";
 	
-	summary.style.height = container.clientHeight*parseFloat(heatMap.getMapInformation().summary_height)/100 + "px";
+	summary.style.height = container.clientHeight*parseFloat(NgChm.heatMap.getMapInformation().summary_height)/100 + "px";
 	
-	detail.style.width = parseFloat(heatMap.getMapInformation().detail_width)*.96 + "%";
-	detail.style.height = container.clientHeight*parseFloat(heatMap.getMapInformation().detail_height)/100 + "px";
-	divider.style.height = detCanvas.clientHeight;
+	detail.style.width = parseFloat(NgChm.heatMap.getMapInformation().detail_width)*.96 + "%";
+	detail.style.height = container.clientHeight*parseFloat(NgChm.heatMap.getMapInformation().detail_height)/100 + "px";
+	divider.style.height = document.getElementById("summary_chm").clientHeight*NgChm.SUM.heightPct;
 	
-	setSummarySize();
+	NgChm.SUM.setSummarySize();
 }
 
 // Sets summary and detail chm to newly adjusted size.
-function setSummarySize() {
-	var left = summaryRowDendro.getDivWidth()*summaryWidthPercentage + dendroPaddingHeight;
-	var top = summaryColumnDendro.getDivHeight() + dendroPaddingHeight;
-	var width = document.getElementById("summary_chm").clientWidth - summaryRowDendro.getDivWidth();
-	var height = document.getElementById("summary_chm").clientHeight*summaryHeightPercentage - summaryColumnDendro.getDivHeight();
+NgChm.SUM.setSummarySize = function() {
+	var left = NgChm.SUM.rowDendro.getDivWidth()*NgChm.SUM.widthPct + NgChm.SUM.paddingHeight;
+	var top = NgChm.SUM.colDendro.getDivHeight() + NgChm.SUM.paddingHeight;
+	var width = document.getElementById("summary_chm").clientWidth - NgChm.SUM.rowDendro.getDivWidth();
+	var height = document.getElementById("summary_chm").clientHeight*NgChm.SUM.heightPct - NgChm.SUM.colDendro.getDivHeight();
 
-	canvas.style.left=left;
-	canvas.style.top=top;
-	canvas.style.width=width;
-	canvas.style.height=height;
+	NgChm.SUM.canvas.style.left=left;
+	NgChm.SUM.canvas.style.top=top;
+	NgChm.SUM.canvas.style.width=width;
+	NgChm.SUM.canvas.style.height=height;
 	
 	//The selection box canvas is on top of the webGL canvas but
 	//is always resized to the actual on screen size to draw boxes clearly.
-	box_canvas.style.left=left;
-	box_canvas.style.top=canvas.style.top;
-	box_canvas.width = width+1;
-	box_canvas.height = height+1;
-	setDetCanvasBoxSize();
+	NgChm.SUM.boxCanvas.style.left=left;
+	NgChm.SUM.boxCanvas.style.top=NgChm.SUM.canvas.style.top;
+	NgChm.SUM.boxCanvas.width = width+1;
+	NgChm.SUM.boxCanvas.height = height+1;
+	NgChm.DET.setDetCanvasBoxSize();
 }
 
 //Set the variables for the total size of the summary heat map - used to set canvas, WebGL texture, and viewport size.
-function calcTotalSize() {
-	summaryTotalHeight = summaryMatrixHeight + colClassBarHeight;
-	summaryTotalWidth = summaryMatrixWidth + rowClassBarWidth;
+NgChm.SUM.calcTotalSize = function() {
+	NgChm.SUM.totalHeight = NgChm.SUM.matrixHeight + NgChm.SUM.colClassBarHeight;
+	NgChm.SUM.totalWidth = NgChm.SUM.matrixWidth + NgChm.SUM.rowClassBarWidth;
 }
 
-function buildSummaryTexture() {
-	eventTimer = 0;
+NgChm.SUM.buildSummaryTexture = function() {
+	NgChm.SUM.eventTimer = 0;
 
-	var colorMap = heatMap.getColorMapManager().getColorMap("data",currentDl);
+	var colorMap = NgChm.heatMap.getColorMapManager().getColorMap("data",NgChm.SEL.currentDl);
 	var colors = colorMap.getColors();
 	var missing = colorMap.getMissingColor();
 	
@@ -185,164 +176,165 @@ function buildSummaryTexture() {
 	
 	//Setup texture to draw on canvas.
 	//Needs to go backward because WebGL draws bottom up.
-	avg_value = 0;
-	for (var i = heatMap.getNumRows(MatrixManager.SUMMARY_LEVEL); i > 0; i--) {
-		pos += (rowClassBarWidth)*BYTE_PER_RGBA; // SKIP SPACE RESERVED FOR ROW CLASSBARS + ROW DENDRO
-		for (var j = 1; j <= heatMap.getNumColumns(MatrixManager.SUMMARY_LEVEL); j++) { // draw the heatmap
-			var val = heatMap.getValue(MatrixManager.SUMMARY_LEVEL, i, j);
-			if (val < max_values) {
-				avg_value += val;
+	NgChm.SUM.avgValue = 0;
+	for (var i = NgChm.heatMap.getNumRows(NgChm.MMGR.SUMMARY_LEVEL); i > 0; i--) {
+		pos += (NgChm.SUM.rowClassBarWidth)*NgChm.SUM.BYTE_PER_RGBA; // SKIP SPACE RESERVED FOR ROW CLASSBARS + ROW DENDRO
+		for (var j = 1; j <= NgChm.heatMap.getNumColumns(NgChm.MMGR.SUMMARY_LEVEL); j++) { // draw the heatmap
+			var val = NgChm.heatMap.getValue(NgChm.MMGR.SUMMARY_LEVEL, i, j);
+			if (val < NgChm.SUM.maxValues) {
+				NgChm.SUM.avgValue += val;
 			}
 			var color = colorMap.getColor(val);
 
-			TexPixels[pos] = color['r'];
-			TexPixels[pos + 1] = color['g'];
-			TexPixels[pos + 2] = color['b'];
-			TexPixels[pos + 3] = color['a'];
-			pos+=BYTE_PER_RGBA;
+			NgChm.SUM.texPixels[pos] = color['r'];
+			NgChm.SUM.texPixels[pos + 1] = color['g'];
+			NgChm.SUM.texPixels[pos + 2] = color['b'];
+			NgChm.SUM.texPixels[pos + 3] = color['a'];
+			pos+=NgChm.SUM.BYTE_PER_RGBA;
 		}
 	}
-	avg_value = (avg_value / (heatMap.getNumRows(MatrixManager.SUMMARY_LEVEL) * heatMap.getNumColumns(MatrixManager.SUMMARY_LEVEL)));
+	NgChm.SUM.avgValue = (NgChm.SUM.avgValue / (NgChm.heatMap.getNumRows(NgChm.MMGR.SUMMARY_LEVEL) * NgChm.heatMap.getNumColumns(NgChm.MMGR.SUMMARY_LEVEL)));
 	// draw column classifications after the map
-	drawColClassBars(TexPixels);
+	NgChm.SUM.drawColClassBars(NgChm.SUM.texPixels);
 	
 	// draw row classifications after that
-	drawRowClassBars(TexPixels);
+	NgChm.SUM.drawRowClassBars(NgChm.SUM.texPixels);
 	
-	drawSummaryHeatMap();
+	NgChm.SUM.drawSummaryHeatMap();
 }
 	
 //WebGL code to draw the summary heat map.
-function drawSummaryHeatMap() {
-	gl.useProgram(texProgram);
-	var buffer = gl.createBuffer();
-	gl.buffer = buffer;
-	gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+NgChm.SUM.drawSummaryHeatMap = function() {
+	NgChm.SUM.gl.useProgram(NgChm.SUM.texProgram);
+	var buffer = NgChm.SUM.gl.createBuffer();
+	NgChm.SUM.gl.buffer = buffer;
+	NgChm.SUM.gl.bindBuffer(NgChm.SUM.gl.ARRAY_BUFFER, buffer);
 	var vertices = [ -1, -1, 1, -1, 1, 1, -1, -1, -1, 1, 1, 1 ];
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+	NgChm.SUM.gl.bufferData(NgChm.SUM.gl.ARRAY_BUFFER, new Float32Array(vertices), NgChm.SUM.gl.STATIC_DRAW);
 	var byte_per_vertex = Float32Array.BYTES_PER_ELEMENT;
 	var component_per_vertex = 2;
 	buffer.numItems = vertices.length / component_per_vertex;
 	var stride = component_per_vertex * byte_per_vertex;
 	//var program = gl.program;
-	var position = gl.getAttribLocation(texProgram, 'position');	
-	gl.enableVertexAttribArray(position);
-	gl.vertexAttribPointer(position, 2, gl.FLOAT, false, stride, 0);
-	gl.activeTexture(gl.TEXTURE0);
-	gl.texImage2D(
-			gl.TEXTURE_2D, 
+	var position = NgChm.SUM.gl.getAttribLocation(NgChm.SUM.texProgram, 'position');	
+	NgChm.SUM.gl.enableVertexAttribArray(position);
+	NgChm.SUM.gl.vertexAttribPointer(position, 2, NgChm.SUM.gl.FLOAT, false, stride, 0);
+	NgChm.SUM.gl.activeTexture(NgChm.SUM.gl.TEXTURE0);
+	NgChm.SUM.gl.texImage2D(
+			NgChm.SUM.gl.TEXTURE_2D, 
 			0, 
-			gl.RGBA, 
-			textureParams['width'], 
-			textureParams['height'], 
+			NgChm.SUM.gl.RGBA, 
+			NgChm.SUM.textureParams['width'], 
+			NgChm.SUM.textureParams['height'], 
 			0, 
-			gl.RGBA,
-			gl.UNSIGNED_BYTE, 
-			TexPixels);
-	gl.drawArrays(gl.TRIANGLE_STRIP, 0, gl.buffer.numItems);
+			NgChm.SUM.gl.RGBA,
+			NgChm.SUM.gl.UNSIGNED_BYTE, 
+			NgChm.SUM.texPixels);
+	NgChm.SUM.gl.drawArrays(NgChm.SUM.gl.TRIANGLE_STRIP, 0, NgChm.SUM.gl.buffer.numItems);
 }
 
-function onMouseDownCanvas (evt) {
-	mouseEventActive = true;
+NgChm.SUM.onMouseDownCanvas = function(evt) {
+	NgChm.DET.canvas.focus();
+	NgChm.SUM.mouseEventActive = true;
 	evt.preventDefault();
 	evt.stopPropagation();	
 	sumCanvas = document.getElementById('summary_canvas');
-	var boxY = ((colClassBarHeight)/canvas.height * box_canvas.height);
+	var boxY = ((NgChm.SUM.colClassBarHeight)/NgChm.SUM.canvas.height * NgChm.SUM.boxCanvas.height);
 	var sumOffsetX = evt.touches ? evt.touches[0].offsetX : evt.offsetX;
 	var sumOffsetY = evt.touches ? evt.touches[0].offsetY : evt.offsetY;
-	var sumRow = canvasToMatrixRow(getCanvasY(sumOffsetY));
-	var sumCol = canvasToMatrixCol(getCanvasX(sumOffsetX));
+	var sumRow = NgChm.SUM.canvasToMatrixRow(NgChm.SUM.getCanvasY(sumOffsetY));
+	var sumCol = NgChm.SUM.canvasToMatrixCol(NgChm.SUM.getCanvasX(sumOffsetX));
 	if ((sumRow > 0) && (sumCol > 0)) {
 		sumCanvas.style.cursor="crosshair";
 	}
-	clickStartRow = (sumRow*heatMap.getRowSummaryRatio(MatrixManager.SUMMARY_LEVEL));
-	clickStartCol = (sumCol*heatMap.getColSummaryRatio(MatrixManager.SUMMARY_LEVEL));
+	NgChm.SUM.clickStartRow = (sumRow*NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL));
+	NgChm.SUM.clickStartCol = (sumCol*NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL));
 }
 
-function onMouseOut(evt) {
-	mouseEventActive = false;
-	canvas.style.cursor="default";
+NgChm.SUM.onMouseOut = function(evt) {
+	NgChm.SUM.mouseEventActive = false;
+	NgChm.SUM.canvas.style.cursor="default";
 }
 
-function onMouseMoveCanvas(evt) {
-	if (mouseEventActive) {
-		if ((mode === 'NORMAL') && (evt.which==1)) {
+NgChm.SUM.onMouseMoveCanvas = function(evt) {
+	if (NgChm.SUM.mouseEventActive) {
+		if ((NgChm.SEL.mode === 'NORMAL') && (evt.which==1)) {
 			if (evt.shiftKey) {
-				dragSelection(evt);
+				NgChm.SUM.dragSelection(evt);
 			} else {
-				dragMove(evt);
+				NgChm.SUM.dragMove(evt);
 			}
 		}
 	}
 }
 
 //Translate click into row column position and then draw select box.
-function onMouseUpCanvas (evt) {
-	if (mouseEventActive) {
+NgChm.SUM.onMouseUpCanvas = function(evt) {
+	if (NgChm.SUM.mouseEventActive) {
 		evt.preventDefault();
 		evt.stopPropagation();	
 		sumCanvas = document.getElementById('summary_canvas');
 		var clickSection = 'Matrix';
 		//Drag selection has already navigated so only move selection box if simple click has occurred.
-		if (!dragSelect) {
+		if (!NgChm.SUM.dragSelect) {
 			var sumOffsetX = evt.touches ? evt.layerX : evt.offsetX;
 			var sumOffsetY = evt.touches ? evt.layerY : evt.offsetY;
-			var xPos = getCanvasX(sumOffsetX);
-			var yPos = getCanvasY(sumOffsetY);
-			clickSelection(xPos, yPos);
-			clickStartRow = null;
-			clickStartCol = null;
+			var xPos = NgChm.SUM.getCanvasX(sumOffsetX);
+			var yPos = NgChm.SUM.getCanvasY(sumOffsetY);
+			NgChm.SUM.clickSelection(xPos, yPos);
+			NgChm.SUM.clickStartRow = null;
+			NgChm.SUM.clickStartCol = null;
 		} 
-		dragSelect = false;
+		NgChm.SUM.dragSelect = false;
 		sumCanvas.style.cursor="default";
 	
 		//Make sure the selected row/column are within the bounds of the matrix.
-		checkRow();
-		checkColumn();
-		mouseEventActive = false;
+		NgChm.SEL.checkRow();
+		NgChm.SEL.checkColumn();
+		NgChm.SUM.mouseEventActive = false;
 	}
 }
 
-function clickSelection(xPos, yPos) {
-	var sumRow = canvasToMatrixRow(yPos) - Math.floor(getCurrentSumDataPerCol()/2);
-	var sumCol = canvasToMatrixCol(xPos) - Math.floor(getCurrentSumDataPerRow()/2);
-	setCurrentRowFromSum(sumRow);
-	setCurrentColFromSum(sumCol); 
-	updateSelection();
+NgChm.SUM.clickSelection = function(xPos, yPos) {
+	var sumRow = NgChm.SUM.canvasToMatrixRow(yPos) - Math.floor(NgChm.SEL.getCurrentSumDataPerCol()/2);
+	var sumCol = NgChm.SUM.canvasToMatrixCol(xPos) - Math.floor(NgChm.SEL.getCurrentSumDataPerRow()/2);
+	NgChm.SEL.setCurrentRowFromSum(sumRow);
+	NgChm.SEL.setCurrentColFromSum(sumCol); 
+	NgChm.SEL.updateSelection();
 }
 
-function dragMove(evt) {
+NgChm.SUM.dragMove = function(evt) {
 	var sumOffsetX = evt.touches ? evt.layerX : evt.offsetX;
 	var sumOffsetY = evt.touches ? evt.layerY : evt.offsetY;
-	var xPos = getCanvasX(sumOffsetX);
-	var yPos = getCanvasY(sumOffsetY);
-	var sumRow = canvasToMatrixRow(yPos) - Math.floor(getCurrentSumDataPerCol()/2);
-	var sumCol = canvasToMatrixCol(xPos) - Math.floor(getCurrentSumDataPerRow()/2);
-	setCurrentRowFromSum(sumRow);
-	setCurrentColFromSum(sumCol); 
-	updateSelection();
+	var xPos = NgChm.SUM.getCanvasX(sumOffsetX);
+	var yPos = NgChm.SUM.getCanvasY(sumOffsetY);
+	var sumRow = NgChm.SUM.canvasToMatrixRow(yPos) - Math.floor(NgChm.SEL.getCurrentSumDataPerCol()/2);
+	var sumCol = NgChm.SUM.canvasToMatrixCol(xPos) - Math.floor(NgChm.SEL.getCurrentSumDataPerRow()/2);
+	NgChm.SEL.setCurrentRowFromSum(sumRow);
+	NgChm.SEL.setCurrentColFromSum(sumCol); 
+	NgChm.SEL.updateSelection();
 }
 
-function dragSelection(evt) {
+NgChm.SUM.dragSelection = function(evt) {
 	var sumOffsetX = evt.touches ? evt.touches[0].offsetX : evt.offsetX;
 	var sumOffsetY = evt.touches ? evt.touches[0].offsetY : evt.offsetY;
-	var xPos = getCanvasX(sumOffsetX);
-	var yPos = getCanvasY(sumOffsetY);
-	var sumRow = canvasToMatrixRow(yPos);
-	var sumCol = canvasToMatrixCol(xPos);
-	var clickEndRow = (sumRow*heatMap.getRowSummaryRatio(MatrixManager.SUMMARY_LEVEL));
-	var clickEndCol = (sumCol*heatMap.getColSummaryRatio(MatrixManager.SUMMARY_LEVEL));
+	var xPos = NgChm.SUM.getCanvasX(sumOffsetX);
+	var yPos = NgChm.SUM.getCanvasY(sumOffsetY);
+	var sumRow = NgChm.SUM.canvasToMatrixRow(yPos);
+	var sumCol = NgChm.SUM.canvasToMatrixCol(xPos);
+	var clickEndRow = (sumRow*NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL));
+	var clickEndCol = (sumCol*NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL));
 	//If movement less than 5 rows and cols, disregard drag selection
-	if ((Math.abs(clickStartRow - clickEndRow) < 5) && (Math.abs(clickStartCol - clickEndCol) < 5)) {
-		dragSelect = false;
+	if ((Math.abs(NgChm.SUM.clickStartRow - clickEndRow) < 5) && (Math.abs(NgChm.SUM.clickStartCol - clickEndCol) < 5)) {
+		NgChm.SUM.dragSelect = false;
 		return;
 	} else {
-		dragSelect = true;
+		NgChm.SUM.dragSelect = true;
 	}
-	var startRow = Math.min(clickStartRow,clickEndRow);
-	var startCol = Math.min(clickStartCol,clickEndCol);
-	var endRow = Math.max(clickStartRow,clickEndRow);
-	var endCol = Math.max(clickStartCol,clickEndCol);
+	var startRow = Math.min(NgChm.SUM.clickStartRow,clickEndRow);
+	var startCol = Math.min(NgChm.SUM.clickStartCol,clickEndCol);
+	var endRow = Math.max(NgChm.SUM.clickStartRow,clickEndRow);
+	var endCol = Math.max(NgChm.SUM.clickStartCol,clickEndCol);
 	//Size the selected box and assign the larger dimension as a 
 	//value to be used in selecting zoom level to apply.
 	var colVal = (endRow - startRow);
@@ -352,55 +344,116 @@ function dragSelection(evt) {
 	var boxSize = 0;
 	//Loop zoomBoxSizes to pick the one that will be large enough
 	//to encompass user-selected area
-	for (var i=zoomBoxSizes.length-1; i>=0;i--) {
-		boxSize = zoomBoxSizes[i];
-		boxCalcVal = (detailDataViewWidth-detailDataViewBorder)/boxSize;
+	for (var i=NgChm.DET.zoomBoxSizes.length-1; i>=0;i--) {
+		boxSize = NgChm.DET.zoomBoxSizes[i];
+		boxCalcVal = (NgChm.DET.dataViewWidth-NgChm.DET.dataViewBorder)/boxSize;
 		if (boxCalcVal > zoomCalcVal) {
 			//Down size box if greater than map dimensions.
-			if (boxCalcVal >= Math.min(heatMap.getTotalRows(),heatMap.getTotalCols())) {
-				boxSize = zoomBoxSizes[i+1];
+			if (boxCalcVal >= Math.min(NgChm.heatMap.getTotalRows(),NgChm.heatMap.getTotalCols())) {
+				boxSize = NgChm.DET.zoomBoxSizes[i+1];
 			}
 			break;
 		}
 	}
-	boxCalcVal = (detailDataViewWidth-detailDataViewBorder)/boxSize;
-	if (boxCalcVal < Math.min(heatMap.getTotalRows(),heatMap.getTotalCols())) {
-		setDetailDataSize(boxSize); 
-		currentRow = startRow;
-		currentCol = startCol;
-	    checkRow();
-	    checkColumn();
-		updateSelection();
+	boxCalcVal = (NgChm.DET.dataViewWidth-NgChm.DET.dataViewBorder)/boxSize;
+	if (boxCalcVal < Math.min(NgChm.heatMap.getTotalRows(),NgChm.heatMap.getTotalCols())) {
+		NgChm.DET.setDetailDataSize(boxSize); 
+		NgChm.SEL.currentRow = startRow;
+		NgChm.SEL.currentCol = startCol;
+		NgChm.SEL.checkRow();
+		NgChm.SEL.checkColumn();
+		NgChm.SEL.updateSelection();
 	}
 }
 
 //Browsers resizes the canvas.  This function translates from a click position
 //back to the original (non-scaled) canvas position. 
-function getCanvasX(offsetX) {
-	return (Math.floor((offsetX/canvas.clientWidth) * canvas.width));
+NgChm.SUM.getCanvasX = function(offsetX) {
+	return (Math.floor((offsetX/NgChm.SUM.canvas.clientWidth) * NgChm.SUM.canvas.width));
 }
 
-function getCanvasY(offsetY) {
-	return (Math.floor((offsetY/canvas.clientHeight) * canvas.height));
+NgChm.SUM.getCanvasY = function(offsetY) {
+	return (Math.floor((offsetY/NgChm.SUM.canvas.clientHeight) * NgChm.SUM.canvas.height));
 }
 
 //Return the summary row given an y position on the canvas
-function canvasToMatrixRow(y) {
-	return (y - colClassBarHeight  );
+NgChm.SUM.canvasToMatrixRow = function(y) {
+	return (y - NgChm.SUM.colClassBarHeight  );
 } 
 
-function canvasToMatrixCol(x) {
-	return (x - rowClassBarWidth );
+NgChm.SUM.canvasToMatrixCol = function(x) {
+	return (x - NgChm.SUM.rowClassBarWidth );
 }
-
 
 //Given a matrix row, return the canvas position
-function getCanvasYFromRow(row){
-	return (row + colClassBarHeight);
+NgChm.SUM.getCanvasYFromRow = function(row) {
+	return (row + NgChm.SUM.colClassBarHeight);
 }
 
-function getCanvasXFromCol(col){
-	return (col + rowClassBarWidth);
+NgChm.SUM.getCanvasXFromCol = function(col) {
+	return (col + NgChm.SUM.rowClassBarWidth);
+}
+
+/**********************************************************************************
+ * FUNCTION - resetBoxCanvas: This function resets the summary box canvas.  It takes
+ * the canvas, clears it, and draws borders.  It is broken out from drawLeftCanvas
+ * box so that the canvas with borders can be used in printing PDFs where only the
+ * summary view is selected.
+ **********************************************************************************/
+NgChm.SUM.resetBoxCanvas = function() {
+	var ctx=NgChm.SUM.boxCanvas.getContext("2d");
+	ctx.clearRect(0, 0, NgChm.SUM.boxCanvas.width, NgChm.SUM.boxCanvas.height);
+	
+	// Draw the heat map border in black
+	var boxX = (NgChm.SUM.rowClassBarWidth / NgChm.SUM.totalWidth) * NgChm.SUM.boxCanvas.width;
+	var boxY = (NgChm.SUM.colClassBarHeight / NgChm.SUM.totalHeight) * NgChm.SUM.boxCanvas.height;
+	var boxW = NgChm.SUM.boxCanvas.width-boxX;
+	var boxH = NgChm.SUM.boxCanvas.height-boxY;
+	ctx.lineWidth=1;
+	ctx.strokeStyle="#000000";
+	ctx.strokeRect(boxX,boxY,boxW,boxH);
+	
+	//If in sub-dendro mode, draw rectangles outside of selected range.
+	//Furthermore, if the average color is dark make those rectangles
+	//lighter than the heatmap, otherwise, darker.
+	if (NgChm.SEL.mode.startsWith('RIBBON')) {
+		var colorMap = NgChm.heatMap.getColorMapManager().getColorMap("data",NgChm.SEL.currentDl);
+		var color = colorMap.getColor(NgChm.SUM.avgValue);
+		if (colorMap.isColorDark(color)) {
+			ctx.fillStyle="rgba(10, 10, 10, 0.25)"; 
+		} else {
+			ctx.fillStyle="rgba(255, 255, 255, 0.25)"; 
+		}
+	}
+
+	//Draw sub-dendro box
+	if (NgChm.SEL.mode.startsWith('RIBBONH') && (NgChm.SEL.selectedStart > 0)) {
+		var summaryRatio = NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL);
+		var adjustedStart = NgChm.SEL.selectedStart / summaryRatio;
+		var adjustedStop = NgChm.SEL.selectedStop / summaryRatio;
+		boxX = (((NgChm.SUM.rowClassBarWidth - 1) / NgChm.SUM.canvas.width) * NgChm.SUM.boxCanvas.width) + 1;
+		boxY = ((NgChm.SUM.colClassBarHeight)/NgChm.SUM.canvas.height * NgChm.SUM.boxCanvas.height);
+		boxW = ((adjustedStart) / NgChm.SUM.canvas.width) * NgChm.SUM.boxCanvas.width;
+		boxH = NgChm.SUM.boxCanvas.height-boxY;
+		ctx.fillRect(boxX,boxY,boxW,boxH); 
+		boxX = (((NgChm.SUM.rowClassBarWidth+adjustedStop) / NgChm.SUM.canvas.width) * NgChm.SUM.boxCanvas.width) + 1;
+		boxW = (((NgChm.SUM.canvas.width-adjustedStop)+1) / NgChm.SUM.canvas.width) * NgChm.SUM.boxCanvas.width;
+		ctx.fillRect(boxX,boxY,boxW,boxH); 
+	} else if (NgChm.SEL.mode.startsWith('RIBBONV')  && NgChm.SEL.selectedStart > 0) {
+		var summaryRatio = NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL);
+		var adjustedStart = NgChm.SEL.selectedStart / summaryRatio;
+		var adjustedStop = NgChm.SEL.selectedStop / summaryRatio;
+		boxX = ((NgChm.SUM.rowClassBarWidth / NgChm.SUM.canvas.width) * NgChm.SUM.boxCanvas.width);
+		boxY = ((NgChm.SUM.colClassBarHeight - 1)/NgChm.SUM.canvas.height * NgChm.SUM.boxCanvas.height);
+		var boxW = NgChm.SUM.boxCanvas.width-boxX;
+		var boxH = ((adjustedStart) / NgChm.SUM.canvas.height) * NgChm.SUM.boxCanvas.height;
+		ctx.fillRect(boxX,boxY,boxW,boxH); 
+		var boxY = ((NgChm.SUM.colClassBarHeight+adjustedStop)/NgChm.SUM.canvas.height * NgChm.SUM.boxCanvas.height);
+		var boxH = (((NgChm.SUM.canvas.height-adjustedStop)+1) / NgChm.SUM.canvas.height) * NgChm.SUM.boxCanvas.height;
+		ctx.fillRect(boxX,boxY,boxW,boxH); 
+	}
+
+	return ctx;
 }
 
 /**********************************************************************************
@@ -411,95 +464,49 @@ function getCanvasXFromCol(col){
  * the black border around the summary heat map and gray panels that bracket sub-
  * dendro selections when in sub-dendro mode.
  **********************************************************************************/
-function drawLeftCanvasBox() {
-	var ctx=box_canvas.getContext("2d");
-	ctx.clearRect(0, 0, box_canvas.width, box_canvas.height);
-	
-	// Draw the heat map border in black
-	var boxX = (rowClassBarWidth / summaryTotalWidth) * box_canvas.width;
-	var boxY = (colClassBarHeight / summaryTotalHeight) * box_canvas.height;
-	var boxW = box_canvas.width-boxX;
-	var boxH = box_canvas.height-boxY;
-	ctx.lineWidth=1;
-	ctx.strokeStyle="#000000";
-	ctx.strokeRect(boxX,boxY,boxW,boxH);
-	
-	//If in sub-dendro mode, draw rectangles outside of selected range.
-	//Furthermore, if the average color is dark make those rectangles
-	//lighter than the heatmap, otherwise, darker.
-	if (mode.startsWith('RIBBON')) {
-		var colorMap = heatMap.getColorMapManager().getColorMap("data",currentDl);
-		var color = colorMap.getColor(avg_value);
-		if (colorMap.isColorDark(color)) {
-			ctx.fillStyle="rgba(10, 10, 10, 0.25)"; 
-		} else {
-			ctx.fillStyle="rgba(255, 255, 255, 0.25)"; 
-		}
-	}
-	//Draw sub-dendro box
-	if (mode.startsWith('RIBBONH') && (selectedStart > 0)) {
-		var summaryRatio = heatMap.getColSummaryRatio(MatrixManager.SUMMARY_LEVEL);
-		var adjustedStart = selectedStart / summaryRatio;
-		var adjustedStop = selectedStop / summaryRatio;
-		boxX = (((rowClassBarWidth - 1) / canvas.width) * box_canvas.width) + 1;
-		boxY = ((colClassBarHeight)/canvas.height * box_canvas.height);
-		boxW = ((adjustedStart) / canvas.width) * box_canvas.width;
-		boxH = box_canvas.height-boxY;
-		ctx.fillRect(boxX,boxY,boxW,boxH); 
-		boxX = (((rowClassBarWidth+adjustedStop) / canvas.width) * box_canvas.width) + 1;
-		boxW = (((canvas.width-adjustedStop)+1) / canvas.width) * box_canvas.width;
-		ctx.fillRect(boxX,boxY,boxW,boxH); 
-	} else if (mode.startsWith('RIBBONV')  && selectedStart > 0) {
-		var summaryRatio = heatMap.getRowSummaryRatio(MatrixManager.SUMMARY_LEVEL);
-		var adjustedStart = selectedStart / summaryRatio;
-		var adjustedStop = selectedStop / summaryRatio;
-		boxX = ((rowClassBarWidth / canvas.width) * box_canvas.width);
-		boxY = ((colClassBarHeight - 1)/canvas.height * box_canvas.height);
-		var boxW = box_canvas.width-boxX;
-		var boxH = ((adjustedStart) / canvas.height) * box_canvas.height;
-		ctx.fillRect(boxX,boxY,boxW,boxH); 
-		var boxY = ((colClassBarHeight+adjustedStop)/canvas.height * box_canvas.height);
-		var boxH = (((canvas.height-adjustedStop)+1) / canvas.height) * box_canvas.height;
-		ctx.fillRect(boxX,boxY,boxW,boxH); 
-	}
+NgChm.SUM.drawLeftCanvasBox = function() {
+	// Reset the canvas (drawing borders and sub-dendro selections)
+	var ctx = NgChm.SUM.resetBoxCanvas(NgChm.SUM.boxCanvas);
 
 	// Draw the View Box using user-defined defined selection color 
-	boxX = (((getCurrentSumCol() + rowClassBarWidth - 1) / canvas.width) * box_canvas.width) + 2;
-	boxY = (((getCurrentSumRow() + colClassBarHeight - 1) / canvas.height) * box_canvas.height) + 1;
-	boxW = (getCurrentSumDataPerRow() / canvas.width) * box_canvas.width - 2;
-	boxH = (getCurrentSumDataPerCol() / canvas.height) * box_canvas.height - 2;
-	var dataLayers = heatMap.getDataLayers();
-	var dataLayer = dataLayers[currentDl];
+	boxX = (((NgChm.SEL.getCurrentSumCol() + NgChm.SUM.rowClassBarWidth - 1) / NgChm.SUM.canvas.width) * NgChm.SUM.boxCanvas.width) + 2;
+	boxY = (((NgChm.SEL.getCurrentSumRow() + NgChm.SUM.colClassBarHeight - 1) / NgChm.SUM.canvas.height) * NgChm.SUM.boxCanvas.height) + 1;
+	boxW = (NgChm.SEL.getCurrentSumDataPerRow() / NgChm.SUM.canvas.width) * NgChm.SUM.boxCanvas.width - 2;
+	boxH = (NgChm.SEL.getCurrentSumDataPerCol() / NgChm.SUM.canvas.height) * NgChm.SUM.boxCanvas.height - 2;
+	var dataLayers = NgChm.heatMap.getDataLayers();
+	var dataLayer = dataLayers[NgChm.SEL.currentDl];
 	ctx.strokeStyle=dataLayer.selection_color;
 	ctx.lineWidth=3;
 	ctx.strokeRect(boxX,boxY,boxW,boxH);
 }
 
-//WebGL stuff
+/***************************
+ * WebGL stuff
+ **************************/
 
-function setupGl() {
-	gl = canvas.getContext("webgl", {preserveDrawingBuffer: true});
+NgChm.SUM.setupGl = function() {
+	NgChm.SUM.gl = NgChm.SUM.canvas.getContext("webgl", {preserveDrawingBuffer: true});
 	// If standard webgl context cannot be found use experimental-webgl
-	if (!gl) {
-		gl = canvas.getContext('experimental-webgl');
+	if (!NgChm.SUM.gl) {
+		NgChm.SUM.gl = NgChm.SUM.canvas.getContext('experimental-webgl');
 	}
 	
-	gl.viewportWidth = summaryTotalWidth;
-	gl.viewportHeight = summaryTotalHeight;
-	gl.clearColor(1, 1, 1, 1);
+	NgChm.SUM.gl.viewportWidth = NgChm.SUM.totalWidth;
+	NgChm.SUM.gl.viewportHeight = NgChm.SUM.totalHeight;
+	NgChm.SUM.gl.clearColor(1, 1, 1, 1);
 
 	//Texture shaders
-	texProgram = gl.createProgram();
-	var vertexShader = getVertexShader(gl);
-	var fragmentShader = getFragmentShader(gl);
-	gl.program = texProgram;
-	gl.attachShader(texProgram, vertexShader);
-	gl.attachShader(texProgram, fragmentShader);
-	gl.linkProgram(texProgram);
+	NgChm.SUM.texProgram = NgChm.SUM.gl.createProgram();
+	var vertexShader = NgChm.SUM.getVertexShader(NgChm.SUM.gl);
+	var fragmentShader = NgChm.SUM.getFragmentShader(NgChm.SUM.gl);
+	NgChm.SUM.gl.program = NgChm.SUM.texProgram;
+	NgChm.SUM.gl.attachShader(NgChm.SUM.texProgram, vertexShader);
+	NgChm.SUM.gl.attachShader(NgChm.SUM.texProgram, fragmentShader);
+	NgChm.SUM.gl.linkProgram(NgChm.SUM.texProgram);
 }
 
 
-function getVertexShader(gl) {
+NgChm.SUM.getVertexShader = function(gl) {
 	var source = 'attribute vec2 position;    ' +
 		         'varying vec2 v_texPosition; ' +
 		         'void main () {              ' +
@@ -514,8 +521,7 @@ function getVertexShader(gl) {
 	return shader;
 }
 
-
-function getFragmentShader(gl) {
+NgChm.SUM.getFragmentShader = function(gl) {
 	var source = 'precision mediump float;        ' +
     'varying vec2 v_texPosition;     ' +
     'varying float v_boxFlag;        ' +
@@ -525,105 +531,91 @@ function getFragmentShader(gl) {
     '}';
 
 
-	var shader = gl.createShader(gl.FRAGMENT_SHADER);;
+	var shader = gl.createShader(gl.FRAGMENT_SHADER);
 	gl.shaderSource(shader, source);
 	gl.compileShader(shader);
 	return shader;
 }
 
-
-function initGl () {
-	gl.useProgram(texProgram);
-	gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
-	gl.clear(gl.COLOR_BUFFER_BIT);
+NgChm.SUM.initGl = function() {
+	NgChm.SUM.gl.useProgram(NgChm.SUM.texProgram);
+	NgChm.SUM.gl.viewport(0, 0, NgChm.SUM.gl.viewportWidth, NgChm.SUM.gl.viewportHeight);
+	NgChm.SUM.gl.clear(NgChm.SUM.gl.COLOR_BUFFER_BIT);
 
 	// Vertices
-	var buffer = gl.createBuffer();
-	gl.buffer = buffer;
-	gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+	var buffer = NgChm.SUM.gl.createBuffer();
+	NgChm.SUM.gl.buffer = buffer;
+	NgChm.SUM.gl.bindBuffer(NgChm.SUM.gl.ARRAY_BUFFER, buffer);
 	var vertices = [ -1, -1, 1, -1, 1, 1, -1, -1, -1, 1, 1, 1 ];
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+	NgChm.SUM.gl.bufferData(NgChm.SUM.gl.ARRAY_BUFFER, new Float32Array(vertices), NgChm.SUM.gl.STATIC_DRAW);
 	var byte_per_vertex = Float32Array.BYTES_PER_ELEMENT;
 	var component_per_vertex = 2;
 	buffer.numItems = vertices.length / component_per_vertex;
 	var stride = component_per_vertex * byte_per_vertex;
-	var position = gl.getAttribLocation(texProgram, 'position');
+	var position = NgChm.SUM.gl.getAttribLocation(NgChm.SUM.texProgram, 'position');
 	
-	gl.enableVertexAttribArray(position);
-	gl.vertexAttribPointer(position, 2, gl.FLOAT, false, stride, 0);
+	NgChm.SUM.gl.enableVertexAttribArray(position);
+	NgChm.SUM.gl.vertexAttribPointer(position, 2, NgChm.SUM.gl.FLOAT, false, stride, 0);
 
 	// Texture
-	var texture = gl.createTexture();
-	gl.bindTexture(gl.TEXTURE_2D, texture);
-	gl.texParameteri(
-			gl.TEXTURE_2D, 
-			gl.TEXTURE_WRAP_S, 
-			gl.CLAMP_TO_EDGE);
-	gl.texParameteri(
-			gl.TEXTURE_2D, 
-			gl.TEXTURE_WRAP_T, 
-			gl.CLAMP_TO_EDGE);
-	gl.texParameteri(
-			gl.TEXTURE_2D, 
-			gl.TEXTURE_MIN_FILTER,
-			gl.NEAREST);
-	gl.texParameteri(
-			gl.TEXTURE_2D, 
-			gl.TEXTURE_MAG_FILTER, 
-			gl.NEAREST);
+	var texture = NgChm.SUM.gl.createTexture();
+	NgChm.SUM.gl.bindTexture(NgChm.SUM.gl.TEXTURE_2D, texture);
+	NgChm.SUM.gl.texParameteri(
+			NgChm.SUM.gl.TEXTURE_2D, 
+			NgChm.SUM.gl.TEXTURE_WRAP_S, 
+			NgChm.SUM.gl.CLAMP_TO_EDGE);
+	NgChm.SUM.gl.texParameteri(
+			NgChm.SUM.gl.TEXTURE_2D, 
+			NgChm.SUM.gl.TEXTURE_WRAP_T, 
+			NgChm.SUM.gl.CLAMP_TO_EDGE);
+	NgChm.SUM.gl.texParameteri(
+			NgChm.SUM.gl.TEXTURE_2D, 
+			NgChm.SUM.gl.TEXTURE_MIN_FILTER,
+			NgChm.SUM.gl.NEAREST);
+	NgChm.SUM.gl.texParameteri(
+			NgChm.SUM.gl.TEXTURE_2D, 
+			NgChm.SUM.gl.TEXTURE_MAG_FILTER, 
+			NgChm.SUM.gl.NEAREST);
 	
-	textureParams = {};
+	NgChm.SUM.textureParams = {};
 	var texWidth = null, texHeight = null, texData;
-	texWidth = summaryTotalWidth;
-	texHeight = summaryTotalHeight;
-	texData = new ArrayBuffer(texWidth * texHeight * BYTE_PER_RGBA);
-	TexPixels = new Uint8Array(texData);
-	textureParams['width'] = texWidth;
-	textureParams['height'] = texHeight;
+	texWidth = NgChm.SUM.totalWidth;
+	texHeight = NgChm.SUM.totalHeight;
+	texData = new ArrayBuffer(texWidth * texHeight * NgChm.SUM.BYTE_PER_RGBA);
+	NgChm.SUM.texPixels = new Uint8Array(texData);
+	NgChm.SUM.textureParams['width'] = texWidth;
+	NgChm.SUM.textureParams['height'] = texHeight;
 }
 
 //=====================//
 // 	CLASSBAR FUNCTIONS //
 //=====================//
 
-function getScaledHeight(height, axis){
+NgChm.SUM.getScaledHeight = function(height, axis) {
 	var scaledHeight;
 	if (axis === "row") {
-		scaledHeight = Math.max(Math.round(height * rowClassScale), 1 + rowClassPadding);
+		scaledHeight = Math.max(Math.round(height * NgChm.SUM.rowClassScale), 1 + NgChm.SUM.rowClassPadding);
     } else {
-    	scaledHeight = Math.max(Math.round(height * colClassScale), 1 + colClassPadding);
+    	scaledHeight = Math.max(Math.round(height * NgChm.SUM.colClassScale), 1 + NgChm.SUM.colClassPadding);
     }   
     return scaledHeight;
 }
 
-// returns all the classifications bars for a given axis and their corresponding color schemes in an array.
-function getClassBarsToDraw(axis){
-	var classBars = axis.toLowerCase() == "row" ? heatMap.getRowClassificationConfig() : heatMap.getColClassificationConfig();
-	var barsAndColors = {"bars":[], "colors":[]};
-	for (var key in classBars){
-		if (classBars[key].show == "Y"){
-			barsAndColors["bars"].push(key);
-			barsAndColors["colors"].push(classBars[key].color_map);
-		}
-	}
-	return barsAndColors;
-}
-
 // draws row classification bars into the texture array ("dataBuffer"). "names"/"colorSchemes" should be array of strings.
-function drawColClassBars(dataBuffer){
+NgChm.SUM.drawColClassBars = function(dataBuffer) {
 	if (document.getElementById("missingColClassBars"))document.getElementById("missingColClassBars").remove();
-	var classBarsConfig = heatMap.getColClassificationConfig(); 
-	var classBarConfigOrder = heatMap.getColClassificationOrder();
-	var classBarsData = heatMap.getColClassificationData(); 
-	var colorMapMgr = heatMap.getColorMapManager();
-	var pos = summaryTotalWidth * summaryMatrixHeight * BYTE_PER_RGBA;
+	var classBarsConfig = NgChm.heatMap.getColClassificationConfig(); 
+	var classBarConfigOrder = NgChm.heatMap.getColClassificationOrder();
+	var classBarsData = NgChm.heatMap.getColClassificationData(); 
+	var colorMapMgr = NgChm.heatMap.getColorMapManager();
+	var pos = NgChm.SUM.totalWidth * NgChm.SUM.matrixHeight * NgChm.SUM.BYTE_PER_RGBA;
 	
 	//We reverse the order of the classBars before drawing because we draw from bottom up
 	for (var i = classBarConfigOrder.length -1; i >= 0; i--) {
 		var key = classBarConfigOrder[i];
 		var currentClassBar = classBarsConfig[key];
 		if (currentClassBar.show === 'Y') {
-			var height = getScaledHeight(currentClassBar.height, "col"); 
+			var height = NgChm.SUM.getScaledHeight(currentClassBar.height, "col"); 
 			var colorMap = colorMapMgr.getColorMap("col",key); // assign the proper color scheme...
 			var classBarValues = classBarsData[key].values;
 			var classBarLength = classBarValues.length;
@@ -631,8 +623,8 @@ function drawColClassBars(dataBuffer){
 				classBarValues = classBarsData[key].svalues;
 				classBarLength = classBarValues.length;
 			}
-			pos += (summaryTotalWidth)*colClassPadding*BYTE_PER_RGBA; // draw padding between class bars
-			var line = new Uint8Array(new ArrayBuffer(classBarLength * BYTE_PER_RGBA)); // save a copy of the class bar
+			pos += (NgChm.SUM.totalWidth)*NgChm.SUM.colClassPadding*NgChm.SUM.BYTE_PER_RGBA; // draw padding between class bars
+			var line = new Uint8Array(new ArrayBuffer(classBarLength * NgChm.SUM.BYTE_PER_RGBA)); // save a copy of the class bar
 			var loc = 0;
 			for (var k = 0; k < classBarLength; k++) { 
 				var val = classBarValues[k];
@@ -644,11 +636,11 @@ function drawColClassBars(dataBuffer){
 				line[loc + 1] = color['g'];
 				line[loc + 2] = color['b'];
 				line[loc + 3] = color['a'];
-				loc += BYTE_PER_RGBA;
+				loc += NgChm.SUM.BYTE_PER_RGBA;
 			}
 			loc = 0;
-			for (var j = 0; j < height-colClassPadding; j++){ // draw the class bar into the dataBuffer
-				pos += rowClassBarWidth*BYTE_PER_RGBA;
+			for (var j = 0; j < height-NgChm.SUM.colClassPadding; j++){ // draw the class bar into the dataBuffer
+				pos += NgChm.SUM.rowClassBarWidth*NgChm.SUM.BYTE_PER_RGBA;
 				for (var k = 0; k < line.length; k++) { 
 					dataBuffer[pos] = line[k];
 					pos++;
@@ -656,27 +648,27 @@ function drawColClassBars(dataBuffer){
 			}		
 		} else {
 			if (!document.getElementById("missingColClassBars")){
-				var x = canvas.offsetLeft + canvas.offsetWidth + 2;
-				var y = canvas.offsetTop + canvas.clientHeight/summaryTotalHeight - 10;
-				addLabelDiv(document.getElementById('sumlabelDiv'), "missingColClassBars", "ClassBar MarkLabel", "...", x, y, 10, "F", null,"Column")
+				var x = NgChm.SUM.canvas.offsetLeft + NgChm.SUM.canvas.offsetWidth + 2;
+				var y = NgChm.SUM.canvas.offsetTop + NgChm.SUM.canvas.clientHeight/NgChm.SUM.totalHeight - 10;
+				NgChm.DET.addLabelDiv(document.getElementById('sumlabelDiv'), "missingColClassBars", "ClassBar MarkLabel", "...", x, y, 10, "F", null,"Column")
 			}		
 		}
 	}
 }
 
-function drawRowClassBars(dataBuffer){
-	var classBarsConfig = heatMap.getRowClassificationConfig(); 
-	var classBarConfigOrder = heatMap.getRowClassificationOrder();
-	var classBarsData = heatMap.getRowClassificationData(); 
-	var colorMapMgr = heatMap.getColorMapManager();
+NgChm.SUM.drawRowClassBars = function(dataBuffer) {
+	var classBarsConfig = NgChm.heatMap.getRowClassificationConfig(); 
+	var classBarConfigOrder = NgChm.heatMap.getRowClassificationOrder();
+	var classBarsData = NgChm.heatMap.getRowClassificationData(); 
+	var colorMapMgr = NgChm.heatMap.getColorMapManager();
 	if (document.getElementById("missingRowClassBars"))document.getElementById("missingRowClassBars").remove();
-	var offset = (summaryTotalWidth)*BYTE_PER_RGBA;
+	var offset = (NgChm.SUM.totalWidth)*NgChm.SUM.BYTE_PER_RGBA;
 
 	for (var i = 0; i < classBarConfigOrder.length; i++) {
 		var key = classBarConfigOrder[i];
 		var pos = 0 + offset;
 		var currentClassBar = classBarsConfig[key];
-		var height = getScaledHeight(currentClassBar.height, "row"); 
+		var height = NgChm.SUM.getScaledHeight(currentClassBar.height, "row"); 
 		if (currentClassBar.show === 'Y') {
 			var colorMap = colorMapMgr.getColorMap("row",key); // assign the proper color scheme...
 			var classBarValues = classBarsData[key].values;
@@ -691,163 +683,115 @@ function drawRowClassBars(dataBuffer){
 				if (val == "null") {
 					color = colorMap.getHexToRgba(colorMap.getMissingColor());
 				}
-				for (var k = 0; k < height-rowClassPadding; k++){
+				for (var k = 0; k < height-NgChm.SUM.rowClassPadding; k++){
 					dataBuffer[pos] = color['r'];
 					dataBuffer[pos + 1] = color['g'];
 					dataBuffer[pos + 2] = color['b'];
 					dataBuffer[pos + 3] = color['a'];
-					pos+=BYTE_PER_RGBA;	// 4 bytes per color
+					pos+=NgChm.SUM.BYTE_PER_RGBA;	// 4 bytes per color
 				}
 				// padding between class bars
-				pos+=rowClassPadding*BYTE_PER_RGBA;
+				pos+=NgChm.SUM.rowClassPadding*NgChm.SUM.BYTE_PER_RGBA;
 				// go total width of the summary canvas and back up the width of a single class bar to return to starting point for next row 
-				pos+=(summaryTotalWidth - height)*BYTE_PER_RGBA; 
+				pos+=(NgChm.SUM.totalWidth - height)*NgChm.SUM.BYTE_PER_RGBA; 
 			}
 			//offset starting point of one bar to the next by the width of one bar multiplied by BPR (e.g. 15 becomes 60)
-			offset+= height*BYTE_PER_RGBA; 
+			offset+= height*NgChm.SUM.BYTE_PER_RGBA; 
 		} else {
 			if (!document.getElementById("missingRowClassBars")){
-				var x = canvas.clientWidth/summaryTotalWidth + 10;
-				var y = canvas.clientHeight + 2;
-				addLabelDiv(document.getElementById('sumlabelDiv'), "missingRowClassBars", "ClassBar MarkLabel", "...", x, y, 10, "T", null,"Row");
+				var x = NgChm.SUM.canvas.clientWidth/NgChm.SUM.totalWidth + 10;
+				var y = NgChm.SUM.canvas.clientHeight + 2;
+				NgChm.DET.addLabelDiv(document.getElementById('sumlabelDiv'), "missingRowClassBars", "ClassBar MarkLabel", "...", x, y, 10, "T", null,"Row");
 			}
 		}
 	}
 }
 
-// increase the height/width of a classbar and resize the map texture as well. redraws when done.
-function increaseClassBarHeight(name){
-	var classBars = heatMap.getClassifications();
-	if (classBars[name].height < paddingHeight){
-		classBars[name].height = paddingHeight +1; // if class bar isn't visible, then make it 1 px taller than the padding height
-	} else {
-		classBars[name].height += 2;
-	}
-	classBarHeight = calculateSummaryTotalClassBarHeight("column");
-	classBarWidth = calculateSummaryTotalClassBarHeight("row");
-	calcTotalSize();
-	var texWidth = null, texHeight = null, texData;
-	texWidth = summaryTotalWidth;
-	texHeight = summaryTotalHeight;
-	texData = new ArrayBuffer(texWidth * texHeight * BYTE_PER_RGBA);
-	TexPixels = new Uint8Array(texData);
-	textureParams['width'] = texWidth;
-	textureParams['height'] = texHeight;
-	drawSummaryHeatMap();
-}
-
-// decrease the height/width of a classbar and resize the map texture as well. redraws when done.
-function decreaseClassBarHeight(name){
-	var classBars = heatMap.getClassifications();
-	classBars[name].height -= 2;
-	if (classBars[name].height < paddingHeight){
-		classBars[name].height = 0; // if the class bar is going to be shorter than the padding height, make it invisible
-	}
-	classBarHeight = calculateSummaryTotalClassBarHeight("column");
-	classBarWidth = calculateSummaryTotalClassBarHeight("row");
-	calcTotalSize();
-	var texWidth = null, texHeight = null, texData;
-	texWidth = summaryTotalWidth;
-	texHeight = summaryTotalHeight;
-	texData = new ArrayBuffer(texWidth * texHeight * BYTE_PER_RGBA);
-	TexPixels = new Uint8Array(texData);
-	textureParams['width'] = texWidth;
-	textureParams['height'] = texHeight;
-	drawSummaryHeatMap();
-}
-
-
-function calculateSummaryTotalClassBarHeight(axis){
+NgChm.SUM.calculateSummaryTotalClassBarHeight = function(axis) {
 	var totalHeight = 0;
 	if (axis === "row") {
-		var classBars = heatMap.getRowClassificationConfig();
+		var classBars = NgChm.heatMap.getRowClassificationConfig();
 	} else {
-		var classBars = heatMap.getColClassificationConfig();
+		var classBars = NgChm.heatMap.getColClassificationConfig();
 	}
 	for (var key in classBars){
 		if (classBars[key].show === 'Y') {
-		   totalHeight += getScaledHeight(parseInt(classBars[key].height), axis);
+		   totalHeight += NgChm.SUM.getScaledHeight(parseInt(classBars[key].height), axis);
 		}
 	}
 	return totalHeight;
 }
 
-
-
-
 //***************************//
 //Selection Label Functions *//
 //***************************//
-function summaryResize() {
-	if(!isSub){
-		setSummarySize();
-		summaryColumnDendro.resize();
-		summaryColumnDendro.draw();
-		summaryRowDendro.resize();
-		summaryRowDendro.draw();
-		drawLeftCanvasBox();
-		clearSelectionMarks();
-		drawRowSelectionMarks();
-		drawColSelectionMarks();
+NgChm.SUM.summaryResize = function() {
+	if(!NgChm.SEL.isSub){
+		NgChm.SUM.setSummarySize();
+		NgChm.SUM.colDendro.resize();
+		NgChm.SUM.colDendro.draw();
+		NgChm.SUM.rowDendro.resize();
+		NgChm.SUM.rowDendro.draw();
+		NgChm.SUM.drawLeftCanvasBox();
+		NgChm.SUM.clearSelectionMarks();
+		NgChm.SUM.drawRowSelectionMarks();
+		NgChm.SUM.drawColSelectionMarks();
 	}
 }
 
-
-function drawRowSelectionMarks() {
+NgChm.SUM.drawRowSelectionMarks = function() {
 	var markElement = document.getElementById('sumlabelDiv');
-	var headerSize = summaryTotalHeight - summaryMatrixHeight;
+	var headerSize = NgChm.SUM.totalHeight - NgChm.SUM.matrixHeight;
 
 	var fontSize = 10;
-	var selectedRows = getSearchRows();
-	var rowSumRatio = heatMap.getRowSummaryRatio(MatrixManager.SUMMARY_LEVEL);
-	var xPos = canvas.offsetWidth + canvas.offsetLeft;
-	var posScaleFactor = canvas.clientHeight/summaryTotalHeight;
-	var ymin = summaryColumnDendro.getDivHeight();
+	var selectedRows = NgChm.DET.getSearchRows();
+	var rowSumRatio = NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL);
+	var xPos = NgChm.SUM.canvas.offsetWidth + NgChm.SUM.canvas.offsetLeft;
+	var posScaleFactor = NgChm.SUM.canvas.clientHeight/NgChm.SUM.totalHeight;
+	var ymin = NgChm.SUM.colDendro.getDivHeight();
 	
 	for (var i = 0; i < selectedRows.length; i++) {
 		var position = headerSize + (selectedRows[i]/rowSumRatio);
 		var yPos = ymin + position*posScaleFactor - fontSize;
-		addLabelDiv(markElement, 'sum_row' + i, 'MarkLabel', '<', xPos, yPos, fontSize, 'F', i, "Row");
+		NgChm.DET.addLabelDiv(markElement, 'sum_row' + i, 'MarkLabel', '<', xPos, yPos, fontSize, 'F', i, "Row");
 	}
 }
 
-function drawColSelectionMarks() {
+NgChm.SUM.drawColSelectionMarks = function() {
 	var markElement = document.getElementById('sumlabelDiv');
-	var headerSize = summaryTotalWidth - summaryMatrixWidth;
+	var headerSize = NgChm.SUM.totalWidth - NgChm.SUM.matrixWidth;
 
 	var fontSize = 10;
-	var selectedCols = getSearchCols();
-	var colSumRatio = heatMap.getColSummaryRatio(MatrixManager.SUMMARY_LEVEL)
-	var yPos = canvas.offsetHeight + canvas.offsetTop;
-	var posScaleFactor = canvas.clientWidth/summaryTotalWidth;
-	var xmin = canvas.offsetLeft;
+	var selectedCols = NgChm.DET.getSearchCols();
+	var colSumRatio = NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL)
+	var yPos = NgChm.SUM.canvas.offsetHeight + NgChm.SUM.canvas.offsetTop;
+	var posScaleFactor = NgChm.SUM.canvas.clientWidth/NgChm.SUM.totalWidth;
+	var xmin = NgChm.SUM.canvas.offsetLeft;
 	
 	for (var i = 0; i < selectedCols.length; i++) {
 		var position = headerSize + (selectedCols[i]/colSumRatio);
 		var xPos = xmin + position*posScaleFactor + fontSize/2;
-		addLabelDiv(markElement, 'sum_row' + i, 'MarkLabel', '<', xPos, yPos, fontSize, 'T', i, "Column");
+		NgChm.DET.addLabelDiv(markElement, 'sum_row' + i, 'MarkLabel', '<', xPos, yPos, fontSize, 'T', i, "Column");
 	}
 }
 
-function clearSelectionMarks() {
-//	var markElement = document.getElementById('sumlabelDiv');
+NgChm.SUM.clearSelectionMarks = function() {
 	var oldMarks = document.getElementsByClassName("MarkLabel");
 	while (oldMarks.length > 0) {
-//		markElement.removeChild(oldMarks[0]);
 		oldMarks[0].remove();
 	}
 
 }
 
-
-function dividerStart(){
-	userHelpClose();
-	document.addEventListener('mousemove', dividerMove);
-	document.addEventListener('touchmove', dividerMove);
-	document.addEventListener('mouseup', dividerEnd);
-	document.addEventListener('touchend',dividerEnd);
+NgChm.SUM.dividerStart = function() {
+	NgChm.UHM.userHelpClose();
+	document.addEventListener('mousemove', NgChm.SUM.dividerMove);
+	document.addEventListener('touchmove', NgChm.SUM.dividerMove);
+	document.addEventListener('mouseup', NgChm.SUM.dividerEnd);
+	document.addEventListener('touchend',NgChm.SUM.dividerEnd);
 }
-function dividerMove(e){
+
+NgChm.SUM.dividerMove = function(e) {
 	var divider = document.getElementById('divider');
 	if (e.touches){
     	if (e.touches.length > 1){
@@ -858,28 +802,29 @@ function dividerMove(e){
 	var summary = document.getElementById('summary_chm');
 	var summaryX = summary.offsetWidth - Xmove;
 	summary.style.width=summaryX+'px';
-	setSummarySize();
-	summaryColumnDendro.resize();
-	summaryRowDendro.resize();
+	NgChm.SUM.setSummarySize();
+	NgChm.SUM.colDendro.resize();
+	NgChm.SUM.rowDendro.resize();
 	if (summary.style.width == summary.style.maxWidth){
 		return
 	}
 	var sumScale = summaryX/summary.clientWidth;
 	var container = document.getElementById("container");
-	var originalW = Math.max(Math.max(Math.round(summaryMatrixWidth/250 * 48), 3))*container.clientWidth;
-	var originalH = Math.max(Math.max(Math.round(summaryMatrixHeight/250 * 48), 3))*container.clientHeight;
+	var originalW = Math.max(Math.max(Math.round(NgChm.SUM.matrixWidth/250 * 48), 3))*container.clientWidth;
+	var originalH = Math.max(Math.max(Math.round(NgChm.SUM.matrixHeight/250 * 48), 3))*container.clientHeight;
 	var originalAR = originalW/originalH;
 	var detail = document.getElementById('detail_chm');
 	var detailX = detail.offsetWidth + Xmove;
 	detail.style.width=detailX+'px';
-	clearLabels();
-	clearSelectionMarks();
+	NgChm.DET.clearLabels();
+	NgChm.SUM.clearSelectionMarks();
 }
-function dividerEnd(){
-	document.removeEventListener('mousemove', dividerMove);
-	document.removeEventListener('mouseup', dividerEnd);
-	document.removeEventListener('touchmove',dividerMove);
-	document.removeEventListener('touchend',dividerEnd);
+
+NgChm.SUM.dividerEnd = function() {
+	document.removeEventListener('mousemove', NgChm.SUM.dividerMove);
+	document.removeEventListener('mouseup', NgChm.SUM.dividerEnd);
+	document.removeEventListener('touchmove',NgChm.SUM.dividerMove);
+	document.removeEventListener('touchend',NgChm.SUM.dividerEnd);
 	// set summary and detail canvas sizes to percentages to avoid map getting pushed down on resize
 	var container = document.getElementById('container');
 	var summary = document.getElementById('summary_chm');
@@ -888,6 +833,9 @@ function dividerEnd(){
 	var detail = document.getElementById('detail_chm');
 	var detPercent = 100*detail.clientWidth/container.clientWidth;
 	detail.style.width = detPercent + "%";
-	summaryResize();
-	detailResize();
+	NgChm.SUM.summaryResize();
+	NgChm.DET.detailResize();
+	NgChm.DET.drawRowAndColLabels();
+	NgChm.SUM.drawRowSelectionMarks();
+	NgChm.SUM.drawColSelectionMarks();
 }

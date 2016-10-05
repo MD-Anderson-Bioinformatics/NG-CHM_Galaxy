@@ -2,17 +2,19 @@
  * General purpose javascript helper funcitons
  */
 
+//Define Namespace for NgChm UTIL
+NgChm.createNS('NgChm.UTIL');
+
 //Get a value for a parm passed in the URL.
-function getURLParameter(name) {
-  return decodeURIComponent((new RegExp('[?|&]' + name + '=' + '([^&;]+?)(&|#|;|$)').exec(location.search)||[,""])[1].replace(/\+/g, '%20'))||''
+NgChm.UTIL.getURLParameter = function(name) {
+  return decodeURIComponent((new RegExp('[?|&]' + name + '=' + '([^&;]+?)(&|#|;|$)').exec(location.search)||[,""])[1].replace(/\+/g, '%20'))||'';
 }
 
 /**********************************************************************************
  * FUNCTION - toTitleCase: The purpose of this function is to change the case of
  * the first letter of the first word in each sentence passed in.
  **********************************************************************************/
-function toTitleCase(string)
-{
+NgChm.UTIL.toTitleCase = function(string) {
     // \u00C0-\u00ff for a happy Latin-1
     return string.toLowerCase().replace(/_/g, ' ').replace(/\b([a-z\u00C0-\u00ff])/g, function (_, initial) {
         return initial.toUpperCase();
@@ -25,7 +27,7 @@ function toTitleCase(string)
  * FUNCTION - getStyle: The purpose of this function is to return the style 
  * property requested for a given screen object.
  **********************************************************************************/
-function getStyle(x,styleProp){
+NgChm.UTIL.getStyle = function(x,styleProp) {
     if (x.currentStyle)
         var y = x.currentStyle[styleProp];
     else if (window.getComputedStyle)
@@ -37,8 +39,8 @@ function getStyle(x,styleProp){
  * FUNCTION - returnToHome: The purpose of this function is to open a "home" URL
  * in the same tab as the heatMap (when a link is present).
  **********************************************************************************/
-function returnToHome() { 
-	var collectionhomeurl = getURLParameter("collectionHome");
+NgChm.UTIL.returnToHome = function() {
+	var collectionhomeurl = NgChm.UTIL.getURLParameter("collectionHome");
 	if (collectionhomeurl !== "") {
 		window.open(collectionhomeurl,"_self")
 	}
@@ -48,7 +50,7 @@ function returnToHome() {
  * FUNCTION - ReverseObject: The purpose of this function is to reverse the order
  * of key elements in an object.
  **********************************************************************************/
-function reverseObject(Obj){
+NgChm.UTIL.reverseObject = function(Obj) {
     var TempArr = [];
     var NewObj = [];
     for (var Key in Obj){
@@ -59,3 +61,32 @@ function reverseObject(Obj){
     }
     return NewObj;
 }
+
+/**********************************************************************************
+ * FUNCTION - getLabelText: The purpose of this function examine label text and 
+ * shorten the text if the label exceeds the 20 character allowable length.  If the
+ * label is in excess, the first 9 and last 8 characters will be written out 
+ * separated by ellipsis (...);
+ **********************************************************************************/
+NgChm.UTIL.getLabelText2 = function(text, size, elPos) {
+	if (text.length > size) {
+		text = text.substr(0,9)+"..."+text.substr(text.length-8,text.length);
+	}
+	return text;
+}
+NgChm.UTIL.getLabelText = function(text) { 
+	var size = parseInt(NgChm.heatMap.getMapInformation().label_display_length);
+	var elPos = NgChm.heatMap.getMapInformation().label_display_truncation;
+	if (text.length > size) {
+		if (elPos === 'END') {
+			text = text.substr(0,size - 3)+"...";
+		} else if (elPos === 'MIDDLE') {
+			text = text.substr(0,(size/2 - 1))+"..."+text.substr(text.length-(size/2 - 2),text.length);
+		} else {
+			text = "..."+text.substr(0,size - 3);
+		}
+	}
+	return text;
+}
+
+
