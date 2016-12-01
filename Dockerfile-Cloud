@@ -1,7 +1,7 @@
 ##### BASE #####
 
 FROM bgruening/galaxy-stable
-#bb instead?? FROM https://odin.mdacc.tmc.edu/mcryan/NGCHM_Galaxy
+#bb  FROM https://odin.mdacc.tmc.edu/mcryan/NGCHM_Galaxy
 #FROM ngchm_galaxy
 
 ##### APT-GET #####
@@ -46,13 +46,20 @@ ADD ./BigQuery/* /galaxy-central/tools/BigQuery/
 RUN  chmod 771 /galaxy-central/tools/BigQuery
 
 ##### Place MDA and Insilico logo on the Welcome Page #####
-ADD ./BigQuery/MDA&InSilico_combined_logo.png /galaxy-central/tools/BigQuery/
-ADD ./BigQuery/welcome.html /galaxy-central/tools/BigQuery/
+#ADD ./BigQuery/MDA&InSilico_combined_logo.png /galaxy-central/static/welcome.html
+RUN  chmod -777  /etc/galaxy/web/welcome_image.png
+COPY ./BigQuery/MDA&InSilico&Docker.png /etc/galaxy/web/welcome_image.png
 RUN  chmod 775 /galaxy-central/static
+
+##### Place MDA test input and output files in ~/test-data directory #####
+ADD ./ngchm-matrix-functional-test-data/400x400.txt                   /galaxy-central/test-data/
+ADD ./ngchm-matrix-functional-test-data/400x400-row-covariate.txt     /galaxy-central/test-data/
+ADD ./ngchm-matrix-functional-test-data/400x400-column-covariate.txt  /galaxy-central/test-data/
+ADD ./ngchm-matrix-functional-test-data/Galaxy400x400-noCovariates.ngchm  /galaxy-central/test-data/
 
 
 ##### Place MDA software in Tools and Visualization directories #####
-ADD ./mda_heatmap_gen/* /galaxy-central/tools/MDA_Heatmaps/
+ADD ./mda_heatmap_gen/ /galaxy-central/tools/MDA_Heatmaps/
 RUN  chmod +x /galaxy-central/tools/MDA_Heatmaps/heatmap.sh
 RUN  chmod 777 /galaxy-central/tools/MDA_Heatmaps
 
