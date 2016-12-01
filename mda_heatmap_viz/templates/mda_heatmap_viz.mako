@@ -60,7 +60,8 @@
                NgChm.heatMap.addEventListener(NgChm.DET.processDetailMapUpdate);
                NgChm.SUM.initSummaryDisplay();
                NgChm.DET.initDetailDisplay();
-               document.getElementById("container").addEventListener('wheel', handleScroll, false);
+               document.addEventListener('wheel', NgChm.SEL.handleScroll, false);
+               document.getElementById("detail_canvas").focus();
            }
        };
        xmlhttp.send();
@@ -110,6 +111,7 @@
               </div>
               <img id='pdf_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/pdf.png' alt='go' onmouseover='NgChm.UHM.detailDataToolHelp(this,"Save as PDF")' onclick='NgChm.PDF.openPdfPrefs(this,null);' align="top"/>
               <img id='gear_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/gear.png' alt='Modify Map' onmouseover='NgChm.UHM.detailDataToolHelp(this,"Modify Map Preferences")' onclick='NgChm.UPM.editPreferences(this,null);' align="top"/>
+              <img id='help_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/questionMark.png' alt='Help' onmouseover='NgChm.UHM.detailDataToolHelp(this,"NgChm Help",160)' onclick='NgChm.UHM.openHelp(this);' align="top"/>
            </div>
         </div>
     </div>
@@ -120,6 +122,8 @@
           <canvas id='row_dendro_canvas' width='1200' height='500'></canvas>
           <canvas id='summary_canvas'></canvas>
           <canvas id='summary_box_canvas' ></canvas>
+          <canvas id='summary_col_select_canvas' class='selection_canvas'></canvas>
+			<canvas id='summary_row_select_canvas' class='selection_canvas' ></canvas>
 	  <div id='sumlabelDiv' style="display: inline-block"></div>
        </div>
 
@@ -129,7 +133,7 @@
        <div id='detail_chm' style='position: relative;'>
           <canvas id='detail_canvas' style='display: inline-block'></canvas>
           <canvas id='detail_box_canvas' ></canvas>
-          <div id='detSizer' style='position:absolute'  onmousedown="NgChm.DET.detSizerStart()" ontouchstart="NgChm.DET.detSizerStart()"></div>
+	<!--		<div id='detSizer' style='position:absolute'  onmousedown="NgChm.DET.detSizerStart()" ontouchstart="NgChm.DET.detSizerStart()"></div> -->
           <div id='labelDiv' style="display: inline-block"></div>
        </div>
    </div>
@@ -151,7 +155,7 @@
                            <input id="pdfInputSummaryMap" type="radio" name="pages" value="summary"> Summary<br>
                            <input id="pdfInputDetailMap" type="radio" name="pages" value="detail"> Detail<br>
                            <input id="pdfInputBothMaps" type="radio" name="pages" value="both" checked> Both<br><br>
-                           <input id="pdfInputPages" type="checkbox" name="pages" value="separate"> Show maps on separate pages<br>							
+						<!--  		<input id="pdfInputPages" type="checkbox" name="pages" value="separate"> Show maps on separate pages<br>	-->							
                            <input id="pdfInputPortrait" type="radio" name="orientation" value="portrait"> Portrait 
                            <input id="pdfInputLandscape" type="radio" name="orientation" value="Landscape" checked> Landscape <br>							
                            <h3 style="margin-bottom:0px;">Show classification bars:</h3>							

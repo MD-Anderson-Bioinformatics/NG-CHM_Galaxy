@@ -382,7 +382,7 @@ NgChm.PDF.getPDF = function() {
 			doc.text(leftOff +15, bartop + classBarLegendTextSize+24, "printing in portrait mode.", null);
 			setClassBarFigureH(3,'discrete',0);   
 		} else {
-			if (topOff + (thresholds.length*13) > pageHeight) {
+			if ((topOff + (thresholds.length*13) > pageHeight) && !isLastClassBarToBeDrawn(key,type)) {
 				doc.addPage(); // ... make a new page and reset topOff
 				createHeader(theFont, sectionHeader + " (continued)");
 				topOff = paddingTop + 15;
@@ -637,14 +637,14 @@ NgChm.PDF.getPDF = function() {
 	function isLastClassBarToBeDrawn(classBar,type){
 		var isItLast = false;
 		if (isChecked('pdfInputColumn')) {
-			var colKeys = Object.keys(NgChm.heatMap.getColClassificationConfig());
-			if ((type === 'col') && (classBar === colKeys[colKeys.length - 1])) {
+			var colBars = NgChm.heatMap.getColClassificationOrder("show");
+			if ((type === 'col') && (classBar === colBars[colBars.length - 1])) {
 				isItLast = true
 			}
 		}
 		if (isChecked('pdfInputRow')) {
-			var rowKeys = Object.keys(NgChm.heatMap.getRowClassificationConfig());
-			if ((type === 'row') && (classBar === rowKeys[rowKeys.length - 1])) {
+			var rowBars = NgChm.heatMap.getRowClassificationOrder("show");
+			if ((type === 'row') && (classBar === rowBars[rowBars.length - 1])) {
 				isItLast = true
 			}
 		}

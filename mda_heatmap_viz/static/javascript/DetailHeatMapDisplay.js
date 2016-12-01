@@ -32,8 +32,8 @@ NgChm.DET.SIZE_NORMAL_MODE = 506;
 NgChm.DET.dataViewHeight = 506;
 NgChm.DET.dataViewWidth = 506;
 NgChm.DET.dataViewBorder = 2;
-NgChm.DET.zoomBoxSizes = [1,2,3,4,6,7,8,9,12,14,18,21,24,28,36,42,56,63,72,84,126,168,252,504];
-NgChm.DET.minLabelSize = 8;
+NgChm.DET.zoomBoxSizes = [1,2,3,4,6,7,8,9,12,14,18,21,24,28,36,42,56,63,72,84,126,168,252];
+NgChm.DET.minLabelSize = 5;
 NgChm.DET.currentSearchItem = {};
 NgChm.DET.labelLastClicked = {};
 
@@ -41,6 +41,9 @@ NgChm.DET.mouseDown = false;
 NgChm.DET.dragOffsetX;
 NgChm.DET.dragOffsetY;
 NgChm.DET.detailPoint;
+
+NgChm.DET.rowLabelLen = 0;
+NgChm.DET.colLabelLen = 0;
 
 //Call once to hook up detail drawing routines to a heat map and initialize the webGl 
 NgChm.DET.initDetailDisplay = function () {
@@ -74,7 +77,6 @@ NgChm.DET.initDetailDisplay = function () {
 	NgChm.DET.canvas.onmousedown = NgChm.DET.clickStart;
 	NgChm.DET.canvas.onmouseup = NgChm.DET.clickEnd;
 	NgChm.DET.canvas.onmousemove = NgChm.DET.handleMouseMove;
-	NgChm.DET.canvas.onmouseleave = NgChm.UHM.userHelpClose;
 	NgChm.DET.canvas.onmouseout = NgChm.DET.handleMouseOut;
 	NgChm.DET.canvas.onkeydown = NgChm.SEL.keyNavigate;
 
@@ -108,21 +110,33 @@ NgChm.DET.initDetailDisplay = function () {
 }
 
 /*********************************************************************************************
+ * FUNCTION:  getCursorPosition
+ * 
+ * The purpose of this function is to return the cursor position over the canvas.  
+ *********************************************************************************************/
+NgChm.DET.getCursorPosition = function (e) {
+    var rect = NgChm.DET.canvas.getBoundingClientRect();
+    var x = e.clientX - rect.left;
+    var y = e.clientY - rect.top;
+    return {x:x, y:y}
+}
+
+/*********************************************************************************************
  * FUNCTION:  clickStart
  * 
  * The purpose of this function is to handle a user mouse down event.  
  *********************************************************************************************/
 NgChm.DET.clickStart = function (e) {
-	NgChm.DET.canvas.focus();
 	e.preventDefault();
 	NgChm.SUM.mouseEventActive = true;
 	var clickType = NgChm.DET.getClickType(e);
 	NgChm.UHM.userHelpClose();
 	if (clickType === 0) { 
 		NgChm.DET.canvas = document.getElementById('detail_canvas');
-		NgChm.DET.dragOffsetX = e.touches ? e.layerX : e.layerX;  //canvas X coordinate 
-		NgChm.DET.dragOffsetY = e.touches ? e.layerY : e.layerY;
-	    NgChm.DET.mouseDown = true;
+		var coords = NgChm.DET.getCursorPosition(e);
+		NgChm.DET.dragOffsetX = coords.x;  //canvas X coordinate 
+		NgChm.DET.dragOffsetY = coords.y;
+		NgChm.DET.mouseDown = true;
 		// client space
 		var divW = e.target.clientWidth;
 		var divH = e.target.clientHeight;
@@ -136,8 +150,8 @@ NgChm.DET.clickStart = function (e) {
 		var colClassH = NgChm.DET.calculateTotalClassBarHeight("column")/colTotalH;
 		var mapW = NgChm.DET.dataViewWidth/rowTotalW;
 		var mapH = NgChm.DET.dataViewHeight/colTotalH;
-		var clickX = e.layerX/divW;
-		var clickY = e.layerY/divH;
+		var clickX = coords.x/divW;
+		var clickY = coords.y/divH;
 		
 		if (clickX > rowDendroW + rowClassW && clickY < colDendroH){ // col dendro clicked
 			var heightRatio = NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerRow;
@@ -195,8 +209,11 @@ NgChm.DET.clickEnd = function (e) {
 		var clickType = NgChm.DET.getClickType(e);
 		if (clickType === 0) {
 			NgChm.DET.mouseDown = false;
-			var dragEndX = e.changedTouches ? e.changedTouches[0].pageX : e.layerX;  //etouches is for tablets = number of fingers touches on screen
-			var dragEndY = e.changedTouches ? e.changedTouches[0].pageY : e.layerY;
+//			var dragEndX = e.changedTouches ? e.changedTouches[0].pageX : e.layerX;  //etouches is for tablets = number of fingers touches on screen
+//			var dragEndY = e.changedTouches ? e.changedTouches[0].pageY : e.layerY;
+			var coords = NgChm.DET.getCursorPosition(e);
+			var dragEndX = coords.x;  //etouches is for tablets = number of fingers touches on screen
+			var dragEndY = coords.y;
 			var rowElementSize = NgChm.DET.dataBoxWidth * NgChm.DET.canvas.clientWidth/NgChm.DET.canvas.width;
 		    var colElementSize = NgChm.DET.dataBoxHeight * NgChm.DET.canvas.clientHeight/NgChm.DET.canvas.height;
 		    //If cursor did not move from the column/row between click start/end, display User Help
@@ -255,7 +272,6 @@ NgChm.DET.handleMouseMove = function (e) {
 	var eX = e.touches ? e.touches[0].clientX : e.clientX;
 	var eY = e.touches ? e.touches[0].clientY : e.clientY;
 	if(NgChm.DET.oldMousePos[0] != eX || NgChm.DET.oldMousePos[1] != eY) {
-		NgChm.UHM.userHelpClose();
 		NgChm.DET.oldMousePos = [eX, eY];
 	} 
 	if (NgChm.DET.mouseDown && NgChm.SUM.mouseEventActive){
@@ -287,13 +303,16 @@ NgChm.DET.handleMoveDrag = function (e) {
     		return false;
     	}
     } 
-    var xDrag = e.touches ? e.layerX - NgChm.DET.dragOffsetX : e.layerX - NgChm.DET.dragOffsetX;
-    var yDrag = e.touches ? e.layerY - NgChm.DET.dragOffsetY : e.layerY - NgChm.DET.dragOffsetY;
+	var coords = NgChm.DET.getCursorPosition(e);
+//    var xDrag = e.touches ? e.layerX - NgChm.DET.dragOffsetX : e.layerX - NgChm.DET.dragOffsetX;
+//    var yDrag = e.touches ? e.layerY - NgChm.DET.dragOffsetY : e.layerY - NgChm.DET.dragOffsetY;
+    var xDrag = e.touches ? coords.x - NgChm.DET.dragOffsetX : coords.x - NgChm.DET.dragOffsetX;
+    var yDrag = e.touches ? coords.y - NgChm.DET.dragOffsetY : coords.y - NgChm.DET.dragOffsetY;
     if ((Math.abs(xDrag/rowElementSize) > 1) || (Math.abs(yDrag/colElementSize) > 1)) {
     	NgChm.SEL.currentRow = Math.floor(NgChm.SEL.currentRow - (yDrag/colElementSize));
     	NgChm.SEL.currentCol = Math.floor(NgChm.SEL.currentCol - (xDrag/rowElementSize));
-    	NgChm.DET.dragOffsetX = e.touches ? e.layerX : e.layerX;
-	    NgChm.DET.dragOffsetY = e.touches ? e.layerY : e.layerY;
+		NgChm.DET.dragOffsetX = coords.x;  //canvas X coordinate 
+		NgChm.DET.dragOffsetY = coords.y;
 	    NgChm.SEL.checkRow();
 	    NgChm.SEL.checkColumn();
 	    NgChm.SEL.updateSelection();
@@ -318,16 +337,17 @@ NgChm.DET.handleSelectDrag = function (e) {
     		return false;
     	}
     }
-    var xDrag = e.touches ? e.touches[0].layerX - NgChm.DET.dragOffsetX : e.layerX - NgChm.DET.dragOffsetX;
-    var yDrag = e.touches ? e.touches[0].layerY - NgChm.DET.dragOffsetY : e.layerY - NgChm.DET.dragOffsetY;
+	var coords = NgChm.DET.getCursorPosition(e);
+    var xDrag = e.touches ? e.touches[0].layerX - NgChm.DET.dragOffsetX : coords.x - NgChm.DET.dragOffsetX;
+    var yDrag = e.touches ? e.touches[0].layerY - NgChm.DET.dragOffsetY : coords.y - NgChm.DET.dragOffsetY;
     
     if ((Math.abs(xDrag/rowElementSize) > 1) || (Math.abs(yDrag/colElementSize) > 1)) {
     	//Retrieve drag corners but set to max/min values in case user is dragging
     	//bottom->up or left->right.
-    	var endRow = Math.max(NgChm.DET.getRowFromLayerY(e.layerY),NgChm.DET.getRowFromLayerY(NgChm.DET.dragOffsetY));
-    	var endCol = Math.max(NgChm.DET.getColFromLayerX(e.layerX),NgChm.DET.getColFromLayerX(NgChm.DET.dragOffsetX));
-		var startRow = Math.min(NgChm.DET.getRowFromLayerY(e.layerY),NgChm.DET.getRowFromLayerY(NgChm.DET.dragOffsetY));
-		var startCol = Math.min(NgChm.DET.getColFromLayerX(e.layerX),NgChm.DET.getColFromLayerX(NgChm.DET.dragOffsetX));
+    	var endRow = Math.max(NgChm.DET.getRowFromLayerY(coords.y),NgChm.DET.getRowFromLayerY(NgChm.DET.dragOffsetY));
+    	var endCol = Math.max(NgChm.DET.getColFromLayerX(coords.x),NgChm.DET.getColFromLayerX(NgChm.DET.dragOffsetX));
+		var startRow = Math.min(NgChm.DET.getRowFromLayerY(coords.y),NgChm.DET.getRowFromLayerY(NgChm.DET.dragOffsetY));
+		var startCol = Math.min(NgChm.DET.getColFromLayerX(coords.x),NgChm.DET.getColFromLayerX(NgChm.DET.dragOffsetX));
 		NgChm.DET.clearSearch(e);
     	for (var i = startRow; i <= endRow; i++){
     		NgChm.SEL.searchItems["Row"][i] = 1;
@@ -346,7 +366,6 @@ NgChm.DET.handleSelectDrag = function (e) {
 		 NgChm.DET.drawRowAndColLabels();
 		 NgChm.DET.detailDrawColClassBarLabels();
 		 NgChm.DET.detailDrawRowClassBarLabels();
-
     }
 }	
 
@@ -621,15 +640,16 @@ NgChm.DET.isOnObject = function (e,type) {
     var colClassHeightPx = NgChm.DET.getColClassPixelHeight();
     var rowDendroWidthPx =  NgChm.DET.getRowDendroPixelWidth();
     var colDendroHeightPx = NgChm.DET.getColDendroPixelHeight();
-    if (e.layerY > colClassHeightPx + colDendroHeightPx) { 
-    	if  ((type == "map") && e.layerX > rowClassWidthPx + rowDendroWidthPx) {
+	var coords = NgChm.DET.getCursorPosition(e);
+    if (coords.y > colClassHeightPx + colDendroHeightPx) { 
+    	if  ((type == "map") && coords.x > rowClassWidthPx + rowDendroWidthPx) {
     		return true;
     	}
-    	if  ((type == "rowClass") && e.layerX < rowClassWidthPx + rowDendroWidthPx && e.layerX > rowDendroWidthPx) {
+    	if  ((type == "rowClass") && coords.x < rowClassWidthPx + rowDendroWidthPx && coords.x > rowDendroWidthPx) {
     		return true;
     	}
-    } else if (e.layerY > colDendroHeightPx) {
-    	if  ((type == "colClass") && e.layerX > rowClassWidthPx + rowDendroWidthPx) {
+    } else if (coords.y > colDendroHeightPx) {
+    	if  ((type == "colClass") && coords.x > rowClassWidthPx + rowDendroWidthPx) {
     		return true;
     	}
     }
@@ -657,7 +677,6 @@ NgChm.DET.detailDataZoomIn = function () {
 			NgChm.SEL.updateSelection();
 		}
 	}
-	NgChm.DET.canvas.focus();
 }	
 
 NgChm.DET.detailDataZoomOut = function () {
@@ -685,7 +704,6 @@ NgChm.DET.detailDataZoomOut = function () {
 			NgChm.SEL.updateSelection();
 		}	
 	}
-	NgChm.DET.canvas.focus();
 }
 
 //How big each data point should be in the detail pane.  
@@ -730,13 +748,11 @@ NgChm.DET.setDetailDataHeight = function (size) {
 NgChm.DET.detailHRibbonButton = function () {
 	NgChm.DDR.clearDendroSelection();
 	NgChm.DET.detailHRibbon();
-	NgChm.DET.canvas.focus();
 }
 
 NgChm.DET.detailVRibbonButton = function () {
 	NgChm.DDR.clearDendroSelection();
 	NgChm.DET.detailVRibbon();
-	NgChm.DET.canvas.focus();
 }
 
 //Change to horizontal ribbon view.  Note there is a standard full ribbon view and also a sub-selection
@@ -764,6 +780,7 @@ NgChm.DET.detailHRibbon = function () {
 		NgChm.DET.setDetailDataWidth(ddw);
 		NgChm.SEL.currentCol = 1;
 	} else {
+		NgChm.DET.saveCol = NgChm.SEL.selectedStart;
 		var selectionSize = NgChm.SEL.selectedStop - NgChm.SEL.selectedStart + 1;
 		if (selectionSize < 500) {
 			NgChm.SEL.mode='RIBBONH_DETAIL'
@@ -818,6 +835,7 @@ NgChm.DET.detailVRibbon = function () {
 		NgChm.DET.setDetailDataHeight(ddh);
 		NgChm.SEL.currentRow = 1;
 	} else {
+		NgChm.DET.saveRow = NgChm.SEL.selectedStart;
 		var selectionSize = NgChm.SEL.selectedStop - NgChm.SEL.selectedStart + 1;
 		if (selectionSize < 500) {
 			NgChm.SEL.mode = 'RIBBONV_DETAIL';
@@ -885,8 +903,26 @@ NgChm.DET.detailNormal = function () {
 	NgChm.SEL.updateSelection();
 	document.getElementById("viewport").setAttribute("content", "height=device-height");
     document.getElementById("viewport").setAttribute("content", "");
-    NgChm.DET.canvas.focus();
 }
+
+NgChm.DET.getNearestBoxSize = function (sizeToGet) {
+	var boxSize = 0;
+	//Loop zoomBoxSizes to pick the one that will be large enough
+	//to encompass user-selected area
+	for (var i=NgChm.DET.zoomBoxSizes.length-1; i>=0;i--) {
+		boxSize = NgChm.DET.zoomBoxSizes[i];
+		boxCalcVal = (NgChm.DET.dataViewWidth-NgChm.DET.dataViewBorder)/boxSize;
+		if (boxCalcVal > sizeToGet) {
+			//Down size box if greater than map dimensions.
+			if (boxCalcVal >= Math.min(NgChm.heatMap.getTotalRows(),NgChm.heatMap.getTotalCols())) {
+				boxSize = NgChm.DET.zoomBoxSizes[i+1];
+			}
+			break;
+		}
+	}
+	return boxSize
+}
+
 
 NgChm.DET.setButtons = function () {
 	var full = document.getElementById('full_btn');
@@ -917,6 +953,9 @@ NgChm.DET.detailSplit = function () {
 		NgChm.heatMap.setFlickInitialized(false);
 		// If the summary and detail are in a single browser window, this is a split action.  
 		if (!NgChm.SEL.isSub) {
+			//Set flick button to top selection for later screen join
+			var flickBtn = document.getElementById("flick_btn");
+			flickBtn.setAttribute('src', NgChm.staticPath + 'images/toggleUp.png');
 			//Write current selection settings to the local storage
 			NgChm.SEL.hasSub=true;
 			NgChm.DET.clearLabels();
@@ -1019,9 +1058,20 @@ NgChm.DET.detailInit = function () {
 	NgChm.DET.canvas.height = (NgChm.DET.dataViewHeight + NgChm.DET.calculateTotalClassBarHeight("column") + NgChm.DET.dendroHeight);
 	NgChm.LNK.createLabelMenus();
 	NgChm.SEL.createEmptySearchItems();
-	if (typeof NgChm.DET.dataBoxWidth === 'undefined') {
+	
+	// Small Maps - Set detail data size.  If there are less than 42 rows or columns
+	// set the to show the box size closest to the lower value ELSE
+	// set it to show 42 rows/cols.
+	var rows = NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL);
+	var cols = NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL);
+	if ((rows < 42) || (cols < 42)) {
+		var zoomCalcVal = Math.min(rows,cols);
+		var boxSize = NgChm.DET.getNearestBoxSize(zoomCalcVal);
+		NgChm.DET.setDetailDataSize(boxSize); 
+	} else {
 		NgChm.DET.setDetailDataSize(12);
 	}
+	
 	NgChm.DET.detSetupGl();
 	NgChm.DET.detInitGl();
 	if (NgChm.SEL.isSub)  {
@@ -1093,7 +1143,20 @@ NgChm.DET.drawDetailHeatMap = function () {
 		NgChm.DET.texPixels[pos+3]=255;
 		pos+=NgChm.SUM.BYTE_PER_RGBA;
 	}
-		
+	
+	// create the search objects outside of the for-loops so we don't have to use indexOf for a potentially large array in the loop
+	var searchRowObj = {};
+	for (var idx = 0; idx < searchRows.length; idx++){
+		searchRowObj[searchRows[idx]] = 1;
+	}
+	var searchColObj = {};
+	for (var idx = 0; idx < searchCols.length; idx++){
+		searchColObj[searchCols[idx]] = 1;
+	}
+	// create these variables now to prevent having to call them in the for-loop
+	var level = NgChm.SEL.getLevelFromMode(NgChm.MMGR.DETAIL_LEVEL);
+	var currDetRow = NgChm.SEL.getCurrentDetRow();
+	var currDetCol = NgChm.SEL.getCurrentDetCol();
 	//Needs to go backward because WebGL draws bottom up.
 	var line = new Uint8Array(new ArrayBuffer((rowClassBarWidth + NgChm.DET.dendroWidth + NgChm.DET.dataViewWidth) * NgChm.SUM.BYTE_PER_RGBA));
 	for (var i = detDataPerCol-1; i >= 0; i--) {
@@ -1101,14 +1164,13 @@ NgChm.DET.drawDetailHeatMap = function () {
 		//Add black boarder
 		line[linePos]=0; line[linePos+1]=0;line[linePos+2]=0;line[linePos+3]=255;linePos+=NgChm.SUM.BYTE_PER_RGBA;
 		for (var j = 0; j < detDataPerRow; j++) { // for every data point...
-			var val = NgChm.heatMap.getValue(NgChm.SEL.getLevelFromMode(NgChm.MMGR.DETAIL_LEVEL), NgChm.SEL.getCurrentDetRow()+i, NgChm.SEL.getCurrentDetCol()+j);
+			var val = NgChm.heatMap.getValue(level, currDetRow+i, currDetCol+j);
 			var color = colorMap.getColor(val);
-			var gridColor = ((searchCols.indexOf(NgChm.SEL.currentCol+j) > -1) || (searchCols.indexOf(NgChm.SEL.currentCol+j+1) > -1)) ? searchGridColor : regularGridColor;
 
 			//For each data point, write it several times to get correct data point width.
 			for (var k = 0; k < NgChm.DET.dataBoxWidth; k++) {
 				if (k==NgChm.DET.dataBoxWidth-1 && showGrid == true && NgChm.DET.dataBoxWidth > NgChm.DET.minLabelSize ){ // should the grid line be drawn?
-					line[linePos] = gridColor[0]; line[linePos+1] = gridColor[1]; line[linePos+2] = gridColor[2];	line[linePos+3] = 255;
+					line[linePos] = regularGridColor[0]; line[linePos+1] = regularGridColor[1]; line[linePos+2] = regularGridColor[2];	line[linePos+3] = 255;
 				} else {
 					line[linePos] = color['r'];	line[linePos + 1] = color['g'];	line[linePos + 2] = color['b'];	line[linePos + 3] = color['a'];
 				}
@@ -1121,17 +1183,10 @@ NgChm.DET.drawDetailHeatMap = function () {
 		//Write each line several times to get correct data point height.
 		for (dup = 0; dup < NgChm.DET.dataBoxHeight; dup++) {
 			if (dup == NgChm.DET.dataBoxHeight-1 && showGrid == true && NgChm.DET.dataBoxHeight > NgChm.DET.minLabelSize){ // do we draw gridlines?
-				if ((searchRows.indexOf(NgChm.SEL.currentRow+i) > -1) || (searchRows.indexOf(NgChm.SEL.currentRow+i-1) > -1)) {
-					pos += (rowClassBarWidth + NgChm.DET.dendroWidth)*NgChm.SUM.BYTE_PER_RGBA;
-					for (var k = 0; k < NgChm.DET.dataViewWidth; k++) {
-						NgChm.DET.texPixels[pos]=searchGridColor[0];NgChm.DET.texPixels[pos+1]=searchGridColor[1];NgChm.DET.texPixels[pos+2]=searchGridColor[2];NgChm.DET.texPixels[pos+3]=255;pos+=NgChm.SUM.BYTE_PER_RGBA;
-					}					
-				} else {
-					for (k = 0; k < line.length; k++) {
-						NgChm.DET.texPixels[pos]=gridLine[k];
-						pos++;
-					}
-				}	
+				for (k = 0; k < line.length; k++) {
+					NgChm.DET.texPixels[pos]=gridLine[k];
+					pos++;
+				}
 			} else {
 				for (k = 0; k < line.length; k++) {
 					NgChm.DET.texPixels[pos]=line[k];
@@ -1177,294 +1232,186 @@ NgChm.DET.drawDetailHeatMap = function () {
 	NgChm.DET.gl.uniform2fv(NgChm.DET.uScale, NgChm.DET.canvasScaleArray);
 	NgChm.DET.gl.uniform2fv(NgChm.DET.uTranslate, NgChm.DET.canvasTranslateArray);
 	NgChm.DET.gl.drawArrays(NgChm.DET.gl.TRIANGLE_STRIP, 0, NgChm.DET.gl.buffer.numItems);
-
-	NgChm.DET.clearLabels();
-	NgChm.DET.drawRowAndColLabels();
-	NgChm.DET.detailDrawColClassBarLabels();
-	NgChm.DET.detailDrawRowClassBarLabels();
+	NgChm.DET.detailResize();
 }
 
 NgChm.DET.detailResize = function () {
+	 var divider = document.getElementById('divider');
+	 divider.style.height=Math.max(document.getElementById('detail_canvas').offsetHeight,document.getElementById('summary_canvas').offsetHeight + NgChm.SUM.colDendro.getDivHeight())+'px';
 	 NgChm.DET.clearLabels();
-	 NgChm.DET.drawSelections();
+	 NgChm.DET.calcRowAndColLabels();
+	 if (NgChm.DET.rowLabelLen + NgChm.DET.colLabelLen === 0) {
+		 NgChm.DET.calcRowAndColLabels(); 
+	 }
+	 NgChm.DET.calcClassRowAndColLabels();
+	 NgChm.DET.sizeCanvasForLabels();	
 	 NgChm.DET.drawRowAndColLabels();
+	 NgChm.DET.drawSelections();
 	 NgChm.DET.detailDrawColClassBarLabels();
 	 NgChm.DET.detailDrawRowClassBarLabels();
 }
-
-/***********************************************************
- * Search Functions Section
- ***********************************************************/
-
-//Called when search string is entered.
-NgChm.DET.detailSearch = function () {
-	NgChm.DET.canvas.focus();
-	var searchElement = document.getElementById('search_text');
-	var searchString = searchElement.value;
-	if (searchString == "" || searchString == null){
-		return;
-	}
-	NgChm.SEL.createEmptySearchItems();
-	NgChm.SUM.clearSelectionMarks();
-	var tmpSearchItems = searchString.split(/[;, ]+/);
-	itemsFound = [];
-	
-	//Put labels into the global search item list if they match a user search string.
-	//Regular expression is built for partial matches if the search string contains '*'.
-	//toUpperCase is used to make the search case insensitive.
-	var labels = NgChm.heatMap.getRowLabels()["labels"];
-	for (var j = 0; j < tmpSearchItems.length; j++) {
-		var reg;
-		var searchItem = tmpSearchItems[j];
-		if (searchItem.charAt(0) == "\"" && searchItem.slice(-1) == "\""){ // is it wrapped in ""?
-			reg = new RegExp("^" + searchItem.toUpperCase().slice(1,-1) + "$");
-		} else {
-			reg = new RegExp(searchItem.toUpperCase());
-		}
-		for (var i = 0; i < labels.length; i++) {
-			var label = labels[i].toUpperCase();
-			if (label.indexOf('|') > -1)
-				label = label.substring(0,label.indexOf('|'));
-			
-			if  (reg.test(label)) {
-				NgChm.SEL.searchItems["Row"][i+1] = 1;
-				if (itemsFound.indexOf(searchItem) == -1)
-					itemsFound.push(searchItem);
-			} 
-		}	
-	}
-
-	labels = NgChm.heatMap.getColLabels()["labels"];
-	for (var j = 0; j < tmpSearchItems.length; j++) {
-		var reg;
-		var searchItem = tmpSearchItems[j];
-		if (searchItem.charAt(0) == "\"" && searchItem.slice(-1) == "\""){ // is it wrapped in ""?
-			reg = new RegExp("^" + searchItem.toUpperCase().slice(1,-1) + "$");
-		} else {
-			reg = new RegExp(searchItem.toUpperCase());
-		}
-		for (var i = 0; i < labels.length; i++) {
-			var label = labels[i].toUpperCase();
-			if (label.indexOf('|') > -1)
-				label = label.substring(0,label.indexOf('|'));
-			
-			if  (reg.test(label)) {
-				NgChm.SEL.searchItems["Column"][i+1] = 1;
-				if (itemsFound.indexOf(searchItem) == -1)
-					itemsFound.push(searchItem);
-			} 
-		}	
-	}
-
-	//Jump to the first match
-	if (searchString == null || searchString == ""){
-		return;
-	}
-	NgChm.DET.searchNext();
-	if (!NgChm.SEL.isSub){
-		NgChm.SUM.drawRowSelectionMarks();
-		NgChm.SUM.drawColSelectionMarks();
-	}
-	if (NgChm.DET.currentSearchItem.index && NgChm.DET.currentSearchItem.axis){
-		if (itemsFound.length != tmpSearchItems.length && itemsFound.length > 0) {
-			searchElement.style.backgroundColor = "rgba(255,255,0,0.3)";
-		} else if (itemsFound.length == 0){
-			searchElement.style.backgroundColor = "rgba(255,0,0,0.3)";
-		}
-	} else {
-		if (searchString != null && searchString.length> 0) {
-			searchElement.style.backgroundColor = "rgba(255,0,0,0.3)";
-		}	
-		//Clear previous matches when search is empty.
-		NgChm.SEL.updateSelection();
-	}
-    
+ 
+NgChm.DET.sizeCanvasForLabels = function() {
+	var cont = document.getElementById('container');
+	var dChm = document.getElementById('detail_chm');
+	var sChm = document.getElementById('summary_chm');
+	var div = document.getElementById('divider');
+	//Calculate the total horizontal width of the screen
+	var sumWidths = sChm.clientWidth + div.clientWidth + dChm.clientWidth;
+	//Calculate the remainder on right-hand side not covered by the detail_chm 
+	//(labels are partially drawn on this area)
+	var remainW = cont.clientWidth - sumWidths;
+	//Calculate the remainder on bottom not covered by the container 
+	//(labels are partially drawn on this area)
+	var remainH = cont.clientHeight - dChm.clientHeight;
+	//Add remainders to width/height for computation
+	var dFullW = dChm.clientWidth + remainW;
+	var dFullH = dChm.clientHeight + remainH;
+	//Offset factor (there is a little swag going on here based upon label length
+	//to try to get the best possible fit with the least possible whitespace without
+	//exceeding page width/height and generating scroll bars.
+	var rowOffset = NgChm.DET.rowLabelLen > 80 ? 80 : 60;
+	rowOffset = NgChm.DET.rowLabelLen < 40 ? 50 : 60;
+	var colOffset = NgChm.DET.colLabelLen > 70 ? 60 : 40;
+	colOffset = NgChm.DET.colLabelLen < 40 ? 30 : 40;
+	//Set sizes of canvas and boxCanvas based upon width, label, and an offset for whitespace
+	NgChm.DET.canvas.style.width = dFullW - (NgChm.DET.rowLabelLen + rowOffset);
+	NgChm.DET.canvas.style.height = dFullH - (NgChm.DET.colLabelLen + colOffset);
+	NgChm.DET.boxCanvas.style.width = NgChm.DET.canvas.style.width;
+	NgChm.DET.boxCanvas.style.height = NgChm.DET.canvas.style.height;
 }
-
-NgChm.DET.goToCurrentSearchItem = function () {
-	if (NgChm.DET.currentSearchItem.axis == "Row") {
-		NgChm.SEL.currentRow = NgChm.DET.currentSearchItem.index;
-		if ((NgChm.SEL.mode == 'RIBBONV') && NgChm.SEL.selectedStart!= 0 && (NgChm.SEL.currentRow < NgChm.SEL.selectedStart-1 || NgChm.SEL.selectedStop-1 < NgChm.SEL.currentRow)){
-			NgChm.UHM.showSearchError(1);
-		} else if (NgChm.SEL.mode == 'RIBBONV' && NgChm.SEL.selectedStart == 0){
-			NgChm.UHM.showSearchError(2);
-		} 
-		NgChm.SEL.checkRow();
-	} else if (NgChm.DET.currentSearchItem.axis == "Column"){
-		NgChm.SEL.currentCol = NgChm.DET.currentSearchItem.index;
-		if ((NgChm.SEL.mode == 'RIBBONH') && NgChm.SEL.selectedStart!= 0 && (NgChm.SEL.currentCol < NgChm.SEL.selectedStart-1 || NgChm.SEL.selectedStop-1 < NgChm.SEL.currentCol )){
-			NgChm.UHM.showSearchError(1)
-		} else if (NgChm.SEL.mode == 'RIBBONH' && NgChm.SEL.selectedStart == 0){
-			NgChm.UHM.showSearchError(2);
-		} 
-		NgChm.SEL.checkColumn();
-	}
-	NgChm.DET.showSrchBtns();
-	NgChm.SEL.updateSelection();
-}
-
-NgChm.DET.findNextSearchItem = function (index, axis) {
-	var axisLength = axis == "Row" ? NgChm.heatMap.getRowLabels().labels.length : NgChm.heatMap.getColLabels().labels.length;
-	var otherAxis = axis == "Row" ? "Column" : "Row";
-	var otherAxisLength = axis == "Column" ? NgChm.heatMap.getRowLabels().labels.length : NgChm.heatMap.getColLabels().labels.length;
-	var curr = index;
-	while( !NgChm.SEL.searchItems[axis][++curr] && curr <  axisLength); // find first searchItem in row
-	if (curr >= axisLength){ // if no searchItems exist in first axis, move to other axis
-		curr = -1;
-		while( !NgChm.SEL.searchItems[otherAxis][++curr] && curr <  otherAxisLength);
-		if (curr >=otherAxisLength){ // if no matches in the other axis, check the earlier indices of the first axis (loop back)
-			curr = -1;
-			while( !NgChm.SEL.searchItems[axis][++curr] && curr <  index);
-			if (curr < index && index != -1){
-				NgChm.DET.currentSearchItem["axis"] = axis;
-				NgChm.DET.currentSearchItem["index"] = curr;
-			}
-		} else {
-			NgChm.DET.currentSearchItem["axis"] = otherAxis;
-			NgChm.DET.currentSearchItem["index"] = curr;
-		}
-	} else {
-		NgChm.DET.currentSearchItem["axis"] = axis;
-		NgChm.DET.currentSearchItem["index"] = curr;
-	}
-	
-}
-
-NgChm.DET.findPrevSearchItem = function (index, axis) {
-	var axisLength = axis == "Row" ? NgChm.heatMap.getRowLabels().labels.length : NgChm.heatMap.getColLabels().labels.length;
-	var otherAxis = axis == "Row" ? "Column" : "Row";
-	var otherAxisLength = axis == "Column" ? NgChm.heatMap.getRowLabels().labels.length : NgChm.heatMap.getColLabels().labels.length;
-	var curr = index;
-	while( !NgChm.SEL.searchItems[axis][--curr] && curr > -1 ); // find first searchItem in row
-	if (curr < 0){ // if no searchItems exist in first axis, move to other axis
-		curr = otherAxisLength;
-		while( !NgChm.SEL.searchItems[otherAxis][--curr] && curr > -1);
-		if (curr > 0){
-			NgChm.DET.currentSearchItem["axis"] = otherAxis;
-			NgChm.DET.currentSearchItem["index"] = curr;
-		} else {
-			curr = axisLength;
-			while( !NgChm.SEL.searchItems[axis][--curr] && curr > index );
-			if (curr > index){
-				NgChm.DET.currentSearchItem["axis"] = axis;
-				NgChm.DET.currentSearchItem["index"] = curr;
-			}
-		}
-	} else {
-		NgChm.DET.currentSearchItem["axis"] = axis;
-		NgChm.DET.currentSearchItem["index"] = curr;
-	}
-}
-
-//Go to next search item
-NgChm.DET.searchNext = function () {
-	if (!NgChm.DET.currentSearchItem["index"] || !NgChm.DET.currentSearchItem["axis"]){ // if currentSeachItem isnt set (first time search)
-		NgChm.DET.findNextSearchItem(-1,"Row");
-	} else {
-		NgChm.DET.findNextSearchItem(NgChm.DET.currentSearchItem["index"],NgChm.DET.currentSearchItem["axis"]);
-	}
-	NgChm.DET.goToCurrentSearchItem();
-	NgChm.DET.canvas.focus();
-}
-
-//Go back to previous search item.
-NgChm.DET.searchPrev = function () {
-	NgChm.DET.findPrevSearchItem(NgChm.DET.currentSearchItem["index"],NgChm.DET.currentSearchItem["axis"]);
-	NgChm.DET.goToCurrentSearchItem();
-	NgChm.DET.canvas.focus();
-}
-
-//Called when red 'X' is clicked.
-NgChm.DET.clearSearch = function (event) {
-	var searchElement = document.getElementById('search_text');
-	searchElement.value = "";
-	NgChm.DET.currentSearchItem = {};
-	NgChm.DET.labelLastClicked = {};
-	NgChm.SEL.createEmptySearchItems();
-	if (NgChm.SEL.isSub){
-		localStorage.setItem('selected', JSON.stringify(NgChm.SEL.searchItems));
-		NgChm.SEL.updateSelection();
-	} else {
-		NgChm.SUM.clearSelectionMarks();
-	}
-	NgChm.DET.clearSrchBtns(event);
-	NgChm.DET.detailResize();
-	NgChm.DET.drawDetailHeatMap();  //DO WE NEED THIS???
-	NgChm.DET.canvas.focus();
-}
-
-NgChm.DET.clearSrchBtns = function (event) {
-	if ((event != null) && (event.keyCode == 13))
-		return;
-	
-	document.getElementById('prev_btn').style.display='none';
-	document.getElementById('next_btn').style.display='none';	
-	document.getElementById('cancel_btn').style.display='none';	
-	var srchText = document.getElementById('search_text');
-	srchText.style.backgroundColor = "white";
-}
-
-NgChm.DET.showSrchBtns = function () {
-	document.getElementById('prev_btn').style.display='';
-	document.getElementById('next_btn').style.display='';
-	document.getElementById('cancel_btn').style.display='';
-}
-
-//Return the column number of any columns meeting the current user search.
-NgChm.DET.getSearchCols = function () {
-	var selected = [];
-	for (var i in NgChm.SEL.searchItems["Column"]) {
-		selected.push(i);
-	}
-	return selected;	
-}
-
-//Return row numbers of any rows meeting current user search.
-NgChm.DET.getSearchRows = function () {
-	var selected = [];
-	for (var i in NgChm.SEL.searchItems["Row"]) {
-		selected.push(i);
-	}
-	return selected;
-}
-
-/***********************************************************
- * End - Search Functions
- ***********************************************************/
 
 NgChm.DET.clearLabels = function () {
 	var oldLabels = document.getElementsByClassName("DynamicLabel");
 	while (oldLabels.length > 0) {
 		NgChm.DET.labelElement.removeChild(oldLabels[0]);
 	}
-
+	NgChm.DET.rowLabelLen = 0;
+	NgChm.DET.colLabelLen = 0;
 }
 
 NgChm.DET.drawRowAndColLabels = function () {
+	var rowFontSize = NgChm.DET.getRowLabelFontSize();
+	var colFontSize = NgChm.DET.getColLabelFontSize();
+	var fontSize;
+	if (rowFontSize >= NgChm.DET.minLabelSize && colFontSize >= NgChm.DET.minLabelSize){
+		fontSize = Math.min(colFontSize,rowFontSize);
+		NgChm.DET.drawRowLabels(fontSize);
+		NgChm.DET.drawColLabels(fontSize);
+		NgChm.DET.labelFontSize = fontSize;
+	} else if (rowFontSize >= NgChm.DET.minLabelSize){
+		NgChm.DET.drawRowLabels(rowFontSize);
+		NgChm.DET.labelFontSize = rowFontSize;
+	} else if (colFontSize >= NgChm.DET.minLabelSize){
+		NgChm.DET.drawColLabels(colFontSize);
+		NgChm.DET.labelFontSize = colFontSize;
+	}
+}
+
+NgChm.DET.calcRowAndColLabels = function () {
+	var rowFontSize = NgChm.DET.getRowLabelFontSize();
+	var colFontSize = NgChm.DET.getColLabelFontSize();
+	var fontSize;
+	if (rowFontSize >= NgChm.DET.minLabelSize && colFontSize >= NgChm.DET.minLabelSize){
+		fontSize = Math.min(colFontSize,rowFontSize);
+		NgChm.DET.calcColLabels(fontSize);
+		NgChm.DET.calcRowLabels(fontSize);
+	} else if (rowFontSize >= NgChm.DET.minLabelSize){
+		NgChm.DET.calcRowLabels(rowFontSize);
+	} else if (colFontSize >= NgChm.DET.minLabelSize){
+		NgChm.DET.calcColLabels(colFontSize);
+	}
+}
+
+NgChm.DET.calcClassRowAndColLabels = function () {
+	NgChm.DET.calcRowClassBarLabels();
+	NgChm.DET.calcColClassBarLabels();
+}
+
+NgChm.DET.setLabelPxLength = function(label, font, type) {
+	var lblCanvas = document.createElement('canvas');
+	var ctx = lblCanvas.getContext("2d");
+	ctx.font = "bold " + font  +"px sans-serif";        
+	var width = Math.floor(ctx.measureText(label).width);
+	if (font < 12) {
+		if (type === 'row') {
+			if (width > NgChm.DET.rowLabelLen) {
+				NgChm.DET.rowLabelLen = width;
+			}
+		} else {
+			if (width > NgChm.DET.colLabelLen) {
+				NgChm.DET.colLabelLen = width;
+			}
+		}
+	}
+}
+
+NgChm.DET.setBrowserMinFontSize = function () {
+	  var minSettingFound = 0;
+	  var el = document.createElement('div');
+	  document.body.appendChild(el);
+	  el.innerHTML = "<div><p>a b c d e f g h i j k l m n o p q r s t u v w x y z</p></div>";
+	  el.style.fontSize = '1px';
+	  el.style.width = '64px';
+	  var minimumHeight = el.offsetHeight;
+	  var least = 0;
+	  var most = 64;
+	  var middle; 
+	  for (var i = 0; i < 32; ++i) {
+	    middle = (least + most)/2;
+	    el.style.fontSize = middle + 'px';
+	    if (el.offsetHeight === minimumHeight) {
+	      least = middle;
+	    } else {
+	      most = middle;
+	    }
+	  }
+	  if (middle > 5) {
+		  minSettingFound = middle;
+		  NgChm.DET.minLabelSize = Math.floor(middle) - 1;
+	  }
+	  document.body.removeChild(el);
+	  return minSettingFound;
+}
+
+NgChm.DET.getRowLabelFontSize = function () {
+	var headerSize = 0;
+	var colHeight = NgChm.DET.calculateTotalClassBarHeight("column") + NgChm.DET.dendroHeight;
+	if (colHeight > 0) {
+		headerSize = NgChm.DET.canvas.clientHeight * (colHeight / (NgChm.DET.dataViewHeight + colHeight));
+	}
+	var skip = Math.floor((NgChm.DET.canvas.clientHeight - headerSize) / NgChm.SEL.dataPerCol) - 2;
+	return Math.min(skip, 11)-1;	
+}
+
+NgChm.DET.getColLabelFontSize = function () {
+	headerSize = 0;
+	var rowHeight = NgChm.DET.calculateTotalClassBarHeight("row") + NgChm.DET.dendroWidth;
+	if (rowHeight > 0) {
+		headerSize = NgChm.DET.canvas.clientWidth * (rowHeight / (NgChm.DET.dataViewWidth + rowHeight));
+	}
+	skip = Math.floor((NgChm.DET.canvas.clientWidth - headerSize) / NgChm.SEL.dataPerRow) - 2;
+	var retVal = Math.min(skip, 11)-1;
+	return Math.min(skip, 11)-1;
+}
+
+
+NgChm.DET.calcRowLabels = function (fontSize) {
 	var headerSize = 0;
 	var colHeight = NgChm.DET.calculateTotalClassBarHeight("column") + NgChm.DET.dendroHeight;
 	if (colHeight > 0) {
 		headerSize = NgChm.DET.canvas.clientHeight * (colHeight / (NgChm.DET.dataViewHeight + colHeight));
 	}
 	var skip = (NgChm.DET.canvas.clientHeight - headerSize) / NgChm.SEL.dataPerCol;
-	var rowFontSize = Math.floor(Math.min(skip - 2, 11),NgChm.DET.minLabelSize) - 1;	
-	
-	headerSize = 0;
-	var rowHeight = NgChm.DET.calculateTotalClassBarHeight("row") + NgChm.DET.dendroWidth;
-	if (rowHeight > 0) {
-		headerSize = NgChm.DET.canvas.clientWidth * (rowHeight / (NgChm.DET.dataViewWidth + rowHeight));
-	}
-	skip = (NgChm.DET.canvas.clientWidth - headerSize) / NgChm.SEL.dataPerRow;
-	var colFontSize = Math.floor(Math.min(skip - 2, 11),NgChm.DET.minLabelSize) - 1;
-	var fontSize;
-	if (rowFontSize > NgChm.DET.minLabelSize && colFontSize > NgChm.DET.minLabelSize){
-		fontSize = Math.min(colFontSize,rowFontSize);
-		NgChm.DET.drawRowLabels(fontSize);
-		NgChm.DET.drawColLabels(fontSize);
-	} else if (rowFontSize > NgChm.DET.minLabelSize){
-		NgChm.DET.drawRowLabels(rowFontSize);
-	} else if (colFontSize > NgChm.DET.minLabelSize){
-		NgChm.DET.drawColLabels(colFontSize);
+	var labels = NgChm.heatMap.getRowLabels()["labels"];
+	if (skip > NgChm.DET.minLabelSize) {
+		for (var i = NgChm.SEL.currentRow; i < NgChm.SEL.currentRow + NgChm.SEL.dataPerCol; i++) {
+			if (labels[i-1] == undefined){ // an occasional problem in subdendro view
+				continue;
+			}
+			var shownLabel = NgChm.UTIL.getLabelText(labels[i-1].split("|")[0]);
+			NgChm.DET.setLabelPxLength(shownLabel,fontSize,"row")
+		}
 	}
 }
 
@@ -1477,7 +1424,7 @@ NgChm.DET.drawRowLabels = function (fontSize) {
 	var skip = (NgChm.DET.canvas.clientHeight - headerSize) / NgChm.SEL.dataPerCol;
 	var start = Math.max((skip - fontSize)/2, 0) + headerSize-2;
 	var labels = NgChm.heatMap.getRowLabels()["labels"];
-	
+	var labelLen = NgChm.DET.getMaxLength(labels);
 	
 	if (skip > NgChm.DET.minLabelSize) {
 		var xPos = NgChm.DET.canvas.clientWidth + 3;
@@ -1486,8 +1433,27 @@ NgChm.DET.drawRowLabels = function (fontSize) {
 			if (labels[i-1] == undefined){ // an occasional problem in subdendro view
 				continue;
 			}
-			var shownLabel = labels[i-1].split("|")[0];
+			var shownLabel = NgChm.UTIL.getLabelText(labels[i-1].split("|")[0]);
 			NgChm.DET.addLabelDiv(NgChm.DET.labelElement, 'detail_row' + i, 'DynamicLabel', shownLabel, xPos, yPos, fontSize, 'F',i,"Row");
+		}
+	}
+}
+
+NgChm.DET.calcColLabels = function (fontSize) {
+	var headerSize = 0;
+	var rowHeight = NgChm.DET.calculateTotalClassBarHeight("row") + NgChm.DET.dendroWidth;
+	if (rowHeight > 0) {
+		headerSize = NgChm.DET.canvas.clientWidth * (rowHeight / (NgChm.DET.dataViewWidth + rowHeight));
+	}
+	var skip = (NgChm.DET.canvas.clientWidth - headerSize) / NgChm.SEL.dataPerRow;
+	var labels = NgChm.heatMap.getColLabels()["labels"];
+	if (skip > NgChm.DET.minLabelSize) {
+		for (var i = NgChm.SEL.currentCol; i < NgChm.SEL.currentCol + NgChm.SEL.dataPerRow; i++) {
+			if (labels[i-1] == undefined){ // an occasional problem in subdendro view
+				continue;
+			}
+			var shownLabel = NgChm.UTIL.getLabelText(labels[i-1].split("|")[0]);
+			NgChm.DET.setLabelPxLength(shownLabel,fontSize,"col")
 		}
 	}
 }
@@ -1510,8 +1476,11 @@ NgChm.DET.drawColLabels = function (fontSize) {
 			if (labels[i-1] == undefined){ // an occasional problem in subdendro view
 				continue;
 			}
-			var shownLabel = labels[i-1].split("|")[0];
+			var shownLabel = NgChm.UTIL.getLabelText(labels[i-1].split("|")[0]);
 			NgChm.DET.addLabelDiv(NgChm.DET.labelElement, 'detail_col' + i, 'DynamicLabel', shownLabel, xPos, yPos, fontSize, 'T',i,"Column");
+			if (shownLabel.length > NgChm.DET.colLabelLen) {
+				NgChm.DET.colLabelLen = shownLabel.length;
+			}
 		}
 	}
 }
@@ -1561,7 +1530,7 @@ NgChm.DET.addLabelDiv = function (parent, id, className, text, left, top, fontSi
 	div.style.fontSize = fontSize.toString() +'pt';
 	div.style.fontFamily = 'sans-serif';
 	div.style.fontWeight = 'bold';
-	div.innerHTML = NgChm.UTIL.getLabelText(text);
+	div.innerHTML = text;
 	
 	parent.appendChild(div);
 	
@@ -1576,7 +1545,6 @@ NgChm.DET.addLabelDiv = function (parent, id, className, text, left, top, fontSi
 		    return function(e) {NgChm.UHM.detailDataToolHelp(this, "Some covariate bars are hidden"); };
 		}) (this), false);
 	}   
-
 }
 
 // Get max label length
@@ -1585,6 +1553,10 @@ NgChm.DET.getMaxLength = function (list) {
 	for (var i = 0; i < list.length; i++){
 		if (list[i].length > len)
 			len = list[i].length;
+	}
+	var size = parseInt(NgChm.heatMap.getMapInformation().label_display_length);
+	if (len > size) {
+		len == size;
 	}
 	return len;
 }
@@ -1797,6 +1769,45 @@ NgChm.DET.detailDrawColClassBars = function () {
 
 }
 
+NgChm.DET.rowClassBarLabelFont = function() {
+	NgChm.DET.rowBarFontSize = 0;
+	var scale =  NgChm.DET.canvas.clientWidth / (NgChm.DET.dataViewWidth + NgChm.DET.calculateTotalClassBarHeight("row")+NgChm.DET.dendroWidth);
+	var rowClassBarConfig = NgChm.heatMap.getRowClassificationConfig();
+	var fontSize = NgChm.DET.getLabelFontSize(rowClassBarConfig,scale);
+	NgChm.DET.rowBarFontSize = fontSize;
+	return fontSize;
+}
+
+NgChm.DET.colClassBarLabelFont = function() {
+	NgChm.DET.rowBarFontSize = 0;
+	var scale =  NgChm.DET.canvas.clientHeight / (NgChm.DET.dataViewHeight + NgChm.DET.calculateTotalClassBarHeight("column")+NgChm.DET.dendroHeight);
+	var colClassBarConfig = NgChm.heatMap.getColClassificationConfig();
+	var fontSize = NgChm.DET.getLabelFontSize(colClassBarConfig,scale);
+	NgChm.DET.colBarFontSize = fontSize;
+	return fontSize;
+}
+
+NgChm.DET.calcColClassBarLabels = function () {
+	var scale =  NgChm.DET.canvas.clientHeight / (NgChm.DET.dataViewHeight + NgChm.DET.calculateTotalClassBarHeight("column")+NgChm.DET.dendroHeight);
+	var colClassBarConfig = NgChm.heatMap.getColClassificationConfig();
+	var colClassBarConfigOrder = NgChm.heatMap.getColClassificationOrder();
+	var colClassLength = Object.keys(colClassBarConfig).length;
+	if (colClassBarConfig != null && colClassLength > 0) {
+		var fontSize = NgChm.DET.colClassBarLabelFont();
+		if (fontSize > NgChm.DET.minLabelSize) {
+			for (var i=0;i< colClassBarConfigOrder.length;i++) {
+				var key = colClassBarConfigOrder[i];
+				var currentClassBar = colClassBarConfig[key];
+				if (currentClassBar.show === 'Y') {
+					var currFont = Math.min((currentClassBar.height - NgChm.DET.paddingHeight) * scale, 11);
+					var labelText = NgChm.UTIL.getLabelText(key);
+					NgChm.DET.setLabelPxLength(labelText,currFont,"row");
+				} 
+			}	
+		}
+	}
+}
+
 NgChm.DET.detailDrawColClassBarLabels = function () {
 	if (document.getElementById("missingDetColClassBars"))document.getElementById("missingDetColClassBars").remove();
 	var scale =  NgChm.DET.canvas.clientHeight / (NgChm.DET.dataViewHeight + NgChm.DET.calculateTotalClassBarHeight("column")+NgChm.DET.dendroHeight);
@@ -1804,8 +1815,9 @@ NgChm.DET.detailDrawColClassBarLabels = function () {
 	var colClassBarConfigOrder = NgChm.heatMap.getColClassificationOrder();
 	var colClassLength = Object.keys(colClassBarConfig).length;
 	if (colClassBarConfig != null && colClassLength > 0) {
-		var fontSize = NgChm.DET.getLabelFontSize(colClassBarConfig,scale);
-		if (fontSize > 7) {
+	//	var fontSize = NgChm.DET.getLabelFontSize(colClassBarConfig,scale);
+		var fontSize = NgChm.DET.colClassBarLabelFont();
+		if (fontSize > NgChm.DET.minLabelSize) {
 			var xPos = NgChm.DET.canvas.clientWidth + 3;
 			var startingPoint = NgChm.DET.dendroHeight*scale-2;
 			var yPos = NgChm.DET.dendroHeight*scale;
@@ -1820,7 +1832,8 @@ NgChm.DET.detailDrawColClassBarLabels = function () {
 						if (currentClassBar.height >= 20) {
 							yOffset += ((((currentClassBar.height/2) - (fontSize/2)) - 3) * scale);
 						}
-						NgChm.DET.addLabelDiv(NgChm.DET.labelElement, 'detail_col_class' + i, 'DynamicLabel ClassBar', key, xPos, yOffset, fontSize, 'F', i, "ColumnCovar");
+						var labelText = NgChm.UTIL.getLabelText(key);
+						NgChm.DET.addLabelDiv(NgChm.DET.labelElement, 'detail_classcol' + i, 'DynamicLabel ClassBar', labelText, xPos, yOffset, fontSize, 'F', i, "ColumnCovar");
 					}
 					yPos += (currentClassBar.height * scale);
 				} else {
@@ -1829,11 +1842,13 @@ NgChm.DET.detailDrawColClassBarLabels = function () {
 						var y = NgChm.DET.dendroHeight*scale-13;
 						NgChm.DET.addLabelDiv(NgChm.DET.labelElement, "missingDetColClassBars", "ClassBar MarkLabel", "...", x, y, 10, "F", null,"Column")
 					}
-					if (!document.getElementById("missingColClassBars")){
-						var x =  NgChm.DET.canvas.clientWidth + 2;
-						var y = NgChm.DET.canvas.clientHeight/NgChm.SUM.totalHeight - 10;
-						NgChm.DET.addLabelDiv(document.getElementById('sumlabelDiv'), "missingColClassBars", "ClassBar MarkLabel", "...", x, y, 10, "F", null,"Column")
-					}	
+					if (!NgChm.SEL.isSub) {  //we can't draw on the summary side from a split screen detail window
+						if (!document.getElementById("missingColClassBars")){
+							var x = NgChm.SUM.canvas.offsetLeft + NgChm.SUM.canvas.offsetWidth + 2;
+							var y = NgChm.SUM.canvas.offsetTop + NgChm.SUM.canvas.clientHeight/NgChm.SUM.totalHeight - 10;
+							NgChm.DET.addLabelDiv(document.getElementById('sumlabelDiv'), "missingColClassBars", "ClassBar MarkLabel", "...", x, y, 10, "F", null,"Column")
+						}	
+					}
 				}
 			}	
 		}
@@ -1851,8 +1866,8 @@ NgChm.DET.getLabelFontSize = function (classBarConfig,scale) {
 	var minFont = 999;
 	for (key in classBarConfig) {
 		var classBar = classBarConfig[key];
-		var fontSize = Math.min(((classBar.height - NgChm.DET.paddingHeight) * scale) - 2, 10);
-		if ((fontSize > 7) && (fontSize < minFont)) {
+		var fontSize = Math.min(((classBar.height - NgChm.DET.paddingHeight) * scale) - 1, 10);
+		if ((fontSize > NgChm.DET.minLabelSize) && (fontSize < minFont)) {
 			minFont = fontSize
 		}
 	}
@@ -1902,6 +1917,27 @@ NgChm.DET.detailDrawRowClassBars = function () {
 	}	
 }
 
+NgChm.DET.calcRowClassBarLabels = function () {
+	var rowClassBarConfigOrder = NgChm.heatMap.getRowClassificationOrder();
+	var scale =  NgChm.DET.canvas.clientWidth / (NgChm.DET.dataViewWidth + NgChm.DET.calculateTotalClassBarHeight("row")+NgChm.DET.dendroWidth);
+	var rowClassBarConfig = NgChm.heatMap.getRowClassificationConfig();
+	var rowClassLength = Object.keys(rowClassBarConfig).length;
+	if (rowClassBarConfig != null && rowClassLength > 0) {
+		var fontSize = NgChm.DET.rowClassBarLabelFont();
+		if (fontSize > NgChm.DET.minLabelSize) {
+			for (var i=0;i< rowClassBarConfigOrder.length;i++) {
+				var key = rowClassBarConfigOrder[i];
+				var currentClassBar = rowClassBarConfig[rowClassBarConfigOrder[i]];
+				if (currentClassBar.show === 'Y') {
+					var currFont = Math.min((currentClassBar.height - NgChm.DET.paddingHeight) * scale, 11);
+					var labelText = NgChm.UTIL.getLabelText(key);
+					NgChm.DET.setLabelPxLength(labelText,currFont,"col")
+				} 
+			} 
+		}	
+	}
+}
+
 NgChm.DET.detailDrawRowClassBarLabels = function () {
 	var rowClassBarConfigOrder = NgChm.heatMap.getRowClassificationOrder();
 	if (document.getElementById("missingDetRowClassBars"))document.getElementById("missingDetRowClassBars").remove();
@@ -1909,9 +1945,9 @@ NgChm.DET.detailDrawRowClassBarLabels = function () {
 	var rowClassBarConfig = NgChm.heatMap.getRowClassificationConfig();
 	var rowClassLength = Object.keys(rowClassBarConfig).length;
 	if (rowClassBarConfig != null && rowClassLength > 0) {
-		var fontSize = NgChm.DET.getLabelFontSize(rowClassBarConfig,scale);
+		var fontSize = NgChm.DET.rowClassBarLabelFont();
 		var startingPoint = (NgChm.DET.dendroWidth*scale)+fontSize + 5;
-		if (fontSize > 7) {
+		if (fontSize > NgChm.DET.minLabelSize) {
 			for (var i=0;i< rowClassBarConfigOrder.length;i++) {
 				var key = rowClassBarConfigOrder[i];
 				var currentClassBar = rowClassBarConfig[rowClassBarConfigOrder[i]];
@@ -1920,8 +1956,9 @@ NgChm.DET.detailDrawRowClassBarLabels = function () {
 				var yPos = NgChm.DET.canvas.clientHeight + 4;
 				if (currentClassBar.show === 'Y') {
 					var currFont = Math.min((currentClassBar.height - NgChm.DET.paddingHeight) * scale, 11);
+					var labelText = NgChm.UTIL.getLabelText(key);
 					if (currFont >= fontSize) {
-						NgChm.DET.addLabelDiv(NgChm.DET.labelElement, 'detail_row_class' + i, 'DynamicLabel ClassBar', key, xPos, yPos, fontSize, 'T', i, "RowCovar");
+						NgChm.DET.addLabelDiv(NgChm.DET.labelElement, 'detail_classrow' + i, 'DynamicLabel ClassBar', labelText, xPos, yPos, fontSize, 'T', i, "RowCovar");
 					}
 					yPos += (currentClassBar.height * scale);
 				} else {
@@ -2242,12 +2279,251 @@ NgChm.DET.getSamplingRatio = function (axis) {
  *****  DETAIL DENDROGRAM FUNCTIONS END HERE!!! *****
  ****************************************************/
 
+/***********************************************************
+ * Search Functions Section
+ ***********************************************************/
+
+//Called when search string is entered.
+NgChm.DET.detailSearch = function () {
+	var searchElement = document.getElementById('search_text');
+	var searchString = searchElement.value;
+	if (searchString == "" || searchString == null){
+		return;
+	}
+	NgChm.SEL.createEmptySearchItems();
+	NgChm.SUM.clearSelectionMarks();
+	var tmpSearchItems = searchString.split(/[;, ]+/);
+	itemsFound = [];
+	
+	//Put labels into the global search item list if they match a user search string.
+	//Regular expression is built for partial matches if the search string contains '*'.
+	//toUpperCase is used to make the search case insensitive.
+	var labels = NgChm.heatMap.getRowLabels()["labels"];
+	for (var j = 0; j < tmpSearchItems.length; j++) {
+		var reg;
+		var searchItem = tmpSearchItems[j];
+		if (searchItem.charAt(0) == "\"" && searchItem.slice(-1) == "\""){ // is it wrapped in ""?
+			reg = new RegExp("^" + searchItem.toUpperCase().slice(1,-1) + "$");
+		} else {
+			reg = new RegExp(searchItem.toUpperCase());
+		}
+		for (var i = 0; i < labels.length; i++) {
+			var label = labels[i].toUpperCase();
+			if (label.indexOf('|') > -1)
+				label = label.substring(0,label.indexOf('|'));
+			
+			if  (reg.test(label)) {
+				NgChm.SEL.searchItems["Row"][i+1] = 1;
+				if (itemsFound.indexOf(searchItem) == -1)
+					itemsFound.push(searchItem);
+			} 
+		}	
+	}
+
+	labels = NgChm.heatMap.getColLabels()["labels"];
+	for (var j = 0; j < tmpSearchItems.length; j++) {
+		var reg;
+		var searchItem = tmpSearchItems[j];
+		if (searchItem.charAt(0) == "\"" && searchItem.slice(-1) == "\""){ // is it wrapped in ""?
+			reg = new RegExp("^" + searchItem.toUpperCase().slice(1,-1) + "$");
+		} else {
+			reg = new RegExp(searchItem.toUpperCase());
+		}
+		for (var i = 0; i < labels.length; i++) {
+			var label = labels[i].toUpperCase();
+			if (label.indexOf('|') > -1)
+				label = label.substring(0,label.indexOf('|'));
+			
+			if  (reg.test(label)) {
+				NgChm.SEL.searchItems["Column"][i+1] = 1;
+				if (itemsFound.indexOf(searchItem) == -1)
+					itemsFound.push(searchItem);
+			} 
+		}	
+	}
+
+	//Jump to the first match
+	if (searchString == null || searchString == ""){
+		return;
+	}
+	NgChm.DET.searchNext();
+	if (!NgChm.SEL.isSub){
+		NgChm.SUM.drawRowSelectionMarks();
+		NgChm.SUM.drawColSelectionMarks();
+	}
+	if (NgChm.DET.currentSearchItem.index && NgChm.DET.currentSearchItem.axis){
+		if (itemsFound.length != tmpSearchItems.length && itemsFound.length > 0) {
+			searchElement.style.backgroundColor = "rgba(255,255,0,0.3)";
+		} else if (itemsFound.length == 0){
+			searchElement.style.backgroundColor = "rgba(255,0,0,0.3)";
+		}
+	} else {
+		if (searchString != null && searchString.length> 0) {
+			searchElement.style.backgroundColor = "rgba(255,0,0,0.3)";
+		}	
+		//Clear previous matches when search is empty.
+		NgChm.SEL.updateSelection();
+	}
+    
+}
+
+NgChm.DET.goToCurrentSearchItem = function () {
+	if (NgChm.DET.currentSearchItem.axis == "Row") {
+		NgChm.SEL.currentRow = NgChm.DET.currentSearchItem.index;
+		if ((NgChm.SEL.mode == 'RIBBONV') && NgChm.SEL.selectedStart!= 0 && (NgChm.SEL.currentRow < NgChm.SEL.selectedStart-1 || NgChm.SEL.selectedStop-1 < NgChm.SEL.currentRow)){
+			NgChm.UHM.showSearchError(1);
+		} else if (NgChm.SEL.mode == 'RIBBONV' && NgChm.SEL.selectedStart == 0){
+			NgChm.UHM.showSearchError(2);
+		} 
+		NgChm.SEL.checkRow();
+	} else if (NgChm.DET.currentSearchItem.axis == "Column"){
+		NgChm.SEL.currentCol = NgChm.DET.currentSearchItem.index;
+		if ((NgChm.SEL.mode == 'RIBBONH') && NgChm.SEL.selectedStart!= 0 && (NgChm.SEL.currentCol < NgChm.SEL.selectedStart-1 || NgChm.SEL.selectedStop-1 < NgChm.SEL.currentCol )){
+			NgChm.UHM.showSearchError(1)
+		} else if (NgChm.SEL.mode == 'RIBBONH' && NgChm.SEL.selectedStart == 0){
+			NgChm.UHM.showSearchError(2);
+		} 
+		NgChm.SEL.checkColumn();
+	}
+	NgChm.DET.showSrchBtns();
+	NgChm.SEL.updateSelection();
+}
+
+NgChm.DET.findNextSearchItem = function (index, axis) {
+	var axisLength = axis == "Row" ? NgChm.heatMap.getRowLabels().labels.length : NgChm.heatMap.getColLabels().labels.length;
+	var otherAxis = axis == "Row" ? "Column" : "Row";
+	var otherAxisLength = axis == "Column" ? NgChm.heatMap.getRowLabels().labels.length : NgChm.heatMap.getColLabels().labels.length;
+	var curr = index;
+	while( !NgChm.SEL.searchItems[axis][++curr] && curr <  axisLength); // find first searchItem in row
+	if (curr >= axisLength){ // if no searchItems exist in first axis, move to other axis
+		curr = -1;
+		while( !NgChm.SEL.searchItems[otherAxis][++curr] && curr <  otherAxisLength);
+		if (curr >=otherAxisLength){ // if no matches in the other axis, check the earlier indices of the first axis (loop back)
+			curr = -1;
+			while( !NgChm.SEL.searchItems[axis][++curr] && curr <  index);
+			if (curr < index && index != -1){
+				NgChm.DET.currentSearchItem["axis"] = axis;
+				NgChm.DET.currentSearchItem["index"] = curr;
+			}
+		} else {
+			NgChm.DET.currentSearchItem["axis"] = otherAxis;
+			NgChm.DET.currentSearchItem["index"] = curr;
+		}
+	} else {
+		NgChm.DET.currentSearchItem["axis"] = axis;
+		NgChm.DET.currentSearchItem["index"] = curr;
+	}
+	
+}
+
+NgChm.DET.findPrevSearchItem = function (index, axis) {
+	var axisLength = axis == "Row" ? NgChm.heatMap.getRowLabels().labels.length : NgChm.heatMap.getColLabels().labels.length;
+	var otherAxis = axis == "Row" ? "Column" : "Row";
+	var otherAxisLength = axis == "Column" ? NgChm.heatMap.getRowLabels().labels.length : NgChm.heatMap.getColLabels().labels.length;
+	var curr = index;
+	while( !NgChm.SEL.searchItems[axis][--curr] && curr > -1 ); // find first searchItem in row
+	if (curr < 0){ // if no searchItems exist in first axis, move to other axis
+		curr = otherAxisLength;
+		while( !NgChm.SEL.searchItems[otherAxis][--curr] && curr > -1);
+		if (curr > 0){
+			NgChm.DET.currentSearchItem["axis"] = otherAxis;
+			NgChm.DET.currentSearchItem["index"] = curr;
+		} else {
+			curr = axisLength;
+			while( !NgChm.SEL.searchItems[axis][--curr] && curr > index );
+			if (curr > index){
+				NgChm.DET.currentSearchItem["axis"] = axis;
+				NgChm.DET.currentSearchItem["index"] = curr;
+			}
+		}
+	} else {
+		NgChm.DET.currentSearchItem["axis"] = axis;
+		NgChm.DET.currentSearchItem["index"] = curr;
+	}
+}
+
+//Go to next search item
+NgChm.DET.searchNext = function () {
+	if (!NgChm.DET.currentSearchItem["index"] || !NgChm.DET.currentSearchItem["axis"]){ // if currentSeachItem isnt set (first time search)
+		NgChm.DET.findNextSearchItem(-1,"Row");
+	} else {
+		NgChm.DET.findNextSearchItem(NgChm.DET.currentSearchItem["index"],NgChm.DET.currentSearchItem["axis"]);
+	}
+	NgChm.DET.goToCurrentSearchItem();
+}
+
+//Go back to previous search item.
+NgChm.DET.searchPrev = function () {
+	NgChm.DET.findPrevSearchItem(NgChm.DET.currentSearchItem["index"],NgChm.DET.currentSearchItem["axis"]);
+	NgChm.DET.goToCurrentSearchItem();
+}
+
+//Called when red 'X' is clicked.
+NgChm.DET.clearSearch = function (event) {
+	var searchElement = document.getElementById('search_text');
+	searchElement.value = "";
+	NgChm.DET.currentSearchItem = {};
+	NgChm.DET.labelLastClicked = {};
+	NgChm.SEL.createEmptySearchItems();
+	if (NgChm.SEL.isSub){
+		localStorage.setItem('selected', JSON.stringify(NgChm.SEL.searchItems));
+		NgChm.SEL.updateSelection();
+	} else {
+		NgChm.SUM.clearSelectionMarks();
+	}
+	NgChm.SUM.colDendro.clearSelectedBars();
+	NgChm.SUM.rowDendro.clearSelectedBars();
+	NgChm.DET.clearSrchBtns(event);
+	NgChm.DET.detailResize();
+	NgChm.DET.drawDetailHeatMap();  //DO WE NEED THIS???
+}
+
+NgChm.DET.clearSrchBtns = function (event) {
+	if ((event != null) && (event.keyCode == 13))
+		return;
+	
+	document.getElementById('prev_btn').style.display='none';
+	document.getElementById('next_btn').style.display='none';	
+	document.getElementById('cancel_btn').style.display='none';	
+	var srchText = document.getElementById('search_text');
+	srchText.style.backgroundColor = "white";
+}
+
+NgChm.DET.showSrchBtns = function () {
+	document.getElementById('prev_btn').style.display='';
+	document.getElementById('next_btn').style.display='';
+	document.getElementById('cancel_btn').style.display='';
+}
+
+//Return the column number of any columns meeting the current user search.
+NgChm.DET.getSearchCols = function () {
+	var selected = [];
+	for (var i in NgChm.SEL.searchItems["Column"]) {
+		selected.push(i);
+	}
+	return selected;	
+}
+
+//Return row numbers of any rows meeting current user search.
+NgChm.DET.getSearchRows = function () {
+	var selected = [];
+	for (var i in NgChm.SEL.searchItems["Row"]) {
+		selected.push(i);
+	}
+	return selected;
+}
+
+/***********************************************************
+ * End - Search Functions
+ ***********************************************************/
+
 /****************************************************
  *****  WebGL stuff *****
  ****************************************************/
 
 NgChm.DET.detSetupGl = function () {
-	NgChm.DET.gl = NgChm.DET.canvas.getContext("experimental-webgl", {preserveDrawingBuffer: true});
+	NgChm.DET.gl = NgChm.SUM.webGlGetContext(NgChm.DET.canvas);
+	if (!NgChm.DET.gl) { return; }
 	NgChm.DET.gl.viewportWidth = NgChm.DET.dataViewWidth+NgChm.DET.calculateTotalClassBarHeight("row")+NgChm.DET.dendroWidth;
 	NgChm.DET.gl.viewportHeight = NgChm.DET.dataViewHeight+NgChm.DET.calculateTotalClassBarHeight("column")+NgChm.DET.dendroHeight;
 	NgChm.DET.gl.clearColor(1, 1, 1, 1);
@@ -2410,5 +2686,6 @@ NgChm.DET.detSizerEnd = function () {
 		NgChm.SUM.summaryResize();
 	}
 	NgChm.DET.detailResize();
+	NgChm.DET.drawRowAndColLabels();  
 }
 

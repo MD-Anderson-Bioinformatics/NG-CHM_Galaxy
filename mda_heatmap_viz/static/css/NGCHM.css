@@ -7,10 +7,16 @@
     background: none;
 }
 
+p {  
+  margin-left: 1.0em;  
+  margin-right: 1.0em;  
+}  
+
 body, html {
     font-family: sans-serif;
     font-family: arial;  
-    font-size: 15px;
+    font-size: 100%;  
+    overflow-x: hidden;
 }
 
 select {
@@ -45,11 +51,11 @@ div.mdaServiceHeaderLogo img
 
 #container{
 	display: flex;
-	height: 90%;
+	height: 88%;
 }
 
 #divider{
-	height: 82%;
+	height: 50%;
 	width: 5px;
 	margin-left:10px;
 	margin-right:10px;
@@ -121,6 +127,13 @@ div.mdaServiceHeaderLogo img
 	/* left:4%; */
 }
 
+.selection_canvas{
+	position: absolute;
+	image-rendering: pixelated;
+	image-rendering: -moz-crisp-edges;
+	z-index: -1;
+}
+
 #classBarLabels{
 	height:95%;
 	width:95%;
@@ -141,7 +154,7 @@ div.mdaServiceHeaderLogo img
 #detail_canvas {
 	position:absolute;
 	height:82%;
-    width:90%;
+ /*   width:90%; */
 	zIndex:1;
 	outline: none;
 }
@@ -463,4 +476,15 @@ display: ''
 
 }
 
+table.helpTable { 
+  border-collapse: collapse; 
+  width: 90%;
+}
+  
+table.helpTable td, 
+table.helpTable th { 
+  border: 1px solid black;
+  padding: 5px; 
+  color: black;
+}
 

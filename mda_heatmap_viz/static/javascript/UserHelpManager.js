@@ -14,9 +14,12 @@ NgChm.createNS('NgChm.UHM');
 NgChm.UHM.userHelpOpen = function(e) {
     NgChm.UHM.userHelpClose();
     clearTimeout(NgChm.DET.detailPoint);
+	var helpContents = document.createElement("TABLE");
+	helpContents.id = 'helpTable';
     var orgW = window.innerWidth+window.pageXOffset;
     var orgH = window.innerHeight+window.pageYOffset;
     var helptext = NgChm.UHM.getDivElement("helptext");    
+    helptext.innerHTML=("<a href='javascript:void(pasteHelpContents())' align='left'>Copy To Clipboard</a><img id='redX_btn' src='images/redX.png' alt='Close Help' onclick='NgChm.UHM.userHelpClose();' align='right'>");
     helptext.style.position = "absolute";
     document.getElementsByTagName('body')[0].appendChild(helptext);
     var rowElementSize = NgChm.DET.dataBoxWidth * NgChm.DET.canvas.clientWidth/NgChm.DET.canvas.width; // px/Glpoint
@@ -27,15 +30,17 @@ NgChm.UHM.userHelpOpen = function(e) {
     var colClassHeightPx = NgChm.DET.getColClassPixelHeight();
     var rowDendroWidthPx =  NgChm.DET.getRowDendroPixelWidth();
     var colDendroHeightPx = NgChm.DET.getColDendroPixelHeight();
-	var mapLocY = e.layerY - colClassHeightPx - colDendroHeightPx;
-	var mapLocX = e.layerX - rowClassWidthPx - rowDendroWidthPx;
+	var coords = NgChm.DET.getCursorPosition(e);
+	var mapLocY = coords.y - colClassHeightPx - colDendroHeightPx;
+	var mapLocX = coords.x - rowClassWidthPx - rowDendroWidthPx;
+
 	
     if (NgChm.DET.isOnObject(e,"map")) {
+    	helpContents.insertRow().innerHTML = NgChm.UHM.formatBlankRow();
     	var row = Math.floor(NgChm.SEL.currentRow + (mapLocY/colElementSize)*NgChm.DET.getSamplingRatio('row'));
     	var col = Math.floor(NgChm.SEL.currentCol + (mapLocX/rowElementSize)*NgChm.DET.getSamplingRatio('col'));
     	var rowLabels = NgChm.heatMap.getRowLabels().labels;
     	var colLabels = NgChm.heatMap.getColLabels().labels;
-    	var helpContents = document.createElement("TABLE");
     	NgChm.UHM.setTableRow(helpContents, ["<u>"+"Data Details"+"</u>", "&nbsp;"], 2);
     	var matrixValue = NgChm.heatMap.getValue(NgChm.MMGR.DETAIL_LEVEL,row,col);
     	if (matrixValue >= NgChm.SUM.maxValues) {
@@ -50,10 +55,11 @@ NgChm.UHM.userHelpOpen = function(e) {
     	var writeFirstCol = true;
     	var pos = row;
 		var classBars = NgChm.heatMap.getRowClassificationData(); 
-   	    var classLen = Object.keys(classBars).length;
-    	if (classLen > 0) {
+    	var classBarsOrder = NgChm.heatMap.getRowClassificationOrder();
+       	if (classBarsOrder.length > 0) {
 			NgChm.UHM.setTableRow(helpContents, ["&nbsp;<u>"+"Row Classifications"+"</u>", "&nbsp;"], 2);
-	    	for (var key in classBars){
+	    	for (var i = 0;  i < classBarsOrder.length; i++){
+	    		var key = classBarsOrder[i];
 				var displayName = key;
 				var classConfig = NgChm.heatMap.getRowClassificationConfig()[key];
 				if (classConfig.show === 'Y') {
@@ -63,24 +69,25 @@ NgChm.UHM.userHelpOpen = function(e) {
 		    		NgChm.UHM.setTableRow(helpContents,["&nbsp;&nbsp;&nbsp;"+displayName+":"+"</u>", classBars[key].values[pos-1]]);	
 				}
 	    	}
-    	}
+       	}
     	helpContents.insertRow().innerHTML = NgChm.UHM.formatBlankRow();
     	pos = col
 		var classBars = NgChm.heatMap.getColClassificationData(); 
-   	    var classLen = Object.keys(classBars).length;
-    	if (classLen > 0) {
+    	var classBarsOrder = NgChm.heatMap.getColClassificationOrder();
+       	if (classBarsOrder.length > 0) {
 			NgChm.UHM.setTableRow(helpContents, ["&nbsp;<u>"+"Column Classifications"+"</u>", "&nbsp;"], 2);
-	    	for (var key in classBars){
+	    	for (var i = 0;  i < classBarsOrder.length; i++){
+	    		var key = classBarsOrder[i];
 				var displayName = key;
 				var classConfig = NgChm.heatMap.getColClassificationConfig()[key];
 				if (classConfig.show === 'Y') {
 					if (key.length > 20){
 						displayName = key.substring(0,20) + "...";
 					}
-		    		NgChm.UHM.setTableRow(helpContents,["&nbsp;&nbsp;&nbsp;"+displayName+":"+"</u>", classBars[key].values[pos-1]]);	    		
+		    		NgChm.UHM.setTableRow(helpContents,["&nbsp;&nbsp;&nbsp;"+displayName+":"+"</u>", classBars[key].values[pos-1]]);	
 				}
 	    	}
-    	}
+       	}
         helptext.style.display="inherit";
     	helptext.appendChild(helpContents);
     	NgChm.UHM.locateHelpBox(e, helptext);
@@ -100,7 +107,7 @@ NgChm.UHM.userHelpOpen = function(e) {
     			var currentBar = classBarsConfig[key];
     			if (currentBar.show === 'Y') {
 	        		coveredHeight += NgChm.DET.canvas.clientHeight*currentBar.height/NgChm.DET.canvas.height;
-	        		if (coveredHeight >= e.layerY) {
+	        		if (coveredHeight >= coords.y) {
 	        			hoveredBar = key;
 	        			hoveredBarValues = NgChm.heatMap.getColClassificationData()[key].values;
 	        			break;
@@ -121,7 +128,7 @@ NgChm.UHM.userHelpOpen = function(e) {
 				var currentBar = classBarsConfig[key];
     			if (currentBar.show === 'Y') {
 	        		coveredWidth += NgChm.DET.canvas.clientWidth*currentBar.height/NgChm.DET.canvas.width;
-	        		if (coveredWidth >= e.layerX){
+	        		if (coveredWidth >= coords.x){
 	        			hoveredBar = key;
 	        			hoveredBarValues = NgChm.heatMap.getRowClassificationData()[key].values;
 	        			break;
@@ -155,7 +162,6 @@ NgChm.UHM.userHelpOpen = function(e) {
     	}
     	
     	// Build TABLE HTML for contents of help box
-    	var helpContents = document.createElement("TABLE");
 		var displayName = hoveredBar;
 		if (hoveredBar.length > 20){
 			displayName = displayName.substring(0,20) + "...";
@@ -230,11 +236,21 @@ NgChm.UHM.userHelpOpen = function(e) {
         helptext.style.display="inherit";
     	helptext.appendChild(helpContents);
     	NgChm.UHM.locateHelpBox(e, helptext);
-    } else {  // on the blank area in the top left corner
+    } else {  
+    	// on the blank area in the top left corner
     }
-    
+
 }
 	
+/**********************************************************************************
+ * FUNCTION - pasteHelpContents: This function opens a browser window and pastes
+ * the contents of the user help panel into the window.  
+ **********************************************************************************/
+function pasteHelpContents() {
+    var el = document.getElementById('helpTable')
+    window.open("","",'width=500,height=330,resizable=1').document.write(el.innerText.replace(/(\r\n|\n|\r)/gm, "<br>"));
+}
+
 /**********************************************************************************
  * FUNCTION - locateHelpBox: The purpose of this function is to set the location 
  * for the display of a pop-up help panel based upon the cursor location and the
@@ -243,8 +259,9 @@ NgChm.UHM.userHelpOpen = function(e) {
 NgChm.UHM.locateHelpBox = function(e, helptext) {
     var rowClassWidthPx = NgChm.DET.getRowClassPixelWidth();
     var colClassHeightPx = NgChm.DET.getColClassPixelHeight();
-	var mapLocY = e.layerY - colClassHeightPx;
-	var mapLocX = e.layerX - rowClassWidthPx;
+	var coords = NgChm.DET.getCursorPosition(e);
+	var mapLocY = coords.y - colClassHeightPx;
+	var mapLocX = coords.x - rowClassWidthPx;
 	var mapH = e.target.clientHeight - colClassHeightPx;
 	var mapW = e.target.clientWidth - rowClassWidthPx;
 	var boxLeft = e.pageX;
@@ -390,6 +407,7 @@ NgChm.UHM.showSearchError = function(type) {
 		case 1: searchError.innerHTML = "Exit dendrogram selection to go to " + NgChm.DET.currentSearchItem.label;break;
 		case 2: searchError.innerHTML = "All " + NgChm.DET.currentSearchItem.axis +  " items are visible. Change the view mode to see " + NgChm.DET.currentSearchItem.label;break;
 	}
+	NgChm.UHM.userHelpClose();
 	document.body.appendChild(searchError);
 	setTimeout(function(){
 		searchError.remove();
@@ -524,6 +542,52 @@ NgChm.UHM.unappliedChangeSave = function() {
 	NgChm.UHM.initMessageBox();
 }
 
+
+/**********************************************************************************
+ * FUNCTION - noWebGlContext: This function displays an error when no WebGl context
+ * is available on the user's machine.
+ **********************************************************************************/
+NgChm.UHM.noWebGlContext = function(isDisabled) {
+	NgChm.UHM.initMessageBox();
+	NgChm.UHM.setMessageBoxHeader("ERROR: WebGL Initialization Failed");
+	if (isDisabled) {
+		NgChm.UHM.setMessageBoxText("<br>WebGL is available but is not enabled on your machine.  The NG-CHM Application requires the WebGL Javascript API in order to render images of Next Generation Clustered Heat Maps.<br><br>Instructions for enabling WebGL, based on browser type, can be found via a web search.");
+	} else {
+		NgChm.UHM.setMessageBoxText("<br>No WebGL context is available.  The NG-CHM Application requires the WebGL Javascript API in order to render images of Next Generation Clustered Heat Maps. Most web browsers and graphics processors support WebGL.<br><br>Please ensure that the browser that you are using and your computer's processor are WebGL compatible.");
+	}
+	NgChm.UHM.setMessageBoxButton(3, "images/prefCancel.png", "", "NgChm.UHM.messageBoxCancel");
+	document.getElementById('msgBox').style.display = '';
+}
+
+/**********************************************************************************
+ * FUNCTION - noWebGlContext: This function displays an error when no WebGl context
+ * is available on the user's machine.
+ **********************************************************************************/
+NgChm.UHM.mapNotFound = function(heatMapName) {
+	NgChm.UHM.initMessageBox();
+	NgChm.UHM.setMessageBoxHeader("Requested Heat Map Not Found");
+	NgChm.UHM.setMessageBoxText("<br>The Heat Map (" + heatMapName + ") that you requested cannot be found OR connectivity to the Heat Map repository has been interrupted.<br><br>Please check the Heat Map name and try again.");
+	NgChm.UHM.setMessageBoxButton(3, "images/prefCancel.png", "", "NgChm.UHM.messageBoxCancel");
+	document.getElementById('msgBox').style.display = '';
+}
+
+/**********************************************************************************
+ * FUNCTION - minimumFontSize: This function displays an error minimum font size
+ * interferes with label presentation.
+ **********************************************************************************/
+NgChm.UHM.minimumFontSize = function() {
+	NgChm.UHM.initMessageBox();
+	NgChm.UHM.setMessageBoxHeader("Minimum Font Size Found"); 
+	if (NgChm.DET.minLabelSize > 10) {
+		NgChm.UHM.setMessageBoxText("<br>Your browser settings include a minimum font size setting that is too large. This will block the display of row, column, and covariate bar labels in the Ng-Chm application.<br><br>You may wish to turn this setting off in your browser.");
+	} else {
+		NgChm.UHM.setMessageBoxText("<br>Your browser settings include a minimum font size setting. This may interfere with the display of row, column, and covariate bar labels in the Ng-Chm application.<br><br>You may wish to turn this setting off in your browser.");
+	}
+	NgChm.UHM.setMessageBoxButton(3, "images/prefCancel.png", "", "NgChm.UHM.messageBoxCancel");
+	document.getElementById('msgBox').style.display = '';
+}
+
+
 /**********************************************************************************
  * FUNCTIONS - MESSAGE BOX FUNCTIONS
  * 
@@ -564,11 +628,14 @@ NgChm.UHM.setMessageBoxButton = function(buttonId, imageSrc, altText, onClick) {
 	buttonImg.alt = altText;
 	var fn = eval("(function() {"+onClick+"();})");
 	buttonImg.onclick=fn;
-	NgChm.DET.canvas.focus();
 }
 
 NgChm.UHM.messageBoxCancel = function() {
 	NgChm.UHM.initMessageBox();
-	NgChm.DET.canvas.focus();
+}
+
+NgChm.UHM.openHelp = function() {
+	var url = location.origin+location.pathname;
+	window.open(url.replace("chm.html", "chmHelp.html"),'_blank');
 }
 
