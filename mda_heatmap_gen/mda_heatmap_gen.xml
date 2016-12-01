@@ -90,4 +90,29 @@
   <outputs>
     <data name="output" label='${hmname}' format="ngchm"/>
   </outputs>
-</tool>
+ <tests>
+    <test>
+      <param name="inputmatrix" value="400x400.txt" />
+      <param name="hmname" value="testRun" />
+      <param name="$hmdesc" value="validateTool" />
+      <param name="summarymethod" value="average" />
+      <param name="rowOrderMethod" value="Hierarchical" />
+      <param name="rowDistanceMeasure" value="manhattan" />
+      <param name="rowAgglomerationMethod" value="ward" />
+      <param name="columnOrderMethod" value="Hierarchical" />
+      <param name="columnDistanceMeasure" value="manhattan" />
+      <param name="columnAgglomerationMethod" value="ward" />
+<!--
+      <param name="operations.class_name" value="columnCovariate" />
+      <param name="operationsrepeatinput.file_name" value="400x400-column-covariate.txt" />
+      <param name="operations.cat" value="column_categorical" />
+      <param name="operations.class_name" value="rowCovariate" />
+      <param name="operationsrepeatinput.file_name" value="400x400-row-covariate.txt" />
+      <param name="operations.cat" value="row_categorical" />
+-->
+      <output name="output" file="Galaxy400x400-noCovariates.ngchm" lines_diff="10" />     
+
+    </test>
+<!--   galaxy/test-data/    dir where the input and output file that should match tool output will be copied -->
+  </tests>
+ </tool>
