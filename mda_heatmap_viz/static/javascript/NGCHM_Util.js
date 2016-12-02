@@ -68,12 +68,6 @@ NgChm.UTIL.reverseObject = function(Obj) {
  * label is in excess, the first 9 and last 8 characters will be written out 
  * separated by ellipsis (...);
  **********************************************************************************/
-NgChm.UTIL.getLabelText2 = function(text, size, elPos) {
-	if (text.length > size) {
-		text = text.substr(0,9)+"..."+text.substr(text.length-8,text.length);
-	}
-	return text;
-}
 NgChm.UTIL.getLabelText = function(text) { 
 	var size = parseInt(NgChm.heatMap.getMapInformation().label_display_length);
 	var elPos = NgChm.heatMap.getMapInformation().label_display_truncation;

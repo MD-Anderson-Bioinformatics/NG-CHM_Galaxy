@@ -27,6 +27,10 @@ linkouts.getMapName = function(){
 	return NgChm.heatMap.getMapInformation().name;
 }
 
+linkouts.getMapFileName = function(){
+	return NgChm.UTIL.getURLParameter("map");
+}
+
 //adds linkout objects to the linkouts global variable
 linkouts.addLinkout = function(name, labelType, selectType, callback, reqAttributes, index){
 	NgChm.LNK.addLinkout(name, labelType, selectType, callback, reqAttributes, index);

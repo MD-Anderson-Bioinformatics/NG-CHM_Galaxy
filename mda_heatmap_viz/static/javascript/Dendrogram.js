@@ -111,7 +111,6 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 	}
 	
 	function subDendroClick(event){
-		NgChm.DET.canvas.focus();
 		var clickX = event.offsetX, clickY = this.height-event.offsetY;
 		var matrixX = Math.round(clickX/(this.width/dendroMatrix[0].length)), matrixY = Math.round(clickY/(this.height/dendroMatrix.length));
 		NgChm.SUM.rowDendro.clearSelection();
@@ -388,7 +387,6 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 	
 	// internal functions
 	function subDendroClick(event){
-		NgChm.DET.canvas.focus();
 		var clickX = event.offsetX, clickY = event.offsetY;
 		var matrixX = Math.round(clickY/(this.height/dendroMatrix[0].length)), matrixY = Math.round((this.width-clickX)/(this.width/dendroMatrix.length));
 		NgChm.SUM.colDendro.clearSelection();
@@ -560,6 +558,13 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 NgChm.DDR.pointsPerLeaf = 3; // each leaf will get 3 points in the dendrogram array. This is to avoid lines being right next to each other
 
 NgChm.DDR.findExtremes = function(i,j,matrix) {
+	var ip = i, id = i;
+	while (matrix[id][j]==undefined && matrix[ip][j]==undefined){ id--,ip++;}
+	if (matrix[id][j]!=undefined){
+		i = id;
+	} else {
+		i = ip;
+	}
 	var top = i;
 	var left = j;
 	var right = j;

@@ -21,6 +21,7 @@ NgChm.SEL.selectedStop=0;       // If dendrogram selection is used to limit ribb
 NgChm.SEL.searchItems={};
 NgChm.SEL.isSub = NgChm.UTIL.getURLParameter('sub') == 'true';  //isSub will be set to true if windows are split and this is the child.
 NgChm.SEL.hasSub = false;       //hasSub set to true if windows are split and this is the parent.
+NgChm.SEL.scrollTime = null; // timer for scroll events to prevent multiple events firing after scroll ends
 
 /* This function is called on detailInit to initialize the searchItems arrays */
 NgChm.SEL.createEmptySearchItems = function() {
@@ -95,21 +96,24 @@ NgChm.SEL.getLevelFromMode = function(lvl) {
  */
 NgChm.SEL.handleScroll = function(evt) {
 	evt.preventDefault();
-	if (evt.wheelDelta < 0 || evt.deltaY > 0 || evt.scale < 1) { //Zoom out
-		if (!NgChm.SEL.hasSub)
-			NgChm.DET.detailDataZoomOut();
-		else {
-			localStorage.removeItem('event');
-			localStorage.setItem('event', 'zoomOut' )
-		}
-	} else { // Zoom in
-		if (!NgChm.SEL.hasSub)
-			NgChm.DET.detailDataZoomIn();
-		else {
-			localStorage.removeItem('event');
-			localStorage.setItem('event', 'zoomIn' )
-		}
-	}	
+	if (NgChm.SEL.scrollTime == null || evt.timeStamp - NgChm.SEL.scrollTime > 50){
+		NgChm.SEL.scrollTime = evt.timeStamp;
+		if (evt.wheelDelta < -30 || evt.deltaY > 0 || evt.scale < 1) { //Zoom out
+			if (!NgChm.SEL.hasSub)
+				NgChm.DET.detailDataZoomOut();
+			else {
+				localStorage.removeItem('event');
+				localStorage.setItem('event', 'zoomOut' )
+			}
+		} else if ((evt.wheelDelta > 30 || evt.deltaY < 0 || evt.scale > 1)){ // Zoom in
+			if (!NgChm.SEL.hasSub)
+				NgChm.DET.detailDataZoomIn();
+			else {
+				localStorage.removeItem('event');
+				localStorage.setItem('event', 'zoomIn' )
+			}
+		}	
+	}
 	return false;
 } 		
 
@@ -117,83 +121,85 @@ NgChm.SEL.handleScroll = function(evt) {
 NgChm.SEL.keyNavigate = function(e) {
 	NgChm.UHM.userHelpClose();
     clearTimeout(NgChm.DET.detailPoint);
-	switch(e.keyCode){ // prevent default added redundantly to each case so that other key inputs won't get ignored
-		case 37: // left key 
-			if (document.activeElement.id !== "search_text"){
-				e.preventDefault();
-				if (e.shiftKey){NgChm.SEL.currentCol -= NgChm.SEL.dataPerRow;} 
-				else {NgChm.SEL.currentCol--;}
-			}
-			break;
-		case 38: // up key
-			if (document.activeElement.id !== "search_text"){
-				e.preventDefault();
-				if (e.shiftKey){NgChm.SEL.currentRow -= NgChm.SEL.dataPerCol;} 
-				else {NgChm.SEL.currentRow--;}
-			}
-			break;
-		case 39: // right key
-			if (document.activeElement.id !== "search_text"){
-				e.preventDefault();
-				if (e.shiftKey){NgChm.SEL.currentCol += NgChm.SEL.dataPerRow;} 
-				else {NgChm.SEL.currentCol++;}
-			}
-			break;
-		case 40: // down key
-			if (document.activeElement.id !== "search_text"){
-				e.preventDefault();
-				if (e.shiftKey){NgChm.SEL.currentRow += NgChm.SEL.dataPerCol;} 
-				else {NgChm.SEL.currentRow++;}
-			}
-			break;
-		case 33: // page up
-			e.preventDefault();
-			if (e.shiftKey){
-				var newMode;
-				NgChm.DDR.clearDendroSelection();
-				switch(NgChm.SEL.mode){
-					case "RIBBONV": newMode = 'RIBBONH'; break;
-					case "RIBBONH": newMode = 'NORMAL'; break;
-					default: newMode = NgChm.SEL.mode;break;
+    if (e.target.type != "text"){
+		switch(e.keyCode){ // prevent default added redundantly to each case so that other key inputs won't get ignored
+			case 37: // left key 
+				if (document.activeElement.id !== "search_text"){
+					e.preventDefault();
+					if (e.shiftKey){NgChm.SEL.currentCol -= NgChm.SEL.dataPerRow;} 
+					else {NgChm.SEL.currentCol--;}
 				}
-				NgChm.SEL.changeMode(newMode);
-			} else {
-				NgChm.DET.detailDataZoomIn();
-			}
-			break;
-		case 34: // page down 
-			e.preventDefault();
-			if (e.shiftKey){
-				var newMode;
-				NgChm.DDR.clearDendroSelection();
-				switch(NgChm.SEL.mode){
-					case "NORMAL": newMode = 'RIBBONH'; break;
-					case "RIBBONH": newMode = 'RIBBONV'; break;
-					default: newMode = NgChm.SEL.mode;break;
+				break;
+			case 38: // up key
+				if (document.activeElement.id !== "search_text"){
+					e.preventDefault();
+					if (e.shiftKey){NgChm.SEL.currentRow -= NgChm.SEL.dataPerCol;} 
+					else {NgChm.SEL.currentRow--;}
 				}
-				NgChm.SEL.changeMode(newMode);
-			} else {
-				NgChm.DET.detailDataZoomOut();
-			}
-			break;
-		case 113: // F2 key 
-			if (NgChm.SEL.flickIsOn()) {
-				var flickBtnSrc = document.getElementById("flick_btn").src;
-				if (flickBtnSrc.indexOf("Up") >= 0) {
-					NgChm.SEL.flickChange("toggle2");
+				break;
+			case 39: // right key
+				if (document.activeElement.id !== "search_text"){
+					e.preventDefault();
+					if (e.shiftKey){NgChm.SEL.currentCol += NgChm.SEL.dataPerRow;} 
+					else {NgChm.SEL.currentCol++;}
+				}
+				break;
+			case 40: // down key
+				if (document.activeElement.id !== "search_text"){
+					e.preventDefault();
+					if (e.shiftKey){NgChm.SEL.currentRow += NgChm.SEL.dataPerCol;} 
+					else {NgChm.SEL.currentRow++;}
+				}
+				break;
+			case 33: // page up
+				e.preventDefault();
+				if (e.shiftKey){
+					var newMode;
+					NgChm.DDR.clearDendroSelection();
+					switch(NgChm.SEL.mode){
+						case "RIBBONV": newMode = 'RIBBONH'; break;
+						case "RIBBONH": newMode = 'NORMAL'; break;
+						default: newMode = NgChm.SEL.mode;break;
+					}
+					NgChm.SEL.changeMode(newMode);
 				} else {
-					NgChm.SEL.flickChange("toggle1");
+					NgChm.DET.detailDataZoomIn();
 				}
-			}
-			break;
-		case 191: // "divide key" BUT not "? key"/
-			if (!e.shiftKey) {
-				NgChm.DET.detailSplit();
-			}
-			break;
-		default:
-			return;
-	}
+				break;
+			case 34: // page down 
+				e.preventDefault();
+				if (e.shiftKey){
+					var newMode;
+					NgChm.DDR.clearDendroSelection();
+					switch(NgChm.SEL.mode){
+						case "NORMAL": newMode = 'RIBBONH'; break;
+						case "RIBBONH": newMode = 'RIBBONV'; break;
+						default: newMode = NgChm.SEL.mode;break;
+					}
+					NgChm.SEL.changeMode(newMode);
+				} else {
+					NgChm.DET.detailDataZoomOut();
+				}
+				break;
+			case 113: // F2 key 
+				if (NgChm.SEL.flickIsOn()) {
+					var flickBtnSrc = document.getElementById("flick_btn").src;
+					if (flickBtnSrc.indexOf("Up") >= 0) {
+						NgChm.SEL.flickChange("toggle2");
+					} else {
+						NgChm.SEL.flickChange("toggle1");
+					}
+				}
+				break;
+			case 191: // "divide key" BUT not "? key"/
+				if (!e.shiftKey) {
+					NgChm.DET.detailSplit();
+				}
+				break;
+			default:
+				return;
+		}
+    }
 	
 	NgChm.SEL.checkRow();
 	NgChm.SEL.checkColumn();
@@ -214,7 +220,7 @@ NgChm.SEL.keyNavigate = function(e) {
  ***********************************************************************************************/ 
 NgChm.SEL.setupLocalStorage = function() {
 	window.addEventListener('storage', function (evt) {
-		console.log('localstorage event ' + evt.key);
+		//console.log('localstorage event ' + evt.key);  USE FOR DEBUGGING SPLIT SCREEN (when necessary)
 		if (evt.key == 'event') {
 			NgChm.SEL.handleLocalStorageEvent(evt);
 		} 
@@ -238,6 +244,8 @@ NgChm.SEL.handleLocalStorageEvent = function(evt) {
 		NgChm.SEL.dataPerCol = Number(localStorage.getItem('dataPerCol'));
 		NgChm.SEL.selectedStart = Number(localStorage.getItem('selectedStart'));
 		NgChm.SEL.selectedStop = Number(localStorage.getItem('selectedStop'));
+		NgChm.DET.dataBoxHeight = (NgChm.DET.SIZE_NORMAL_MODE-NgChm.DET.dataViewBorder)/NgChm.SEL.dataPerCol;
+		NgChm.DET.dataBoxWidth = (NgChm.DET.SIZE_NORMAL_MODE-NgChm.DET.dataViewBorder)/NgChm.SEL.dataPerRow;
 		if (NgChm.SEL.mode != localStorage.getItem('mode') && NgChm.SEL.selectedStart == 0 && NgChm.SEL.selectedStop == 0){
 			NgChm.DDR.clearDendroSelection();
 		}
@@ -529,6 +537,17 @@ NgChm.SEL.flickIsOn = function() {
  * FUNCTION: flickToggleOn - Opens the flick control.
  ***********************************************************************************************/ 
 NgChm.SEL.flickToggleOn = function() {
+	var flickDrop1 = document.getElementById("flick1");
+	var flickDrop2 = document.getElementById("flick2");
+	//Make sure upon return from split screen that dropdowns contain different
+	//options (with the selected option in the top box)
+	if (flickDrop1.selectedIndex === flickDrop2.selectedIndex) {
+		if (flickDrop1.selectedIndex === 0) {
+			flickDrop2.selectedIndex = 1;
+		} else {
+			flickDrop2.selectedIndex = 0;
+		}
+	}
 	NgChm.SEL.flickInit();
 	var flicks = document.getElementById("flicks");
 	var flickViewsOff = document.getElementById("noFlickViews");
@@ -568,7 +587,6 @@ NgChm.SEL.flickInit = function() {
 		flickDrop1.style.backgroundColor="white";
 		flickDrop2.style.backgroundColor="yellow";
 	}
-
 }
 
 /************************************************************************************************

@@ -122,7 +122,7 @@ NgChm.UPM.editPreferences = function(e,errorMsg) {
 NgChm.UPM.prefsResize = function() {
 	var prefprefs = document.getElementById('prefPrefs');
 	if (window.innerHeight > 730) {
-		prefprefs.style.height = "88%";
+		prefprefs.style.height = "85%";
 	} else if (window.innerHeight > 500) {
 		prefprefs.style.height = "80%";
 	} else {
@@ -216,7 +216,6 @@ NgChm.UPM.prefsCancelButton = function() {
 	//Hide the preferences panel
 	document.getElementById('prefsPanel').style.display= 'none';
 	NgChm.UPM.searchPerformed = false;
-	NgChm.DET.canvas.focus();
 }
 
 /**********************************************************************************
@@ -261,7 +260,6 @@ NgChm.UPM.prefsApplyButton = function() {
 		NgChm.UPM.prefsApply();
 		NgChm.heatMap.setUnAppliedChanges(true);
 		NgChm.UPM.prefsSuccess();
-		NgChm.DET.canvas.focus();
 	}
 }
 

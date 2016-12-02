@@ -852,6 +852,7 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 			if (req.readyState == req.DONE) {
 		        if (req.status != 200) {
 		            console.log('Failed to get json file ' + jsonFile + ' for ' + heatMapName + ' from server: ' + req.status);
+		            NgChm.UHM.mapNotFound(heatMapName);
 		        } else {
 		        	//Got the result - call appropriate setter.
 		        	setterFunction(JSON.parse(req.response));
