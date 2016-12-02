@@ -19,7 +19,7 @@ RUN sed -i '/<toolbox monitor="true">/a \\t<section id="MDAheatmap" name="TCGA_H
 ##### Place MDA and Insilico logo on the Welcome Page #####
 #ADD ./BigQuery/MDA&InSilico_combined_logo.png /galaxy-central/static/welcome.html
 RUN  chmod -777  /etc/galaxy/web/welcome_image.png
-COPY ./BigQuery/MDA&InSilico&Docker.png /etc/galaxy/web/welcome_image.png
+COPY ./mda_heatmap_viz/static/images/MDA&InSilico&Docker.png  /etc/galaxy/web/welcome_image.png
 RUN  chmod 775 /galaxy-central/static
 
 ##### Place MDA test input and output files in ~/test-data directory #####
