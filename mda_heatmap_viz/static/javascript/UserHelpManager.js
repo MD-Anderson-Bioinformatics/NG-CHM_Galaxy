@@ -18,8 +18,8 @@ NgChm.UHM.userHelpOpen = function(e) {
 	helpContents.id = 'helpTable';
     var orgW = window.innerWidth+window.pageXOffset;
     var orgH = window.innerHeight+window.pageYOffset;
-    var helptext = NgChm.UHM.getDivElement("helptext");    
-    helptext.innerHTML=("<a href='javascript:void(pasteHelpContents())' align='left'>Copy To Clipboard</a><img id='redX_btn' src='images/redX.png' alt='Close Help' onclick='NgChm.UHM.userHelpClose();' align='right'>");
+    var helptext = NgChm.UHM.getDivElement("helptext");  
+    helptext.innerHTML=("<a href='javascript:void(pasteHelpContents())' align='left'>Copy To Clipboard</a><img id='redX_btn' src='" + NgChm.staticPath + "images/redX.png' alt='Close Help' onclick='NgChm.UHM.userHelpClose();' align='right'>");
     helptext.style.position = "absolute";
     document.getElementsByTagName('body')[0].appendChild(helptext);
     var rowElementSize = NgChm.DET.dataBoxWidth * NgChm.DET.canvas.clientWidth/NgChm.DET.canvas.width; // px/Glpoint
@@ -636,6 +636,11 @@ NgChm.UHM.messageBoxCancel = function() {
 
 NgChm.UHM.openHelp = function() {
 	var url = location.origin+location.pathname;
-	window.open(url.replace("chm.html", "chmHelp.html"),'_blank');
+	if (NgChm.staticPath == ""){
+		window.open(url.replace("chm.html", "chmHelp.html"),'_blank');
+	} else {
+		url = url.replace(location.pathname,NgChm.staticPath);
+		window.open(url+"chmHelp.html",'_blank');
+	}
 }
 
