@@ -96,7 +96,7 @@ NgChm.SEL.getLevelFromMode = function(lvl) {
  */
 NgChm.SEL.handleScroll = function(evt) {
 	evt.preventDefault();
-	if (NgChm.SEL.scrollTime == null || evt.timeStamp - NgChm.SEL.scrollTime > 50){
+	if (NgChm.SEL.scrollTime == null || evt.timeStamp - NgChm.SEL.scrollTime > 150){
 		NgChm.SEL.scrollTime = evt.timeStamp;
 		if (evt.wheelDelta < -30 || evt.deltaY > 0 || evt.scale < 1) { //Zoom out
 			if (!NgChm.SEL.hasSub)
