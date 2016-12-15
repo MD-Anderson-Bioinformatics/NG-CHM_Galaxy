@@ -319,6 +319,9 @@ NgChm.UPM.prefsApply = function() {
 		var keyrow = key+"_row";
 		var showElement = document.getElementById(keyrow+"_showPref");
 		var heightElement = document.getElementById(keyrow+"_heightPref");
+		if (heightElement.value === "0") {
+			showElement.checked = false;
+		}
 		NgChm.heatMap.setClassificationPrefs(key,"row",showElement.checked,heightElement.value);
 		NgChm.UPM.prefsApplyBreaks(key,"row");
 	}
@@ -327,19 +330,25 @@ NgChm.UPM.prefsApply = function() {
 		var keycol = key+"_col";
 		var showElement = document.getElementById(keycol+"_showPref");
 		var heightElement = document.getElementById(keycol+"_heightPref");
+		if (heightElement.value === "0") {
+			showElement.checked = false;
+		}
 		NgChm.heatMap.setClassificationPrefs(key,"col",showElement.checked,heightElement.value);
 		NgChm.UPM.prefsApplyBreaks(key,"col");
 	}
-	// Apply Sizing Preferences
+/*	THIS CODE WAS COMMENTED OUT TO REMOVE MAP SIZING FEATURE BUT MAY RETURN
+	// Apply Map Sizing Preferences
 	var sumSize = document.getElementById("summaryWidthPref").value;
 	var detSize = document.getElementById("detailWidthPref").value;
 	var heightSize = document.getElementById("mapHeightPref").value;
 	NgChm.heatMap.getMapInformation().summary_width = sumSize;
 	NgChm.heatMap.getMapInformation().detail_width = detSize;
 	NgChm.heatMap.getMapInformation().summary_height = heightSize;
-	NgChm.heatMap.getMapInformation().detail_height = heightSize;
+	NgChm.heatMap.getMapInformation().detail_height = heightSize; */
+	
+	// Apply Label Sizing Preferences
 	NgChm.heatMap.getMapInformation().label_display_length = document.getElementById("labelSizePref").value;
-	NgChm.heatMap.getMapInformation().label_display_truncation = document.getElementById("labelTruncPref").value;
+	NgChm.heatMap.getMapInformation().label_display_truncation = document.getElementById("labelTruncPref").value;  
 	
 	// Apply Data Layer Preferences
 	var dataLayers = NgChm.heatMap.getDataLayers();
@@ -384,7 +393,7 @@ NgChm.UPM.prefsValidateForNumeric = function() {
 	for (var key in rowClassBars) {
 		var elem = document.getElementById(key+"_row_heightPref");
 		var elemVal = elem.value;
-		if ((isNaN(elemVal)) || (parseInt(elemVal) < 0)) {
+		if ((isNaN(elemVal)) || (parseInt(elemVal) < 0) || (elemVal === "")) {
 			errorMsg =  ["ALL", "classPrefs", "ERROR: Bar heights must be between 0 and 99"];
 		    return errorMsg;
 		}
@@ -394,12 +403,13 @@ NgChm.UPM.prefsValidateForNumeric = function() {
 		for (var key in colClassBars) {
 			var elem = document.getElementById(key+"_col_heightPref");
 			var elemVal = elem.value;
-			if ((isNaN(elemVal)) || (parseInt(elemVal) < 0)) {
+			if ((isNaN(elemVal)) || (parseInt(elemVal) < 0) || (elemVal === "")) {
 				errorMsg =  ["ALL", "classPrefs", "ERROR: Bar heights must be between 0 and 99"];
 				 return errorMsg;
 			}
 		}
 	}
+	/*	THIS CODE WAS COMMENTED OUT TO REMOVE MAP SIZING FEATURE BUT MAY RETURN
 	if (errorMsg === null) {
 		var elem = document.getElementById("summaryWidthPref");
 		var elemVal = elem.value;
@@ -419,7 +429,7 @@ NgChm.UPM.prefsValidateForNumeric = function() {
 			errorMsg =  [null, "rowsColsPrefs", "ERROR: Map Height % must be between 0 and 100"];
 			 return errorMsg;
 		}
-	}
+	} */
 	return errorMsg;
 }
 
@@ -457,12 +467,13 @@ NgChm.UPM.prefsValidateBreakPoints = function(colorMapName,prefPanel) {
 		for (var j = 0; j < thresholds.length; j++) {
 			var be = document.getElementById(colorMapName+"_breakPt"+j+"_breakPref");
 			if (i != j) {
-				if (breakElement.value === be.value) {
+				if (Number(breakElement.value) === Number(be.value)) {
 					dupeBreak = true;
 					break;
 				}
 			}
 		}
+		prevBreakValue = breakElement.value;
 	}
 	if (charBreak) {
 		errorMsg =  [colorMapName, prefPanel, "ERROR: Data layer breakpoints must be numeric"];
@@ -689,7 +700,7 @@ NgChm.UPM.setupLayerBreaks = function(e, mapName) {
 		var color = colors[j];
 		var threshId = mapName+"_breakPt"+j;
 		var colorId = mapName+"_color"+j;
-		var breakPtInput = "&nbsp;&nbsp;<input name='"+threshId+"_breakPref' id='"+threshId+"_breakPref' value='"+threshold+"' maxlength='4' size='4'>";
+		var breakPtInput = "&nbsp;&nbsp;<input name='"+threshId+"_breakPref' id='"+threshId+"_breakPref' value='"+threshold+"' maxlength='8' size='8'>";
 		var colorInput = "<input class='spectrumColor' type='color' name='"+colorId+"_colorPref' id='"+colorId+"_colorPref' value='"+color+"'>"; 
 		var addButton = "<img id='"+threshId+"_breakAdd' src='" + NgChm.staticPath + "images/plusButton.png' alt='Add Breakpoint' onclick='NgChm.UPM.addLayerBreak("+j+",\""+mapName+"\");' align='top'/>"
 		var delButton = "<img id='"+threshId+"_breakDel' src='" + NgChm.staticPath + "images/minusButton.png' alt='Remove Breakpoint' onclick='NgChm.UPM.deleteLayerBreak("+j+",\""+mapName+"\");' align='top'/>"
@@ -1316,14 +1327,15 @@ NgChm.UPM.setupRowColPrefs = function(e, prefprefs) {
 		NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Dendrogram Height:",colDendroHeightSelect]);
 	}
 	NgChm.UHM.addBlankRow(prefContents,2);
-	NgChm.UHM.setTableRow(prefContents,["MAP SIZING:"]);
+/*	THIS CODE WAS COMMENTED OUT TO REMOVE MAP SIZING FEATURE BUT MAY RETURN
+ * NgChm.UHM.setTableRow(prefContents,["MAP SIZING:"]);
 	var sumWidth = Math.round(document.getElementById('summary_chm').offsetWidth/(.96*document.getElementById('container').offsetWidth)*100);
 	var detWidth = Math.round(document.getElementById('detail_chm').offsetWidth/(.96*document.getElementById('container').offsetWidth)*100);
 	var mapHeight = Math.round(document.getElementById('detail_chm').clientHeight/container.clientHeight*100);
 	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Summary Width:","<input type=\"text\" name=\"summaryWidthPref\" id=\"summaryWidthPref\" style=\"width:40px\" value=\"" + sumWidth+"\">%"]);
 	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Detail Width:","<input type=\"text\" name=\"detailWidthPref\" id=\"detailWidthPref\" style=\"width:40px\" value=\"" + detWidth + "\">%"]);
 	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Map Height:","<input type=\"text\" name=\"mapHeightPref\" id=\"mapHeightPref\" style=\"width:40px\" value=\"" + mapHeight + "\">%"]);
-	NgChm.UHM.addBlankRow(prefContents,2);
+	NgChm.UHM.addBlankRow(prefContents,2); */
 	NgChm.UHM.setTableRow(prefContents,["LABEL SIZING:"]);
 	var labelSizeSelect = "<select name='labelSizePref' id='labelSizePref'><option value='10'>10 Characters</option><option value='15'>15 Characters</option><option value='20'>20 Characters</option><option value='25'>25 Characters</option><option value='30'>30 Characters</option><option value='35'>35 Characters</option><option value='40'>40 Characters</option>"
 	var labelTruncSelect = "<select name='labelTruncPref' id='labelTruncPref'><option value='START'>Beginning</option><option value='MIDDLE'>Middle</option><option value='END'>End</option>"
