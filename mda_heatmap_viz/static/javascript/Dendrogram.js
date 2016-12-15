@@ -7,20 +7,20 @@ NgChm.createNS('NgChm.DDR');
 NgChm.DDR.SummaryColumnDendrogram = function() {
 	var normDendroMatrixHeight = 500; // this is the height of the dendro matrices created in buildDendroMatrix
 	var pointsPerLeaf = 3; // each leaf will get 3 points in the dendrogram array. This is to avoid lines being right next to each other
-	
 	var bars = [];
 	var chosenBar = {}; // this is the bar that is clicked on the summary side (Subdendro selection)
 	var dendroCanvas = document.getElementById('column_dendro_canvas');
 	var dendroConfig = NgChm.heatMap.getColDendroConfig();
+	var hasData = dendroConfig.show === 'NA' ? false : true;
 	var dendroData = NgChm.heatMap.getColDendroData();
 	var maxHeight = dendroData.length > 0 ? Number(dendroData[dendroData.length-1].split(",")[2]) : 0; // this assumes the heightData is ordered from lowest height to highest
-	
-	var dendroMatrix = buildMatrix();
+	var dendroMatrix;
+	if (hasData) {
+		dendroMatrix = buildMatrix();
+	}
 	var originalDendroMatrix = dendroMatrix;
 	var selectedBars = []; // these are the bars/areas that are selected from the detail side
-	
 	var sumChm = document.getElementById("summary_chm");
-	
 	dendroCanvas.addEventListener('click',subDendroClick);
 	
 	this.getDivWidth = function(){
@@ -144,32 +144,34 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 	}
 	
 	function draw(){
-		var xRatio = dendroCanvas.width/dendroMatrix[0].length;
-		var yRatio = dendroCanvas.height/dendroMatrix.length;
-		var colgl = dendroCanvas.getContext("2d");
-		for (var i=0; i<dendroMatrix.length; i++){
-			// draw the non-highlighted regions
-			colgl.fillStyle = "black";
-			for (var j in dendroMatrix[i]){
-				j = parseInt(j);
-				// x,y,w,h
-				var x = Math.floor(j*xRatio), y = Math.floor((dendroMatrix.length-i)*yRatio);
-				if (dendroMatrix[i][j] == 1){colgl.fillRect(x,y,1,1);}
-				if (xRatio >= 1 && dendroMatrix[i][j+1] == 1){ // this is to fill the spaces between each point on the horizontal bars
-					var fill = 1;
-					while(fill<xRatio){colgl.fillRect(x+fill,y,1,1),fill++;}
+		if (typeof dendroMatrix !== 'undefined') {
+			var xRatio = dendroCanvas.width/dendroMatrix[0].length;
+			var yRatio = dendroCanvas.height/dendroMatrix.length;
+			var colgl = dendroCanvas.getContext("2d");
+			for (var i=0; i<dendroMatrix.length; i++){
+				// draw the non-highlighted regions
+				colgl.fillStyle = "black";
+				for (var j in dendroMatrix[i]){
+					j = parseInt(j);
+					// x,y,w,h
+					var x = Math.floor(j*xRatio), y = Math.floor((dendroMatrix.length-i)*yRatio);
+					if (dendroMatrix[i][j] == 1){colgl.fillRect(x,y,1,1);}
+					if (xRatio >= 1 && dendroMatrix[i][j+1] == 1){ // this is to fill the spaces between each point on the horizontal bars
+						var fill = 1;
+						while(fill<xRatio){colgl.fillRect(x+fill,y,1,1),fill++;}
+					}
 				}
-			}
-			// draw the highlighted area
-			//colgl.fillStyle = "rgba(3,255,3,1)";
-			for (var j in dendroMatrix[i]){
-				j = parseInt(j);
-				// x,y,w,h
-				var x = Math.floor(j*xRatio), y = Math.floor((dendroMatrix.length-i)*yRatio);
-				if (dendroMatrix[i][j] == 2){colgl.fillRect(x,y,2,2);} 
-				if (xRatio >= 1 && dendroMatrix[i][j+1] == 2){
-					var fill = 1;
-					while(fill<xRatio){colgl.fillRect(x+fill,y,2,2),fill++;}
+				// draw the highlighted area
+				//colgl.fillStyle = "rgba(3,255,3,1)";
+				for (var j in dendroMatrix[i]){
+					j = parseInt(j);
+					// x,y,w,h
+					var x = Math.floor(j*xRatio), y = Math.floor((dendroMatrix.length-i)*yRatio);
+					if (dendroMatrix[i][j] == 2){colgl.fillRect(x,y,2,2);} 
+					if (xRatio >= 1 && dendroMatrix[i][j+1] == 2){
+						var fill = 1;
+						while(fill<xRatio){colgl.fillRect(x+fill,y,2,2),fill++;}
+					}
 				}
 			}
 		}
@@ -280,22 +282,23 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 	// internal variables
 	var normDendroMatrixHeight = 500; // this is the height of the dendro matrices created in buildMatrix
 	var pointsPerLeaf = 3; // each leaf will get 3 points in the dendrogram array. This is to avoid lines being right next to each other
-	
 	var bars = [];
 	var chosenBar = {};
 	var dendroCanvas = document.getElementById('row_dendro_canvas');
 	var dendroConfig = NgChm.heatMap.getRowDendroConfig();
+	var hasData = dendroConfig.show === 'NA' ? false : true;
 	var dendroData = NgChm.heatMap.getRowDendroData();
 	var maxHeight = dendroData.length > 0 ? Number(dendroData[dendroData.length-1].split(",")[2]) : 0; // this assumes the heightData is ordered from lowest height to highest
-	
-	var dendroMatrix = buildMatrix();
+	var dendroMatrix;
+	if (hasData) {
+		dendroMatrix = buildMatrix();
+	}
 	var originalDendroMatrix = dendroMatrix;
 	var selectedBars;
 	var sumChm = document.getElementById("summary_chm");
 	
 	// event listeners
 	dendroCanvas.addEventListener('click',subDendroClick);
-	
 	
 	// public functions
 	this.getDivWidth = function(){
@@ -420,32 +423,34 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 	}
 	
 	function draw(){
-		var xRatio = dendroCanvas.width/dendroMatrix.length;
-		var yRatio = dendroCanvas.height/dendroMatrix[0].length;
-		var rowgl = dendroCanvas.getContext("2d");
-		for (var i=0; i<dendroMatrix.length; i++){
-			// draw the non-highlighted regions
-			rowgl.fillStyle = "black";
-			for (var j in dendroMatrix[i]){
-				j = parseInt(j);
-				// x,y,w,h
-				var x = Math.floor((dendroMatrix.length-i)*xRatio), y = Math.floor(j*yRatio);
-				if (dendroMatrix[i][j] == 1){rowgl.fillRect(x,y,1,1);}
-				if (yRatio >= 1 && dendroMatrix[i][j+1] == 1){
-					var fill = 1;
-					while(fill<yRatio){rowgl.fillRect(x,y+fill,1,1),fill++;}
+		if (typeof dendroMatrix !== 'undefined') {
+			var xRatio = dendroCanvas.width/dendroMatrix.length;
+			var yRatio = dendroCanvas.height/dendroMatrix[0].length;
+			var rowgl = dendroCanvas.getContext("2d");
+			for (var i=0; i<dendroMatrix.length; i++){
+				// draw the non-highlighted regions
+				rowgl.fillStyle = "black";
+				for (var j in dendroMatrix[i]){
+					j = parseInt(j);
+					// x,y,w,h
+					var x = Math.floor((dendroMatrix.length-i)*xRatio), y = Math.floor(j*yRatio);
+					if (dendroMatrix[i][j] == 1){rowgl.fillRect(x,y,1,1);}
+					if (yRatio >= 1 && dendroMatrix[i][j+1] == 1){
+						var fill = 1;
+						while(fill<yRatio){rowgl.fillRect(x,y+fill,1,1),fill++;}
+					}
 				}
-			}
-			// draw the highlighted area
-		//	rowgl.fillStyle = "rgba(3,255,3,1)";
-			for (var j in dendroMatrix[i]){
-				j = parseInt(j);
-				// x,y,w,h
-				var x = Math.floor((dendroMatrix.length-i)*xRatio), y = Math.floor(j*yRatio);
-				if (dendroMatrix[i][j] == 2){rowgl.fillRect(x,y,2,2);}
-				if (yRatio >= 1 && dendroMatrix[i][j+1] == 2){
-					var fill = 1;
-					while(fill<yRatio){rowgl.fillRect(x,y+fill,2,2),fill++;}
+				// draw the highlighted area
+			//	rowgl.fillStyle = "rgba(3,255,3,1)";
+				for (var j in dendroMatrix[i]){
+					j = parseInt(j);
+					// x,y,w,h
+					var x = Math.floor((dendroMatrix.length-i)*xRatio), y = Math.floor(j*yRatio);
+					if (dendroMatrix[i][j] == 2){rowgl.fillRect(x,y,2,2);}
+					if (yRatio >= 1 && dendroMatrix[i][j+1] == 2){
+						var fill = 1;
+						while(fill<yRatio){rowgl.fillRect(x,y+fill,2,2),fill++;}
+					}
 				}
 			}
 		}
