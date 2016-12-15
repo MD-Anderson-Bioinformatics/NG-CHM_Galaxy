@@ -34,6 +34,7 @@ NgChm.DET.dataViewWidth = 506;
 NgChm.DET.dataViewBorder = 2;
 NgChm.DET.zoomBoxSizes = [1,2,3,4,6,7,8,9,12,14,18,21,24,28,36,42,56,63,72,84,126,168,252];
 NgChm.DET.minLabelSize = 5;
+NgChm.DET.maxLabelSize = 11;
 NgChm.DET.currentSearchItem = {};
 NgChm.DET.labelLastClicked = {};
 
@@ -44,6 +45,11 @@ NgChm.DET.detailPoint;
 
 NgChm.DET.rowLabelLen = 0;
 NgChm.DET.colLabelLen = 0;
+NgChm.DET.rowLabelFont = 0;
+NgChm.DET.colLabelFont = 0;
+NgChm.DET.colClassLabelFont = 0;
+NgChm.DET.rowClassLabelFont = 0;
+
 
 //Call once to hook up detail drawing routines to a heat map and initialize the webGl 
 NgChm.DET.initDetailDisplay = function () {
@@ -115,9 +121,8 @@ NgChm.DET.initDetailDisplay = function () {
  * The purpose of this function is to return the cursor position over the canvas.  
  *********************************************************************************************/
 NgChm.DET.getCursorPosition = function (e) {
-    var rect = NgChm.DET.canvas.getBoundingClientRect();
-    var x = e.clientX - rect.left;
-    var y = e.clientY - rect.top;
+    var x = e.touches ? e.touches[0].clientX : e.offsetX;
+    var y = e.touches ? e.touches[0].clientY : e.offsetY;
     return {x:x, y:y}
 }
 
@@ -309,8 +314,8 @@ NgChm.DET.handleMoveDrag = function (e) {
     var xDrag = e.touches ? coords.x - NgChm.DET.dragOffsetX : coords.x - NgChm.DET.dragOffsetX;
     var yDrag = e.touches ? coords.y - NgChm.DET.dragOffsetY : coords.y - NgChm.DET.dragOffsetY;
     if ((Math.abs(xDrag/rowElementSize) > 1) || (Math.abs(yDrag/colElementSize) > 1)) {
-    	NgChm.SEL.currentRow = Math.floor(NgChm.SEL.currentRow - (yDrag/colElementSize));
-    	NgChm.SEL.currentCol = Math.floor(NgChm.SEL.currentCol - (xDrag/rowElementSize));
+    	NgChm.SEL.currentRow = Math.round(NgChm.SEL.currentRow - (yDrag/colElementSize));
+    	NgChm.SEL.currentCol = Math.round(NgChm.SEL.currentCol - (xDrag/rowElementSize));
 		NgChm.DET.dragOffsetX = coords.x;  //canvas X coordinate 
 		NgChm.DET.dragOffsetY = coords.y;
 	    NgChm.SEL.checkRow();
@@ -1239,19 +1244,20 @@ NgChm.DET.detailResize = function () {
 	 var divider = document.getElementById('divider');
 	 divider.style.height=Math.max(document.getElementById('detail_canvas').offsetHeight,document.getElementById('summary_canvas').offsetHeight + NgChm.SUM.colDendro.getDivHeight())+'px';
 	 NgChm.DET.clearLabels();
-	 NgChm.DET.calcRowAndColLabels();
-	 if (NgChm.DET.rowLabelLen + NgChm.DET.colLabelLen === 0) {
-		 NgChm.DET.calcRowAndColLabels(); 
-	 }
-	 NgChm.DET.calcClassRowAndColLabels();
-	 NgChm.DET.sizeCanvasForLabels();	
+	 NgChm.DET.sizeCanvasForLabels();
+	 //Done twice because changing canvas size affects fonts selected for drawing labels
+	 NgChm.DET.sizeCanvasForLabels();
 	 NgChm.DET.drawRowAndColLabels();
 	 NgChm.DET.drawSelections();
 	 NgChm.DET.detailDrawColClassBarLabels();
 	 NgChm.DET.detailDrawRowClassBarLabels();
 }
- 
+
+//This function calculates and adjusts the size of the detail canvas and box canvas
+//in order to best accommodate the maximum label sizes for each axis.
 NgChm.DET.sizeCanvasForLabels = function() {
+	NgChm.DET.calcRowAndColLabels();
+	NgChm.DET.calcClassRowAndColLabels();
 	var cont = document.getElementById('container');
 	var dChm = document.getElementById('detail_chm');
 	var sChm = document.getElementById('summary_chm');
@@ -1267,20 +1273,15 @@ NgChm.DET.sizeCanvasForLabels = function() {
 	//Add remainders to width/height for computation
 	var dFullW = dChm.clientWidth + remainW;
 	var dFullH = dChm.clientHeight + remainH;
-	//Offset factor (there is a little swag going on here based upon label length
-	//to try to get the best possible fit with the least possible whitespace without
-	//exceeding page width/height and generating scroll bars.
-	var rowOffset = NgChm.DET.rowLabelLen > 80 ? 80 : 60;
-	rowOffset = NgChm.DET.rowLabelLen < 40 ? 50 : 60;
-	var colOffset = NgChm.DET.colLabelLen > 70 ? 60 : 40;
-	colOffset = NgChm.DET.colLabelLen < 40 ? 30 : 40;
 	//Set sizes of canvas and boxCanvas based upon width, label, and an offset for whitespace
-	NgChm.DET.canvas.style.width = dFullW - (NgChm.DET.rowLabelLen + rowOffset);
-	NgChm.DET.canvas.style.height = dFullH - (NgChm.DET.colLabelLen + colOffset);
+	NgChm.DET.canvas.style.width = dFullW - (NgChm.DET.rowLabelLen + 35);
+	NgChm.DET.canvas.style.height = dFullH - (NgChm.DET.colLabelLen + 15);
 	NgChm.DET.boxCanvas.style.width = NgChm.DET.canvas.style.width;
 	NgChm.DET.boxCanvas.style.height = NgChm.DET.canvas.style.height;
 }
 
+//This function clears all labels on the detail panel and resets the maximum
+//label size variables for each axis in preparation for a screen redraw.
 NgChm.DET.clearLabels = function () {
 	var oldLabels = document.getElementsByClassName("DynamicLabel");
 	while (oldLabels.length > 0) {
@@ -1290,90 +1291,24 @@ NgChm.DET.clearLabels = function () {
 	NgChm.DET.colLabelLen = 0;
 }
 
-NgChm.DET.drawRowAndColLabels = function () {
-	var rowFontSize = NgChm.DET.getRowLabelFontSize();
-	var colFontSize = NgChm.DET.getColLabelFontSize();
-	var fontSize;
-	if (rowFontSize >= NgChm.DET.minLabelSize && colFontSize >= NgChm.DET.minLabelSize){
-		fontSize = Math.min(colFontSize,rowFontSize);
-		NgChm.DET.drawRowLabels(fontSize);
-		NgChm.DET.drawColLabels(fontSize);
-		NgChm.DET.labelFontSize = fontSize;
-	} else if (rowFontSize >= NgChm.DET.minLabelSize){
-		NgChm.DET.drawRowLabels(rowFontSize);
-		NgChm.DET.labelFontSize = rowFontSize;
-	} else if (colFontSize >= NgChm.DET.minLabelSize){
-		NgChm.DET.drawColLabels(colFontSize);
-		NgChm.DET.labelFontSize = colFontSize;
-	}
-}
-
+//This function determines if labels are to be drawn on each axis and calls the appropriate
+//function to calculate the maximum label size for each axis.
 NgChm.DET.calcRowAndColLabels = function () {
-	var rowFontSize = NgChm.DET.getRowLabelFontSize();
-	var colFontSize = NgChm.DET.getColLabelFontSize();
+	NgChm.DET.rowLabelFont = NgChm.DET.getRowLabelFontSize();
+	NgChm.DET.colLabelFont = NgChm.DET.getColLabelFontSize();
 	var fontSize;
-	if (rowFontSize >= NgChm.DET.minLabelSize && colFontSize >= NgChm.DET.minLabelSize){
-		fontSize = Math.min(colFontSize,rowFontSize);
+	if (NgChm.DET.rowLabelFont >= NgChm.DET.minLabelSize && NgChm.DET.colLabelFont >= NgChm.DET.minLabelSize){
+		fontSize = Math.min(NgChm.DET.colLabelFont,NgChm.DET.rowLabelFont);
 		NgChm.DET.calcColLabels(fontSize);
 		NgChm.DET.calcRowLabels(fontSize);
-	} else if (rowFontSize >= NgChm.DET.minLabelSize){
-		NgChm.DET.calcRowLabels(rowFontSize);
-	} else if (colFontSize >= NgChm.DET.minLabelSize){
-		NgChm.DET.calcColLabels(colFontSize);
+	} else if (NgChm.DET.rowLabelFont >= NgChm.DET.minLabelSize){
+		NgChm.DET.calcRowLabels(NgChm.DET.rowLabelFont);
+	} else if (NgChm.DET.colLabelFont >= NgChm.DET.minLabelSize){
+		NgChm.DET.calcColLabels(NgChm.DET.colLabelFont);
 	}
 }
 
-NgChm.DET.calcClassRowAndColLabels = function () {
-	NgChm.DET.calcRowClassBarLabels();
-	NgChm.DET.calcColClassBarLabels();
-}
-
-NgChm.DET.setLabelPxLength = function(label, font, type) {
-	var lblCanvas = document.createElement('canvas');
-	var ctx = lblCanvas.getContext("2d");
-	ctx.font = "bold " + font  +"px sans-serif";        
-	var width = Math.floor(ctx.measureText(label).width);
-	if (font < 12) {
-		if (type === 'row') {
-			if (width > NgChm.DET.rowLabelLen) {
-				NgChm.DET.rowLabelLen = width;
-			}
-		} else {
-			if (width > NgChm.DET.colLabelLen) {
-				NgChm.DET.colLabelLen = width;
-			}
-		}
-	}
-}
-
-NgChm.DET.setBrowserMinFontSize = function () {
-	  var minSettingFound = 0;
-	  var el = document.createElement('div');
-	  document.body.appendChild(el);
-	  el.innerHTML = "<div><p>a b c d e f g h i j k l m n o p q r s t u v w x y z</p></div>";
-	  el.style.fontSize = '1px';
-	  el.style.width = '64px';
-	  var minimumHeight = el.offsetHeight;
-	  var least = 0;
-	  var most = 64;
-	  var middle; 
-	  for (var i = 0; i < 32; ++i) {
-	    middle = (least + most)/2;
-	    el.style.fontSize = middle + 'px';
-	    if (el.offsetHeight === minimumHeight) {
-	      least = middle;
-	    } else {
-	      most = middle;
-	    }
-	  }
-	  if (middle > 5) {
-		  minSettingFound = middle;
-		  NgChm.DET.minLabelSize = Math.floor(middle) - 1;
-	  }
-	  document.body.removeChild(el);
-	  return minSettingFound;
-}
-
+//This function calculates the font size to be used for row axis labels.
 NgChm.DET.getRowLabelFontSize = function () {
 	var headerSize = 0;
 	var colHeight = NgChm.DET.calculateTotalClassBarHeight("column") + NgChm.DET.dendroHeight;
@@ -1381,9 +1316,10 @@ NgChm.DET.getRowLabelFontSize = function () {
 		headerSize = NgChm.DET.canvas.clientHeight * (colHeight / (NgChm.DET.dataViewHeight + colHeight));
 	}
 	var skip = Math.floor((NgChm.DET.canvas.clientHeight - headerSize) / NgChm.SEL.dataPerCol) - 2;
-	return Math.min(skip, 11)-1;	
+	return Math.min(skip, NgChm.DET.maxLabelSize);	
 }
 
+//This function calculates the font size to be used for column axis labels.
 NgChm.DET.getColLabelFontSize = function () {
 	headerSize = 0;
 	var rowHeight = NgChm.DET.calculateTotalClassBarHeight("row") + NgChm.DET.dendroWidth;
@@ -1391,11 +1327,11 @@ NgChm.DET.getColLabelFontSize = function () {
 		headerSize = NgChm.DET.canvas.clientWidth * (rowHeight / (NgChm.DET.dataViewWidth + rowHeight));
 	}
 	skip = Math.floor((NgChm.DET.canvas.clientWidth - headerSize) / NgChm.SEL.dataPerRow) - 2;
-	var retVal = Math.min(skip, 11)-1;
-	return Math.min(skip, 11)-1;
+	return Math.min(skip, NgChm.DET.maxLabelSize);
 }
 
 
+//This function calculates the maximum label size (in pixels) on the row axis.
 NgChm.DET.calcRowLabels = function (fontSize) {
 	var headerSize = 0;
 	var colHeight = NgChm.DET.calculateTotalClassBarHeight("column") + NgChm.DET.dendroHeight;
@@ -1410,35 +1346,12 @@ NgChm.DET.calcRowLabels = function (fontSize) {
 				continue;
 			}
 			var shownLabel = NgChm.UTIL.getLabelText(labels[i-1].split("|")[0]);
-			NgChm.DET.setLabelPxLength(shownLabel,fontSize,"row")
+			NgChm.DET.calcLabelDiv(shownLabel, fontSize, 'ROW');
 		}
 	}
 }
 
-NgChm.DET.drawRowLabels = function (fontSize) {
-	var headerSize = 0;
-	var colHeight = NgChm.DET.calculateTotalClassBarHeight("column") + NgChm.DET.dendroHeight;
-	if (colHeight > 0) {
-		headerSize = NgChm.DET.canvas.clientHeight * (colHeight / (NgChm.DET.dataViewHeight + colHeight));
-	}
-	var skip = (NgChm.DET.canvas.clientHeight - headerSize) / NgChm.SEL.dataPerCol;
-	var start = Math.max((skip - fontSize)/2, 0) + headerSize-2;
-	var labels = NgChm.heatMap.getRowLabels()["labels"];
-	var labelLen = NgChm.DET.getMaxLength(labels);
-	
-	if (skip > NgChm.DET.minLabelSize) {
-		var xPos = NgChm.DET.canvas.clientWidth + 3;
-		for (var i = NgChm.SEL.currentRow; i < NgChm.SEL.currentRow + NgChm.SEL.dataPerCol; i++) {
-			var yPos = start + ((i-NgChm.SEL.currentRow) * skip);
-			if (labels[i-1] == undefined){ // an occasional problem in subdendro view
-				continue;
-			}
-			var shownLabel = NgChm.UTIL.getLabelText(labels[i-1].split("|")[0]);
-			NgChm.DET.addLabelDiv(NgChm.DET.labelElement, 'detail_row' + i, 'DynamicLabel', shownLabel, xPos, yPos, fontSize, 'F',i,"Row");
-		}
-	}
-}
-
+//This function calculates the maximum label size (in pixels) on the column axis.
 NgChm.DET.calcColLabels = function (fontSize) {
 	var headerSize = 0;
 	var rowHeight = NgChm.DET.calculateTotalClassBarHeight("row") + NgChm.DET.dendroWidth;
@@ -1453,7 +1366,72 @@ NgChm.DET.calcColLabels = function (fontSize) {
 				continue;
 			}
 			var shownLabel = NgChm.UTIL.getLabelText(labels[i-1].split("|")[0]);
-			NgChm.DET.setLabelPxLength(shownLabel,fontSize,"col")
+			NgChm.DET.calcLabelDiv(shownLabel, fontSize, 'COL');
+		}
+	}
+}
+
+//This function creates a complete div for a given label item, assesses the 
+//size of the label and increases the row/col label length if the label
+//is larger than those already processed.  rowLabelLen and colLabelLen
+//are used to size the detail screen to accomodate labels on both axes
+NgChm.DET.calcLabelDiv = function (text, fontSize, axis) {
+	var div = document.createElement('div');
+	var divFontColor = "#FFFFFF";
+	div.className = 'DynamicLabel';
+	div.style.position = "absolute";
+	div.style.fontSize = fontSize.toString() +'pt';
+	div.style.fontFamily = 'sans-serif';
+	div.style.fontWeight = 'bold';
+	div.innerHTML = text;
+	
+	NgChm.DET.labelElement.appendChild(div);
+	if (axis == 'ROW') {
+		if (div.clientWidth > NgChm.DET.rowLabelLen) {
+			NgChm.DET.rowLabelLen = div.clientWidth;
+		}
+	} else {
+		if (div.clientWidth > NgChm.DET.colLabelLen) {
+			NgChm.DET.colLabelLen = div.clientWidth;
+		}
+	}
+	NgChm.DET.labelElement.removeChild(div);
+}
+
+//This function determines if labels are to be drawn on each axis and calls the appropriate
+//function to draw those labels on the screen.
+NgChm.DET.drawRowAndColLabels = function () {
+	var fontSize;
+	if (NgChm.DET.rowLabelFont >= NgChm.DET.minLabelSize && NgChm.DET.colLabelFont >= NgChm.DET.minLabelSize){
+		fontSize = Math.min(NgChm.DET.colLabelFont,NgChm.DET.rowLabelFont);
+		NgChm.DET.drawRowLabels(fontSize);
+		NgChm.DET.drawColLabels(fontSize);
+	} else if (NgChm.DET.rowLabelFont >= NgChm.DET.minLabelSize){
+		NgChm.DET.drawRowLabels(NgChm.DET.rowLabelFont);
+	} else if (NgChm.DET.colLabelFont >= NgChm.DET.minLabelSize){
+		NgChm.DET.drawColLabels(NgChm.DET.colLabelFont);
+	}
+}
+
+NgChm.DET.drawRowLabels = function (fontSize) {
+	var headerSize = 0;
+	var colHeight = NgChm.DET.calculateTotalClassBarHeight("column") + NgChm.DET.dendroHeight;
+	if (colHeight > 0) {
+		headerSize = NgChm.DET.canvas.clientHeight * (colHeight / (NgChm.DET.dataViewHeight + colHeight));
+	}
+	var skip = (NgChm.DET.canvas.clientHeight - headerSize) / NgChm.SEL.dataPerCol;
+	var start = Math.max((skip - fontSize)/2, 0) + headerSize-2;
+	var labels = NgChm.heatMap.getRowLabels()["labels"];
+	
+	if (skip > NgChm.DET.minLabelSize) {
+		var xPos = NgChm.DET.canvas.clientWidth + 3;
+		for (var i = NgChm.SEL.currentRow; i < NgChm.SEL.currentRow + NgChm.SEL.dataPerCol; i++) {
+			var yPos = start + ((i-NgChm.SEL.currentRow) * skip);
+			if (labels[i-1] == undefined){ // an occasional problem in subdendro view
+				continue;
+			}
+			var shownLabel = NgChm.UTIL.getLabelText(labels[i-1].split("|")[0]);
+			NgChm.DET.addLabelDiv(NgChm.DET.labelElement, 'detail_row' + i, 'DynamicLabel', shownLabel, xPos, yPos, fontSize, 'F',i,"Row");
 		}
 	}
 }
@@ -1467,7 +1445,6 @@ NgChm.DET.drawColLabels = function (fontSize) {
 	var skip = (NgChm.DET.canvas.clientWidth - headerSize) / NgChm.SEL.dataPerRow;
 	var start = headerSize + fontSize + Math.max((skip - fontSize)/2, 0) + 3;
 	var labels = NgChm.heatMap.getColLabels()["labels"];
-	var labelLen = NgChm.DET.getMaxLength(labels);
 		
 	if (skip > NgChm.DET.minLabelSize) {
 		var yPos = NgChm.DET.canvas.clientHeight + 3;
@@ -1485,7 +1462,7 @@ NgChm.DET.drawColLabels = function (fontSize) {
 	}
 }
 
-NgChm.DET.addLabelDiv = function (parent, id, className, text, left, top, fontSize, rotate, index,axis) {
+NgChm.DET.addLabelDiv = function (parent, id, className, text, left, top, fontSize, rotate, index,axis,xy) {
 	var colorMap = NgChm.heatMap.getColorMapManager().getColorMap("data",NgChm.SEL.currentDl);
 	var dataLayer = NgChm.heatMap.getDataLayers()[NgChm.SEL.currentDl];
 	var selectionRgba = colorMap.getHexToRgba(dataLayer.selection_color);
@@ -1545,20 +1522,6 @@ NgChm.DET.addLabelDiv = function (parent, id, className, text, left, top, fontSi
 		    return function(e) {NgChm.UHM.detailDataToolHelp(this, "Some covariate bars are hidden"); };
 		}) (this), false);
 	}   
-}
-
-// Get max label length
-NgChm.DET.getMaxLength = function (list) {
-	var len = 0;
-	for (var i = 0; i < list.length; i++){
-		if (list[i].length > len)
-			len = list[i].length;
-	}
-	var size = parseInt(NgChm.heatMap.getMapInformation().label_display_length);
-	if (len > size) {
-		len == size;
-	}
-	return len;
 }
 
 NgChm.DET.labelClick = function (e) {
@@ -1721,6 +1684,7 @@ NgChm.DET.getSearchLabelsByAxis = function (axis, labelType) {
 	return searchLabels;
 }
 
+//This function draws column class bars on the detail heat map canvas
 NgChm.DET.detailDrawColClassBars = function () {
 	var colClassBarConfig = NgChm.heatMap.getColClassificationConfig();
 	var colClassBarConfigOrder = NgChm.heatMap.getColClassificationOrder();
@@ -1769,45 +1733,45 @@ NgChm.DET.detailDrawColClassBars = function () {
 
 }
 
-NgChm.DET.rowClassBarLabelFont = function() {
-	NgChm.DET.rowBarFontSize = 0;
-	var scale =  NgChm.DET.canvas.clientWidth / (NgChm.DET.dataViewWidth + NgChm.DET.calculateTotalClassBarHeight("row")+NgChm.DET.dendroWidth);
-	var rowClassBarConfig = NgChm.heatMap.getRowClassificationConfig();
-	var fontSize = NgChm.DET.getLabelFontSize(rowClassBarConfig,scale);
-	NgChm.DET.rowBarFontSize = fontSize;
-	return fontSize;
+// Call the functions necessary to calculate the maximum row/col class bar label sizes and
+// update maximum label size variables (if necessary)
+NgChm.DET.calcClassRowAndColLabels = function () {
+	NgChm.DET.calcRowClassBarLabels();
+	NgChm.DET.calcColClassBarLabels();
 }
 
+//This function calculates the appropriate font size for column class bar labels
 NgChm.DET.colClassBarLabelFont = function() {
-	NgChm.DET.rowBarFontSize = 0;
 	var scale =  NgChm.DET.canvas.clientHeight / (NgChm.DET.dataViewHeight + NgChm.DET.calculateTotalClassBarHeight("column")+NgChm.DET.dendroHeight);
 	var colClassBarConfig = NgChm.heatMap.getColClassificationConfig();
-	var fontSize = NgChm.DET.getLabelFontSize(colClassBarConfig,scale);
-	NgChm.DET.colBarFontSize = fontSize;
+	var fontSize = NgChm.DET.getClassBarLabelFontSize(colClassBarConfig,scale);
 	return fontSize;
 }
 
+// This function calculates the maximum size of all column class bar labels and update NgChm.DET.colLabelLen if the value
+// of any label exceeds the existing maximum stored in that variable
 NgChm.DET.calcColClassBarLabels = function () {
 	var scale =  NgChm.DET.canvas.clientHeight / (NgChm.DET.dataViewHeight + NgChm.DET.calculateTotalClassBarHeight("column")+NgChm.DET.dendroHeight);
 	var colClassBarConfig = NgChm.heatMap.getColClassificationConfig();
 	var colClassBarConfigOrder = NgChm.heatMap.getColClassificationOrder();
 	var colClassLength = Object.keys(colClassBarConfig).length;
 	if (colClassBarConfig != null && colClassLength > 0) {
-		var fontSize = NgChm.DET.colClassBarLabelFont();
-		if (fontSize > NgChm.DET.minLabelSize) {
+		NgChm.DET.colClassLabelFont = NgChm.DET.colClassBarLabelFont();
+		if ((NgChm.DET.colClassLabelFont > NgChm.DET.minLabelSize) && (NgChm.DET.colClassLabelFont < NgChm.DET.maxLabelSize)){
 			for (var i=0;i< colClassBarConfigOrder.length;i++) {
 				var key = colClassBarConfigOrder[i];
 				var currentClassBar = colClassBarConfig[key];
 				if (currentClassBar.show === 'Y') {
-					var currFont = Math.min((currentClassBar.height - NgChm.DET.paddingHeight) * scale, 11);
+					var currFont = Math.min((currentClassBar.height - NgChm.DET.paddingHeight) * scale, NgChm.DET.maxLabelSize);
 					var labelText = NgChm.UTIL.getLabelText(key);
-					NgChm.DET.setLabelPxLength(labelText,currFont,"row");
+					NgChm.DET.calcLabelDiv(labelText, NgChm.DET.colClassLabelFont, 'ROW');
 				} 
 			}	
 		}
 	}
 }
 
+// This function draws column class bar labels on the detail panel
 NgChm.DET.detailDrawColClassBarLabels = function () {
 	if (document.getElementById("missingDetColClassBars"))document.getElementById("missingDetColClassBars").remove();
 	var scale =  NgChm.DET.canvas.clientHeight / (NgChm.DET.dataViewHeight + NgChm.DET.calculateTotalClassBarHeight("column")+NgChm.DET.dendroHeight);
@@ -1815,9 +1779,7 @@ NgChm.DET.detailDrawColClassBarLabels = function () {
 	var colClassBarConfigOrder = NgChm.heatMap.getColClassificationOrder();
 	var colClassLength = Object.keys(colClassBarConfig).length;
 	if (colClassBarConfig != null && colClassLength > 0) {
-	//	var fontSize = NgChm.DET.getLabelFontSize(colClassBarConfig,scale);
-		var fontSize = NgChm.DET.colClassBarLabelFont();
-		if (fontSize > NgChm.DET.minLabelSize) {
+		if (NgChm.DET.colClassLabelFont > NgChm.DET.minLabelSize) {
 			var xPos = NgChm.DET.canvas.clientWidth + 3;
 			var startingPoint = NgChm.DET.dendroHeight*scale-2;
 			var yPos = NgChm.DET.dendroHeight*scale;
@@ -1825,15 +1787,15 @@ NgChm.DET.detailDrawColClassBarLabels = function () {
 				var key = colClassBarConfigOrder[i];
 				var currentClassBar = colClassBarConfig[key];
 				if (currentClassBar.show === 'Y') {
-					var currFont = Math.min((currentClassBar.height - NgChm.DET.paddingHeight) * scale, 11);
-					if (currFont >= fontSize) {
+					var currFont = Math.min((currentClassBar.height - NgChm.DET.paddingHeight) * scale, NgChm.DET.maxLabelSize);
+					if (currFont >= NgChm.DET.colClassLabelFont) {
 						var yOffset = yPos - 1;
 						//Reposition label to center of large-height bars
 						if (currentClassBar.height >= 20) {
-							yOffset += ((((currentClassBar.height/2) - (fontSize/2)) - 3) * scale);
+							yOffset += ((((currentClassBar.height/2) - (NgChm.DET.colClassLabelFont/2)) - 3) * scale);
 						}
 						var labelText = NgChm.UTIL.getLabelText(key);
-						NgChm.DET.addLabelDiv(NgChm.DET.labelElement, 'detail_classcol' + i, 'DynamicLabel ClassBar', labelText, xPos, yOffset, fontSize, 'F', i, "ColumnCovar");
+						NgChm.DET.addLabelDiv(NgChm.DET.labelElement, 'detail_classcol' + i, 'DynamicLabel ClassBar', labelText, xPos, yOffset, NgChm.DET.colClassLabelFont, 'F', i, "ColumnCovar");
 					}
 					yPos += (currentClassBar.height * scale);
 				} else {
@@ -1855,14 +1817,9 @@ NgChm.DET.detailDrawColClassBarLabels = function () {
 	}
 }
 
-/*********************************************************************************************
- * FUNCTION:  getLabelFontSize
- * 
- * This function searches for the minimum font size for all classification bars in a set 
- * (row/col) that have a size greater than 7.  Those <= 7 are ignored as they will have "..."
- * placed next to them as labels.
- *********************************************************************************************/
-NgChm.DET.getLabelFontSize = function (classBarConfig,scale) {
+// This function searches for the minimum font size for all classification bars in a set (row/col) that have 
+// a size greater than 7.  Those <= 7 are ignored as they will have "..." placed next to them as labels.
+NgChm.DET.getClassBarLabelFontSize = function (classBarConfig,scale) {
 	var minFont = 999;
 	for (key in classBarConfig) {
 		var classBar = classBarConfig[key];
@@ -1874,6 +1831,15 @@ NgChm.DET.getLabelFontSize = function (classBarConfig,scale) {
 	return minFont;
 }
 
+// This function calculates the appropriate font size for row class bar labels
+NgChm.DET.rowClassBarLabelFont = function() {
+	var scale =  NgChm.DET.canvas.clientWidth / (NgChm.DET.dataViewWidth + NgChm.DET.calculateTotalClassBarHeight("row")+NgChm.DET.dendroWidth);
+	var rowClassBarConfig = NgChm.heatMap.getRowClassificationConfig();
+	var fontSize = NgChm.DET.getClassBarLabelFontSize(rowClassBarConfig,scale);
+	return fontSize;
+}
+
+//This function draws row class bars on the detail heat map canvas
 NgChm.DET.detailDrawRowClassBars = function () {
 	var rowClassBarConfig = NgChm.heatMap.getRowClassificationConfig();
 	var rowClassBarConfigOrder = NgChm.heatMap.getRowClassificationOrder();
@@ -1917,27 +1883,30 @@ NgChm.DET.detailDrawRowClassBars = function () {
 	}	
 }
 
+//Calculate the maximum size of all row class bar labels and update NgChm.DET.rowLabelLen if the value
+//of any label exceeds the existing maximum stored in that variable
 NgChm.DET.calcRowClassBarLabels = function () {
 	var rowClassBarConfigOrder = NgChm.heatMap.getRowClassificationOrder();
 	var scale =  NgChm.DET.canvas.clientWidth / (NgChm.DET.dataViewWidth + NgChm.DET.calculateTotalClassBarHeight("row")+NgChm.DET.dendroWidth);
 	var rowClassBarConfig = NgChm.heatMap.getRowClassificationConfig();
 	var rowClassLength = Object.keys(rowClassBarConfig).length;
 	if (rowClassBarConfig != null && rowClassLength > 0) {
-		var fontSize = NgChm.DET.rowClassBarLabelFont();
-		if (fontSize > NgChm.DET.minLabelSize) {
+		NgChm.DET.rowClassLabelFont = NgChm.DET.rowClassBarLabelFont();
+		if ((NgChm.DET.rowClassLabelFont > NgChm.DET.minLabelSize)  && (NgChm.DET.colClassLabelFont < NgChm.DET.maxLabelSize)) {
 			for (var i=0;i< rowClassBarConfigOrder.length;i++) {
 				var key = rowClassBarConfigOrder[i];
 				var currentClassBar = rowClassBarConfig[rowClassBarConfigOrder[i]];
 				if (currentClassBar.show === 'Y') {
-					var currFont = Math.min((currentClassBar.height - NgChm.DET.paddingHeight) * scale, 11);
+					var currFont = Math.min((currentClassBar.height - NgChm.DET.paddingHeight) * scale, NgChm.DET.maxLabelSize);
 					var labelText = NgChm.UTIL.getLabelText(key);
-					NgChm.DET.setLabelPxLength(labelText,currFont,"col")
+					NgChm.DET.calcLabelDiv(labelText, NgChm.DET.rowClassLabelFont, 'COL');
 				} 
 			} 
 		}	
 	}
 }
 
+//This function draws row class bar labels on the detail panel
 NgChm.DET.detailDrawRowClassBarLabels = function () {
 	var rowClassBarConfigOrder = NgChm.heatMap.getRowClassificationOrder();
 	if (document.getElementById("missingDetRowClassBars"))document.getElementById("missingDetRowClassBars").remove();
@@ -1945,20 +1914,19 @@ NgChm.DET.detailDrawRowClassBarLabels = function () {
 	var rowClassBarConfig = NgChm.heatMap.getRowClassificationConfig();
 	var rowClassLength = Object.keys(rowClassBarConfig).length;
 	if (rowClassBarConfig != null && rowClassLength > 0) {
-		var fontSize = NgChm.DET.rowClassBarLabelFont();
-		var startingPoint = (NgChm.DET.dendroWidth*scale)+fontSize + 5;
-		if (fontSize > NgChm.DET.minLabelSize) {
+		var startingPoint = (NgChm.DET.dendroWidth*scale)+NgChm.DET.rowClassLabelFont + 2;
+		if (NgChm.DET.rowClassLabelFont > NgChm.DET.minLabelSize) {
 			for (var i=0;i< rowClassBarConfigOrder.length;i++) {
 				var key = rowClassBarConfigOrder[i];
 				var currentClassBar = rowClassBarConfig[rowClassBarConfigOrder[i]];
-				var textLoc = (currentClassBar.height/2) - Math.floor(fontSize/2);
+				var textLoc = (currentClassBar.height/2) - Math.floor(NgChm.DET.rowClassLabelFont/2);
 				var xPos = startingPoint+(textLoc*scale);
 				var yPos = NgChm.DET.canvas.clientHeight + 4;
 				if (currentClassBar.show === 'Y') {
-					var currFont = Math.min((currentClassBar.height - NgChm.DET.paddingHeight) * scale, 11);
+					var currFont = Math.min((currentClassBar.height - NgChm.DET.paddingHeight) * scale, NgChm.DET.maxLabelSize);
 					var labelText = NgChm.UTIL.getLabelText(key);
-					if (currFont >= fontSize) {
-						NgChm.DET.addLabelDiv(NgChm.DET.labelElement, 'detail_classrow' + i, 'DynamicLabel ClassBar', labelText, xPos, yPos, fontSize, 'T', i, "RowCovar");
+					if (currFont >= NgChm.DET.rowClassLabelFont) {
+						NgChm.DET.addLabelDiv(NgChm.DET.labelElement, 'detail_classrow' + i, 'DynamicLabel ClassBar', labelText, xPos, yPos, NgChm.DET.rowClassLabelFont, 'T', i, "RowCovar");
 					}
 					yPos += (currentClassBar.height * scale);
 				} else {
@@ -2475,7 +2443,7 @@ NgChm.DET.clearSearch = function (event) {
 	NgChm.SUM.rowDendro.clearSelectedBars();
 	NgChm.DET.clearSrchBtns(event);
 	NgChm.DET.detailResize();
-	NgChm.DET.drawDetailHeatMap();  //DO WE NEED THIS???
+	//NgChm.DET.drawDetailHeatMap();  //DO WE NEED THIS???
 }
 
 NgChm.DET.clearSrchBtns = function (event) {
