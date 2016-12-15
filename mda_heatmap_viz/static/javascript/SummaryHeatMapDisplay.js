@@ -37,12 +37,23 @@ NgChm.SUM.clickStartRow=null;   // End row of current selected position
 NgChm.SUM.clickStartCol=null;   // Left column of the current selected position
 NgChm.SUM.mouseEventActive = false;
 
+NgChm.SUM.displayInfoMessage = function() {
+	NgChm.UHM.minimumFontSize();
+}
 
 //Main function that draws the summary heat map. chmFile is only used in file mode.
 NgChm.SUM.initSummaryDisplay = function() {
-    NgChm.DET.setBrowserMinFontSize();
+	// Add custom.js to head once Heatmap has loaded
+    var head = document.getElementsByTagName('head')[0];
+    var script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = 'javascript/TCGACompendium/custom.js';
+    head.appendChild(script);
+ 
+    NgChm.SUM.setBrowserMinFontSize();
     if (NgChm.DET.minLabelSize > 5) {
-    	NgChm.UHM.minimumFontSize();
+    	var msgButton = document.getElementById('messageOpen_btn');
+    	msgButton.style.display = ''; 
     }
   
 	NgChm.SUM.canvas = document.getElementById('summary_canvas');
@@ -125,7 +136,12 @@ NgChm.SUM.summaryInit = function() {
 	NgChm.SUM.canvas.height = NgChm.SUM.totalHeight;
 	
 	var nameDiv = document.getElementById("mapName");
-	nameDiv.innerHTML = "<b>Map Name:</b>&nbsp;&nbsp;"+NgChm.heatMap.getMapInformation().name;
+	var mapName = NgChm.heatMap.getMapInformation().name;
+	if (mapName.length > 80){
+		mapName = mapName.substring(0,80) + "...";
+	}
+
+	nameDiv.innerHTML = "<b>Map Name:</b>&nbsp;&nbsp;"+mapName;
 	NgChm.SUM.setupGl();
 	NgChm.SUM.initGl();
 	NgChm.SUM.buildSummaryTexture();
@@ -891,4 +907,32 @@ NgChm.SUM.dividerEnd = function() {
 	NgChm.SUM.setSelectionDivSize();
 	NgChm.SUM.drawRowSelectionMarks();
 	NgChm.SUM.drawColSelectionMarks();
+}
+
+NgChm.SUM.setBrowserMinFontSize = function () {
+	  var minSettingFound = 0;
+	  var el = document.createElement('div');
+	  document.body.appendChild(el);
+	  el.innerHTML = "<div><p>a b c d e f g h i j k l m n o p q r s t u v w x y z</p></div>";
+	  el.style.fontSize = '1px';
+	  el.style.width = '64px';
+	  var minimumHeight = el.offsetHeight;
+	  var least = 0;
+	  var most = 64;
+	  var middle; 
+	  for (var i = 0; i < 32; ++i) {
+	    middle = (least + most)/2;
+	    el.style.fontSize = middle + 'px';
+	    if (el.offsetHeight === minimumHeight) {
+	      least = middle;
+	    } else {
+	      most = middle;
+	    }
+	  }
+	  if (middle > 5) {
+		  minSettingFound = middle;
+		  NgChm.DET.minLabelSize = Math.floor(middle) - 1;
+	  }
+	  document.body.removeChild(el);
+	  return minSettingFound;
 }
