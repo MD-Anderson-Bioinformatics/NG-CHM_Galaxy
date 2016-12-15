@@ -18,7 +18,7 @@ NgChm.UHM.userHelpOpen = function(e) {
 	helpContents.id = 'helpTable';
     var orgW = window.innerWidth+window.pageXOffset;
     var orgH = window.innerHeight+window.pageYOffset;
-    var helptext = NgChm.UHM.getDivElement("helptext");  
+    var helptext = NgChm.UHM.getDivElement("helptext");    
     helptext.innerHTML=("<a href='javascript:void(pasteHelpContents())' align='left'>Copy To Clipboard</a><img id='redX_btn' src='" + NgChm.staticPath + "images/redX.png' alt='Close Help' onclick='NgChm.UHM.userHelpClose();' align='right'>");
     helptext.style.position = "absolute";
     document.getElementsByTagName('body')[0].appendChild(helptext);
@@ -290,7 +290,7 @@ NgChm.UHM.locateHelpBox = function(e, helptext) {
  * text from chm.html. If the screen has been split, it changes the test for the 
  * split screen button
  **********************************************************************************/
-NgChm.UHM.detailDataToolHelp = function(e,text,width) {
+NgChm.UHM.detailDataToolHelp = function(e,text,width,align) {
 	NgChm.UHM.userHelpClose();
 	NgChm.DET.detailPoint = setTimeout(function(){
 		if (typeof width === "undefined") {
@@ -300,6 +300,9 @@ NgChm.UHM.detailDataToolHelp = function(e,text,width) {
 			text = "Join Screens";
 		}
 	    var helptext = NgChm.UHM.getDivElement("helptext");
+	    if (typeof align !== 'undefined') {
+	    	helptext.style.textAlign= align;
+	    }
 	    helptext.style.position = "absolute";
 	    e.parentElement.appendChild(helptext);
 	    if (2*width + e.getBoundingClientRect().right > document.body.offsetWidth-50){ // 2*width and -50 from window width to force elements close to right edge to move
@@ -579,9 +582,9 @@ NgChm.UHM.minimumFontSize = function() {
 	NgChm.UHM.initMessageBox();
 	NgChm.UHM.setMessageBoxHeader("Minimum Font Size Found"); 
 	if (NgChm.DET.minLabelSize > 10) {
-		NgChm.UHM.setMessageBoxText("<br>Your browser settings include a minimum font size setting that is too large. This will block the display of row, column, and covariate bar labels in the Ng-Chm application.<br><br>You may wish to turn this setting off in your browser.");
+		NgChm.UHM.setMessageBoxText("<br>Your browser settings include a minimum font size setting that is too large. This will block the display of row, column, and covariate bar labels in the Ng-Chm application.<br><br>You may wish to turn off or adjust this setting in your browser.");  
 	} else {
-		NgChm.UHM.setMessageBoxText("<br>Your browser settings include a minimum font size setting. This may interfere with the display of row, column, and covariate bar labels in the Ng-Chm application.<br><br>You may wish to turn this setting off in your browser.");
+		NgChm.UHM.setMessageBoxText("<br>Your browser settings include a minimum font size setting. This may interfere with the display of row, column, and covariate bar labels in the Ng-Chm application.<br><br>You may wish to turn off or adjust this setting in your browser.");
 	}
 	NgChm.UHM.setMessageBoxButton(3, "images/prefCancel.png", "", "NgChm.UHM.messageBoxCancel");
 	document.getElementById('msgBox').style.display = '';
@@ -609,6 +612,8 @@ NgChm.UHM.initMessageBox = function() {
 	document.getElementById('msgBoxBtnImg_2')['onclick'] = null;
 	document.getElementById('msgBoxBtnImg_3')['onclick'] = null;
 	document.getElementById('msgBoxBtnImg_4')['onclick'] = null;
+	var msgButton = document.getElementById('messageOpen_btn');
+	msgButton.style.display = 'none'; 
 }
 
 NgChm.UHM.setMessageBoxHeader = function(headerText) {
