@@ -47,7 +47,7 @@ NgChm.SUM.initSummaryDisplay = function() {
     var head = document.getElementsByTagName('head')[0];
     var script = document.createElement('script');
     script.type = 'text/javascript';
-    script.src = 'javascript/TCGACompendium/custom.js';
+    script.src = 'javascript/custom.js';
     head.appendChild(script);
  
     NgChm.SUM.setBrowserMinFontSize();
@@ -88,12 +88,6 @@ NgChm.SUM.processSummaryMapUpdate = function(event, level) {
 		NgChm.heatMap.configureFlick();
 		document.title = NgChm.heatMap.getMapInformation().name;
 		NgChm.SUM.summaryInit();
-		// Add custom.js to head once Heatmap has loaded
-	    var head = document.getElementsByTagName('head')[0];
-	    var script = document.createElement('script');
-	    script.type = 'text/javascript';
-	    script.src = 'javascript/TCGACompendium/custom.js';
-	    head.appendChild(script);
 	} else if (event == NgChm.MMGR.Event_NEWDATA && level == NgChm.MMGR.SUMMARY_LEVEL){
 		//Summary tile - wait a bit to see if we get another tile quickly, then draw
 		if (NgChm.SUM.eventTimer != 0) {
