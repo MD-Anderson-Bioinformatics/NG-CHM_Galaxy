@@ -18,8 +18,7 @@
       <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/CompatibilityManager.js"></script>
 
       <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/lib/jspdf.debug.js"></script>
-      <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/custom.js"></script>
-
+ 
       <meta id='viewport' name ="viewport" content="">
 
    </HEAD>
@@ -82,7 +81,7 @@
         </div>
         <div id='detail_buttons' style="display:none;" onmouseout='NgChm.UHM.userHelpClose();'>
 	   <div id='top_buttons'>
-       	      <div id="mapName" onmouseover='NgChm.UHM.detailDataToolHelp(this,NgChm.heatMap.getMapInformation().description)' style="font-size: 14px;color: rgb(51, 51, 51);"></div>
+       	      <div id="mapName" onmouseover='NgChm.UHM.detailDataToolHelp(this,"Map Name: " + NgChm.heatMap.getMapInformation().name + "<br><br>Description: " + NgChm.heatMap.getMapInformation().description,350,"left")' style="font-size: 14px;color: rgb(51, 51, 51);"></div>
            </div>
            <div id='bottom_buttons' >
  	      <img id='zoomOut_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/zoom-out.png' alt='Zoom Out' onmouseover='NgChm.UHM.detailDataToolHelp(this,"Zoom Out")' onclick='NgChm.DET.detailDataZoomOut();'   align="top"   />
@@ -118,6 +117,7 @@
 
     <div id="container">
        <div id='summary_chm' style='position: relative;'>
+   	  <img id='messageOpen_btn' style="position:absolute; display: none;" src='/plugins/visualizations/mda_heatmap_viz/static/images/messageButton.png' alt='Open Alert' onclick='NgChm.SUM.displayInfoMessage();' align="top"   />
           <canvas id='column_dendro_canvas' width='1200' height='500'></canvas>
           <canvas id='row_dendro_canvas' width='1200' height='500'></canvas>
           <canvas id='summary_canvas'></canvas>

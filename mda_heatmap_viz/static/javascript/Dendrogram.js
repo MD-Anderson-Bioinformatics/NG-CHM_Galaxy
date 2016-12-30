@@ -459,8 +459,7 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 	function buildMatrix(){
 		bars = []; // clear out the bars array otherwise it will add more and more bars and slow everything down!
 		var numNodes = dendroData.length;
-		var lastRow = dendroData[numNodes-1];
-		var maxHeight = Number(lastRow.split(",")[2]); // this assumes the heightData is ordered from lowest height to highest
+		var maxHeight = getMaxHeight(dendroData);
 		var matrix = new Array(normDendroMatrixHeight+1);
 		for (var i = 0; i < normDendroMatrixHeight+1; i++){ // 500rows * (3xWidth)cols matrix
 			matrix[i] = new Array(pointsPerLeaf*NgChm.heatMap.getNumRows('d'));
@@ -500,6 +499,17 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 				return Math.round((bars[index].left + bars[index].right)/2); // gets the middle point of the bar
 			}
 		}
+	}
+	
+	//Find the maximum dendro height.
+	function getMaxHeight(dendroData) {
+		var max = 0;
+		for (var i = 0; i < dendroData.length; i++){
+			var height = Number(dendroData[i].split(",")[2]);
+			if (height > max)
+				max = height;
+		}
+		return max;
 	}
 	
 	function highlightMatrix(i, j){ // i-th row, j-th column of dendro matrix
