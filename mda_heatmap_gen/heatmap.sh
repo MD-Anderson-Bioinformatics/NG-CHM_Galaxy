@@ -4,8 +4,19 @@ tdir=${11}/$(date +%y%m%d%k%M%S)
 echo $tdir
 mkdir $tdir
 #run R to cluster matrix
-output="$(R --slave --vanilla --file=${11}/CHM.R --args $3 $4 $5 $6 $7 $8 $9 $tdir/ROfile.txt $tdir/COfile.txt $tdir/RDfile.txt $tdir/CDfile.txt)"
-rc=$?; if [[ $rc != 0 ]]; then echo $output; exit $rc; fi
+output="$(R --slave --vanilla --file=${11}/CHM.R --args $3 $4 $5 $6 $7 $8 $9 $tdir/ROfile.txt $tdir/COfile.txt $tdir/RDfile.txt $tdir/CDfile.txt 2>&1)"
+rc=$?;
+if [ $rc != 0 ]
+then
+  echo $output;
+  if [ `echo "$output" | grep -c "Inf in foreign function call"` -gt 0 ]
+  then
+    echo "";
+    echo "Note: This error can occur when there is no variation in a row or column.  Try a different distance measure or remove rows/columns without variation.";
+  fi
+  exit $rc;
+fi
+
 #there are a variable number of triplicate parameters for classification bars
 count=0
 classifcations=''
