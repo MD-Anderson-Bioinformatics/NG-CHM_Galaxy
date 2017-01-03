@@ -13,8 +13,8 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 	var dendroConfig = NgChm.heatMap.getColDendroConfig();
 	var hasData = dendroConfig.show === 'NA' ? false : true;
 	var dendroData = NgChm.heatMap.getColDendroData();
-	var maxHeight = dendroData.length > 0 ? Number(dendroData[dendroData.length-1].split(",")[2]) : 0; // this assumes the heightData is ordered from lowest height to highest
-	var dendroMatrix;
+	var maxHeight = dendroData.length > 0 ? getMaxHeight(dendroData) : 0; 
+	var dendroMatrix;                       
 	if (hasData) {
 		dendroMatrix = buildMatrix();
 	}
@@ -221,6 +221,17 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 			}
 		}
 	}
+
+	//Find the maximum dendro height.
+	function getMaxHeight(dendroData) {
+		var max = 0;
+		for (var i = 0; i < dendroData.length; i++){
+			var height = Number(dendroData[i].split(",")[2]);
+			if (height > max)
+				max = height;
+		}
+		return max;
+	}	
 	
 	function highlightMatrix(i,j){
 		var leftExtreme, rightExtreme;
