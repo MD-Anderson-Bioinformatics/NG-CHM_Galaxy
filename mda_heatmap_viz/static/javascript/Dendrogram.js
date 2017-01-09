@@ -527,6 +527,17 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 		return max;
 	}
 	
+	//Find the maximum dendro height.
+	function getMaxHeight(dendroData) {
+		var max = 0;
+		for (var i = 0; i < dendroData.length; i++){
+			var height = Number(dendroData[i].split(",")[2]);
+			if (height > max)
+				max = height;
+		}
+		return max;
+	}
+	
 	function highlightMatrix(i, j){ // i-th row, j-th column of dendro matrix
 		var leftExtreme, rightExtreme;
 		var ip = i, id = i;
