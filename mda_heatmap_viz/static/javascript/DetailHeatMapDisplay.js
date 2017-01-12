@@ -2013,7 +2013,7 @@ NgChm.DET.buildDetailDendroMatrix = function (axis, start, stop, heightRatio) {
 		
 		var leftLoc = convertJsonIndexToDataViewSpace(leftJsonIndex); // Loc is the location in the dendro matrix
 		var rightLoc = convertJsonIndexToDataViewSpace(rightJsonIndex);
-		var normHeight = Math.round(NgChm.DET.normDendroMatrixHeight*height/maxHeight); // height in matrix
+		var normHeight = height == 0 ? 1 : Math.round(NgChm.DET.normDendroMatrixHeight*height/maxHeight); // height in matrix
 		var leftEnd = Math.max(leftLoc, 0);
 		var rightEnd = Math.min(rightLoc, matrixWidth-1);
 		
