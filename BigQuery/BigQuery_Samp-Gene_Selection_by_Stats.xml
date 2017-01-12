@@ -43,8 +43,8 @@
 		<option value="UVM">UVM</option>	
 	</param>
 	<param name="Table_type" type="select"  label="TableType" help="Gene and Participant and Sample Metadata">
-		<option value="mRNA_UNC_HiSeq_RSEM">mRNA_UNC_HiSeq_RSEM - More data and mutually exclusive of BCGSC</option>
-		<option value="mRNA_BCGSC_HiSeq_RPKM">mRNA_BCGSC_HiSeq_RPKM - Less Data and mutually exclusive of UNC</option>
+		<option value="mRNA_UNC_HiSeq_RSEM">Combined mRNA UNC HiSeq and GA RSEM - More data and mutually exclusive of BCGSC</option>
+		<option value="mRNA_BCGSC_HiSeq_RPKM">Combined mRNA BCGSC HiSeq and GA RPKM - Less Data and mutually exclusive of UNC</option>
 <!--		<option value="miRNA_expression">miRNA_expression - requires only Participant input file</option>
 		<option value="Protein_RPPA_data">Protein_RPPA_data - requires Gene and Participant input files</option>
 		<option value="Somatic_Mutation_calls">Somatic_Mutation_calls - requires Gene and Participant input files</option>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<tool id="mda_heatmap_gen" name="MDA Heatmap Generation" version="5.2.1">
-  <description>Create HeatMap from Dendogram and Matrix</description>
-<command>$__tool_directory__/heatmap.sh  '$hmname' '$hmdesc' '$inputmatrix' $rowOrderMethod $rowDistanceMeasure $rowAgglomerationMethod $columnOrderMethod $columnDistanceMeasure $columnAgglomerationMethod '$summarymethod' '$__tool_directory__/'
+<tool id="mda_heatmap_gen" name="NG-CHM Generator" version="5.2.1">
+  <description>Create Clustered Heat Maps</description>
+<command interpreter="bash" detect_errors="aggressive">heatmap.sh  '$hmname' '$hmdesc' '$inputmatrix' $rowOrderMethod $rowDistanceMeasure $rowAgglomerationMethod $columnOrderMethod $columnDistanceMeasure $columnAgglomerationMethod '$summarymethod' '$__tool_directory__/'
     #for $op in $operations
        ${op.class_name}
        ${op.repeatinput.file_name}

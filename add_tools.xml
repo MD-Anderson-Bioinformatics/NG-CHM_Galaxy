@@ -10,4 +10,5 @@
 		<tool file="BigQuery/BigQuery_Samp-Gene_Selection_by_Stats.xml" />
 		<tool file="BigQuery/BigQuery_ISB_Select_Cloud_Genes.xml" />
 		<tool file="BigQuery/BigQuery.xml" />
+		<tool file="BigQuery/BQ_SELF_Protein_Selection_by_Stats.xml" />
 	</section>

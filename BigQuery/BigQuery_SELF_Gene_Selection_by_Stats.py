@@ -17,6 +17,7 @@
 #
 # change bb aug10
 # bb sep1 TODO set not found N/A to -1 
+# bb sep13 changed HiSeq and GA  to combined tables that are in ISB Beta release
 
 
 # first is Standard Deviation for each Gene across input Participants 
@@ -321,7 +322,7 @@ def GetResults( genesOverPercentile, sampleDict, sampleString, ofile, study, tab
                 if tableType == 'mRNA_BCGSC_HiSeq_RPKM':
     
                     queryString = 'SELECT  HGNC_gene_symbol as gene, SampleBarcode, RPKM as NV '\
-                          ' FROM [isb-cgc:tcga_201607_beta.mRNA_BCGSC_HiSeq_RPKM] WHERE     Study = '+study+ \
+                          ' FROM [isb-cgc:tcga_201607_beta.mRNA_BCGSC_RPKM] WHERE     Study = '+study+ \
                          '    AND     '+ sampleString +geneLikeClause+ \
                           '       Order by gene, SampleBarcode;'
         
@@ -332,7 +333,7 @@ def GetResults( genesOverPercentile, sampleDict, sampleString, ofile, study, tab
         #bb 2Jun             queryString = ' SELECT     ParticipantBarcode , original_gene_symbol, normalized_count INTO '+datasetId+ "."+ tableId
     #                 if stat_type == 'STDDEV_SAMP':
                      queryString = 'SELECT    HGNC_gene_symbol as gene, SampleBarcode, normalized_count as NV '\
-                        ' FROM [isb-cgc:tcga_201607_beta.mRNA_UNC_HiSeq_RSEM]    WHERE  Study = '+study+ \
+                        ' FROM [isb-cgc:tcga_201607_beta.mRNA_UNC_RSEM]    WHERE  Study = '+study+ \
                          '    AND     '+ sampleString +geneLikeClause+ \
                         '     Order by gene,     SampleBarcode;' 
     

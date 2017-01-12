@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<tool id="BigQuery_cohort_creation" name="Define a NGCHM Sample cohort" version="3.5.3">
+<tool id="BigQuery_cohort_creation" name="Define a NGCHM Sample cohort" version="3.6.4">
   <description> using Clinical criteria</description>
   <command interpreter="python">Big_Query_ISB_Create_Cohort.py   '$user_cohortname' '$Study_Cohort_Table' $Sample_type
 
@@ -208,14 +208,22 @@
    <!--   <param name="Num_Fields" type="select" numerical="True" label="Continuous Query Fields">   -->
       <param name="Num_Variable_Fields"  type="select" label="Continuous Query Fields" help="">
         <option value='num_EMPTY' selected="true">Click cursor in middle of this text to see choices</option>
+        <option value='num_age_at_initial_pathologic_diagnosis'>Age at initial pathologic diagnosis -- range 10 to 90</option>
         <option value='num_BMI'>BMI percent -- range 11 to 415</option>
         <option value='num_height'>Height in centimeters</option>
         <option value='num_weight'>Weight in kilograms</option>
-        <option value='num_age_at_initial_pathologic_diagnosis'>Age at initial pathologic diagnosis -- range 10 to 90</option>
+        <option value='bio_percent_lymphocyte_infiltration'>Lymphocyte infiltration percent</option>
+        <option value='bio_percent_monocyte_infiltration'>Monocyte infiltration percent</option>
+        <option value='bio_percent_necrosis'>Necrosis percent</option>
+        <option value='bio_percent_neutrophil_infiltration'>Neutrophil infiltration percent</option>
+        <option value='bio_percent_normal_cells'>Normal infiltration percent</option>
+        <option value='bio_percent_stromal_cells'>Stromal infiltration percent</option>
+        <option value='bio_percent_tumor_cells'>Tumor infiltration percent</option>
+        <option value='bio_percent_tumor_nuclei'>Tumor nuclei infiltration percent</option>
         <option value='num_days_to_death'>Days to death -- range 0 to 11,000</option>
       </param>
-	  <param name="Num_Min_Value" size="6" type="text" value="0.0" label="Minimum Value"/>
-      <param name="Num_Max_Value" size="6" type="text" value="0.0" label="MAXIMUM Value"/>
+	  <param name="Num_Min_Value" size="6" type="text" value="0.0" label="Minimum Value -- if percent value 0 t0 100"/>
+      <param name="Num_Max_Value" size="6" type="text" value="0.0" label="MAXIMUM Value -- if percent value 0 t0 100"/>
     </repeat>   
     
   </inputs>
