@@ -812,9 +812,9 @@ NgChm.SUM.drawRowSelectionMarks = function() {
 	var rowSel = document.getElementById("summary_row_select_canvas");
 	var rowCtx = rowSel.getContext('2d');
 	rowCtx.fillStyle=dataLayer.selection_color;
-	var width = Math.max(10,rowSel.width/20);
+	var height = Math.max(1,rowSel.height/300);
 	for (var i = 0; i < selectedRows.length; i++) {
-		rowCtx.fillRect(0,selectedRows[i],width,5);
+		rowCtx.fillRect(0,selectedRows[i]-1,rowSel.width,height);
 	}
 }
 
@@ -825,9 +825,9 @@ NgChm.SUM.drawColSelectionMarks = function() {
 	var colSel = document.getElementById("summary_col_select_canvas");
 	var colCtx = colSel.getContext('2d');
 	colCtx.fillStyle = dataLayer.selection_color;
-	var height = Math.max(10,colSel.height/20);
+	var width = Math.max(1,colSel.width/300);
 	for (var i = 0; i < selectedCols.length; i++) {
-		colCtx.fillRect(selectedCols[i],0,5,height);
+		colCtx.fillRect(selectedCols[i]-1,0,width,colSel.height);
 	}
 }
 

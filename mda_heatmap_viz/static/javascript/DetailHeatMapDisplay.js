@@ -157,34 +157,35 @@ NgChm.DET.clickStart = function (e) {
 		var mapH = NgChm.DET.dataViewHeight/colTotalH;
 		var clickX = coords.x/divW;
 		var clickY = coords.y/divH;
-		
 		if (clickX > rowDendroW + rowClassW && clickY < colDendroH){ // col dendro clicked
 			var heightRatio = NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerRow;
 			var X = (NgChm.SEL.currentCol + (NgChm.SEL.dataPerRow*(clickX-rowDendroW-rowClassW)/mapW));
 			var Y = (colDendroH-clickY)/colDendroH/heightRatio;
-			var matrixX = Math.round(X*3-1);
+			var matrixX = Math.round(X*3-2);
 			var matrixY = Math.round(Y*500);
-			var leftRight = NgChm.SUM.colDendro.findExtremes(matrixY,matrixX);
-			var left = (leftRight[0]+2)/3;
-			var right =(leftRight[1]+2)/3;
-			NgChm.DET.colDendroMatrix = NgChm.DET.buildDetailDendroMatrix('col', NgChm.SEL.currentCol, NgChm.SEL.currentCol+NgChm.SEL.dataPerRow, NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerRow, {"left":leftRight[0],"right":leftRight[1],"height":Y});
-			NgChm.SUM.colDendro.addSelectedBar(leftRight[0],leftRight[1],matrixY,e.shiftKey);
-			NgChm.DET.detailDrawColDendrogram(NgChm.DET.texPixels);
+			var extremes = NgChm.SUM.colDendro.findExtremes(matrixY,matrixX);
+			if (extremes){
+				NgChm.DET.colDendroMatrix = NgChm.DET.buildDetailDendroMatrix('col', NgChm.SEL.currentCol, NgChm.SEL.currentCol+NgChm.SEL.dataPerRow, NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerRow);	
+				NgChm.SUM.colDendro.addSelectedBar(extremes,e.shiftKey);
+				NgChm.DET.detailDrawColDendrogram(NgChm.DET.texPixels);
+			}
+			NgChm.SUM.clearSelectionMarks();
 			NgChm.SEL.updateSelection();
 			NgChm.SUM.drawColSelectionMarks();
 			NgChm.SUM.drawRowSelectionMarks();
 		} else if (clickX < rowDendroW && clickY > colDendroH + colClassH){ // row dendro clicked
 			var heightRatio = NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerCol;
-			var X = (NgChm.SEL.currentRow + Math.floor(NgChm.SEL.dataPerCol*(clickY-colDendroH-colClassH)/mapH));
+			var X = (NgChm.SEL.currentRow + (NgChm.SEL.dataPerCol*(clickY-colDendroH-colClassH)/mapH));
 			var Y = (rowDendroW-clickX)/rowDendroW/heightRatio; // this is a percentage of how high up on the entire dendro matrix (not just the detail view) the click occured
-			var matrixX = X*3-1;
+			var matrixX = Math.round(X*3-2);
 			var matrixY = Math.round(Y*500);
-			var leftRight = NgChm.SUM.rowDendro.findExtremes(matrixY,matrixX);
-			var left = (leftRight[0]+2)/3;
-			var right =(leftRight[1]+2)/3;
-			NgChm.DET.rowDendroMatrix = NgChm.DET.buildDetailDendroMatrix('row', NgChm.SEL.currentRow, NgChm.SEL.currentRow+NgChm.SEL.dataPerCol, NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerCol, {"left":leftRight[0],"right":leftRight[1],"height":Y});
-			NgChm.SUM.rowDendro.addSelectedBar(leftRight[0],leftRight[1],matrixY,e.shiftKey);
-			NgChm.DET.detailDrawRowDendrogram(NgChm.DET.texPixels);
+			var extremes = NgChm.SUM.rowDendro.findExtremes(matrixY,matrixX);
+			if (extremes){
+				NgChm.DET.rowDendroMatrix = NgChm.DET.buildDetailDendroMatrix('row', NgChm.SEL.currentRow, NgChm.SEL.currentRow+NgChm.SEL.dataPerCol, NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerCol);
+				NgChm.SUM.rowDendro.addSelectedBar(extremes,e.shiftKey);
+				NgChm.DET.detailDrawRowDendrogram(NgChm.DET.texPixels);
+			}
+			NgChm.SUM.clearSelectionMarks();
 			NgChm.SEL.updateSelection();
 			NgChm.SUM.drawColSelectionMarks();
 			NgChm.SUM.drawRowSelectionMarks();
@@ -2021,10 +2022,11 @@ NgChm.DET.buildDetailDendroMatrix = function (axis, start, stop, heightRatio) {
 		if (selectedBars){
 			for (var k = 0; k < selectedBars.length; k++){
 				var selectedBar = selectedBars[k];
-				if ((selectedBar.left <= left3NIndex && right3NIndex <= selectedBar.right) && height <= selectedBar.height)
+				if ((selectedBar.left <= left3NIndex && right3NIndex <= selectedBar.right) && Math.round(500*height/(maxHeight*heightRatio)) <= selectedBar.height)
 				value = 2;
 			}
 		}
+		
 		if (height > maxHeight){ // if this line is beyond the viewport max height
 			if (start3NIndex < right3NIndex &&  right3NIndex< stop3NIndex && topLineArray[rightLoc] != 1){ // check to see if it will be connecting vertically to a line in the matrix 
 				var drawHeight = NgChm.DET.normDendroMatrixHeight;
@@ -2043,7 +2045,7 @@ NgChm.DET.buildDetailDendroMatrix = function (axis, start, stop, heightRatio) {
 			for (var loc = leftEnd; loc < rightEnd; loc++){
 				topLineArray[loc] = 1; // mark that the area covered by this bar can no longer be drawn in  by another, higher level bar
 			}
-		} else {
+		} else { // this line is within the viewport height
 			for (var j = leftEnd; j < rightEnd; j++){ // draw horizontal lines
 				matrix[normHeight][j] = value;
 			}
