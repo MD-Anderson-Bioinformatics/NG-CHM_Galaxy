@@ -12,13 +12,16 @@
 ### rowDendroFile - output file of row dendrogram  
 ### colOrderFile - output file of order of cols
 ### colDendroFile - output file of col dendrogram
+### rowCut - For rows the number of classifications to automatically generate based on dendrogram into a classification file.  0 for turned off.
+### colCut - For columns the number of classifications to automatically generate based on dendrogram into a classification file.  0 for turned off.
 
-performDataOrdering<-function(dataFile, rowOrderMethod, rowDistanceMeasure, rowAgglomerationMethod, colOrderMethod, colDistanceMeasure, colAgglomerationMethod,rowOrderFile, colOrderFile, rowDendroFile, colDendroFile)
+performDataOrdering<-function(dataFile, rowOrderMethod, rowDistanceMeasure, rowAgglomerationMethod, colOrderMethod, colDistanceMeasure, colAgglomerationMethod,rowOrderFile, colOrderFile, rowDendroFile, colDendroFile, rowCut, colCut)
 { 
    dataMatrix = read.table(dataFile, header=TRUE, sep = "\t", row.names = 1, as.is=TRUE, na.strings=c("NA","N/A","-","?"))
    rowOrder <-  createOrdering(dataMatrix, rowOrderMethod, "row", rowDistanceMeasure, rowAgglomerationMethod)  
    if (rowOrderMethod == "Hierarchical") {
       writeHCDataTSVs(rowOrder, rowDendroFile, rowOrderFile)
+      writeHCCut(rowOrder, rowCut, paste(rowOrderFile,".cut", sep=""))
    } else {
       writeOrderTSV(rowOrder, rownames(dataMatrix), rowOrderFile)
    }
@@ -26,6 +29,7 @@ performDataOrdering<-function(dataFile, rowOrderMethod, rowDistanceMeasure, rowA
    colOrder <-  createOrdering(dataMatrix, colOrderMethod, "col", colDistanceMeasure, colAgglomerationMethod)  
    if (colOrderMethod == "Hierarchical") {
       writeHCDataTSVs(colOrder, colDendroFile, colOrderFile)
+      writeHCCut(colOrder, colCut, paste(colOrderFile,".cut", sep=""))
    } else {
       writeOrderTSV(colOrder, colnames(dataMatrix), colOrderFile)
    }
@@ -59,6 +63,23 @@ writeOrderTSV<-function(newOrder, originalOrder, outputHCOrderFileName)
    write.table(data, file = outputHCOrderFileName, append = FALSE, quote = FALSE, sep = "\t", row.names=FALSE)
 }
 
+#creates a classification file based on user specified cut of dendrogram
+writeHCCut<-function(uDend, cutNum, outputCutFileName)
+{
+   if (cutNum < 2) {
+      return()
+   }
+   print (paste("Writing cut file ", outputCutFileName))
+   cut <- cutree(uDend, cutNum);
+   id <- names(cut);
+   data=matrix(,length(cut),2);
+   for (i in 1:length(cut)) {
+      data[i,1] = id[i];
+      data[i,2] = sprintf("Cluster %d", cut[i]);
+   }
+
+   write.table(data, file = outputCutFileName, append = FALSE, quote = FALSE, sep = "\t", row.names=FALSE, col.names = FALSE);
+}
 
 
 createOrdering<-function(matrixData, orderMethod, direction, distanceMeasure, agglomerationMethod)
@@ -120,6 +141,6 @@ options(warn=-1)
 
 args = commandArgs(TRUE)
 
-performDataOrdering(dataFile=args[1], rowOrderMethod=args[2], rowDistanceMeasure=args[3], rowAgglomerationMethod=args[4], colOrderMethod=args[5], colDistanceMeasure=args[6], colAgglomerationMethod=args[7],rowOrderFile=args[8], colOrderFile=args[9], rowDendroFile=args[10], colDendroFile=args[11])
+performDataOrdering(dataFile=args[1], rowOrderMethod=args[2], rowDistanceMeasure=args[3], rowAgglomerationMethod=args[4], colOrderMethod=args[5], colDistanceMeasure=args[6], colAgglomerationMethod=args[7],rowOrderFile=args[8], colOrderFile=args[9], rowDendroFile=args[10], colDendroFile=args[11], rowCut=args[12], colCut=args[13])
 
 #suppressWarnings(performDataOrdering(dataFile=args[1], rowOrderMethod=args[2], rowDistanceMeasure=args[3], rowAgglomerationMethod=args[4], colOrderMethod=args[5], colDistanceMeasure=args[6], colAgglomerationMethod=args[7],rowOrderFile=args[8], colOrderFile=args[9], rowDendroFile=args[10], colDendroFile=args[11]))

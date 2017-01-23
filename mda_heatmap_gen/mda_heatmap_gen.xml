@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<tool id="mda_heatmap_gen" name="NG-CHM Generator" version="5.2.1">
+<tool id="mda_heatmap_gen" name="NG-CHM Generator" version="6.0.2">
   <description>Create Clustered Heat Maps</description>
-<command interpreter="bash" detect_errors="aggressive">heatmap.sh  '$hmname' '$hmdesc' '$inputmatrix' $rowOrderMethod $rowDistanceMeasure $rowAgglomerationMethod $columnOrderMethod $columnDistanceMeasure $columnAgglomerationMethod '$summarymethod' '$__tool_directory__/'
+<command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap.sh  '$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__' ${d_rows.rowDendroCut} ${d_cols.colDendroCut} 
     #for $op in $operations
        ${op.class_name}
        ${op.repeatinput.file_name}
@@ -14,18 +14,20 @@
 	</stdio>
   <inputs>
     <param name="inputmatrix" type="data" label="Input Matrix" />
-    <param name="hmname" size="20" type="text" value="HM_name" label="User Defined HeatMap Name"/>
-    <param name="hmdesc" size="100" optional="true" type="text" value="_" label="Optional HeatMap Description"/>
+    <param name="hmname" size="20" type="text" value="HM_name" label="User Defined Heat Map Name"/>
+    <param name="hmdesc" size="100" optional="true" type="text" value="_" label="Optional Heat Map Description"/>
     <param name="summarymethod" 	type="select"  label="Data Summarization Method">
 		<option value="average">average</option>
 		<option value="sample">sample</option>
 		<option value="mode">mode</option>
     </param>
+      <conditional name="d_rows">
 	<param name="rowOrderMethod" type="select" label="Row ordering method" help="Choices -- Hierarchical Clustering, Original Order, Random">
 		<option value="Hierarchical">Hierarchical Clustering</option>
 		<option value="Original">Original Order</option>	    
 		<option value="Random">Random</option>	    
 	</param>
+        <when value="Hierarchical">
 	<param name="rowDistanceMeasure" type="select"  label="Row Distance Metric" help="euclidean, binary, manhattan, maximum, canberra, minkowski, or correlation">
 		<option value="euclidean">Euclidean</option>
 		<option value="binary">Binary</option>
@@ -44,11 +46,42 @@
 		<option value="median">Median</option>	    
 		<option value="centroid">Centroid</option>	    
 	</param>
+            <param name="rowDendroCut" type="select" label="Create row categorical covariate bar based on number of top-level dendrogram clusters" >
+        		<option value="0" selected="true" >None</option>
+        		<option value="2" >2</option>
+        		<option value="3" >3</option>
+        		<option value="4" >4</option>
+        		<option value="5" >5</option>
+        		<option value="6" >6</option>
+        		<option value="7" >7</option>
+        		<option value="8" >8</option>
+        		<option value="9" >9</option>
+        		<option value="10" >10</option>
+            </param>
+        </when>
+        <when value="Original">
+		    <param name="rowDistanceMeasure" type="text" size="0"     value="n/a"/>
+		    <param name="rowAgglomerationMethod" type="text" size="0"     value="n/a"/>
+		    <param name="rowDendroCut" size="0"   type="text" value="0"/>
+        </when>
+        <when value="Random">
+		    <param name="rowDistanceMeasure" type="text" size="0"     value="n/a"/>
+		    <param name="rowAgglomerationMethod" type="text" size="0"     value="n/a"/>
+		    <param name="rowDendroCut" type="text" size="0"    value="0"/>
+        </when>
+    </conditional>
+    <param name="rowDataType" type="select" label="Linkouts to row data type info" >
+        <option value="None" selected="true" >None</option>
+        <option value="Gene" >Gene</option>
+        <option value="Special" >Special</option>
+    </param>    
+	<conditional name="d_cols">
 	<param name="columnOrderMethod" type="select" label="Column ordering method" help="Choices -- Hierarchical Clustering, Original Order, Random">
 		<option value="Hierarchical">Hierarchical Clustering</option>
 		<option value="Original">Original Order</option>	    
 		<option value="Random">Random</option>	    
 	</param>
+        <when value="Hierarchical">
 	<param name="columnDistanceMeasure" type="select"  label="Column Distance Metric" help="euclidean, binary, manhattan, maximum, canberra, minkowski, or correlation">
 		<option value="euclidean">Euclidean</option>
 		<option value="binary">Binary</option>
@@ -67,6 +100,35 @@
 		<option value="median">Median</option>	    
 		<option value="centroid">Centroid</option>	    
 	</param>
+            <param name="colDendroCut" type="select" label="Create column categorical covariate bar based on number of top-level dendrogram clusters" >
+        		<option value="0" selected="true" >None</option>
+        		<option value="2" >2</option>
+        		<option value="3" >3</option>
+        		<option value="4" >4</option>
+        		<option value="5" >5</option>
+        		<option value="6" >6</option>
+        		<option value="7" >7</option>
+        		<option value="8" >8</option>
+        		<option value="9" >9</option>
+        		<option value="10" >10</option>
+            </param>
+        </when>
+        <when value="Original">
+		    <param name="columnDistanceMeasure" type="text" size="0"     value="n/a"/>
+		    <param name="columnAgglomerationMethod" type="text" size="0"     value="n/a"/>
+		    <param name="colDendroCut" type="text" size="0"     value="0"/>
+        </when>
+        <when value="Random">
+		    <param name="columnDistanceMeasure" type="text" size="0"     value="n/a"/>
+		    <param name="columnAgglomerationMethod" type="text" size="0"     value="n/a"/>
+		    <param name="colDendroCut" type="text" size="0"     value="0"/>
+        </when>
+    </conditional>
+    <param name="colDataType" type="select" label="Linkouts to column data type info" >
+        <option value="None" selected="true" >None</option>
+        <option value="Sample" >Sample</option>
+        <option value="Special" >Special</option>
+    </param>    
     <repeat name="operations" title="Covariate Bars">
         <param name="class_name" size="20" type="text" value="" label="Axis Covariate Name">
            <sanitizer invalid_char="_">
@@ -102,14 +164,6 @@
       <param name="columnOrderMethod" value="Hierarchical" />
       <param name="columnDistanceMeasure" value="manhattan" />
       <param name="columnAgglomerationMethod" value="ward" />
-<!--
-      <param name="operations.class_name" value="columnCovariate" />
-      <param name="operationsrepeatinput.file_name" value="400x400-column-covariate.txt" />
-      <param name="operations.cat" value="column_categorical" />
-      <param name="operations.class_name" value="rowCovariate" />
-      <param name="operationsrepeatinput.file_name" value="400x400-row-covariate.txt" />
-      <param name="operations.cat" value="row_categorical" />
--->
       <output name="output" file="Galaxy400x400-noCovariates.ngchm" lines_diff="10" />     
 
     </test>
