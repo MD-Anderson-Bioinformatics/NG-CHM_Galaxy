@@ -118,9 +118,11 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 		NgChm.SUM.rowDendro.clearSelection();
 		NgChm.SUM.colDendro.clearSelection();
 		dendroMatrix = buildMatrix();
-		highlightMatrix(matrixY,matrixX);
-		NgChm.SUM.rowDendro.draw();
-		NgChm.SUM.colDendro.draw();
+		var newDendro = highlightMatrix(matrixY,matrixX);
+		if (newDendro){
+			NgChm.SUM.rowDendro.draw();
+			NgChm.SUM.colDendro.draw();
+		}
 	}
 	
 	function clearSelection(){
@@ -194,7 +196,7 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 			var height = Number(tokes[2]);
 			var leftLoc = findLocationFromIndex(leftIndex); // this is the position it occupies in the dendroMatrix space
 			var rightLoc = findLocationFromIndex(rightIndex);
-			var normHeight = Math.round(normDendroMatrixHeight*height/maxHeight);
+			var normHeight = height == 0 ? 1 : Math.round(normDendroMatrixHeight*height/maxHeight);
 			bars.push({"left":leftLoc, "right":rightLoc, "height":normHeight});
 			for (var j = leftLoc; j < rightLoc; j++){
 				matrix[normHeight][j] = 1;
@@ -237,12 +239,20 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 	
 	function highlightMatrix(i,j){
 		var leftExtreme, rightExtreme;
-		var ip = i, id = i;
-		while (dendroMatrix[id][j]==undefined && dendroMatrix[ip][j]==undefined){ id--,ip++;}
+		var searchRadiusMax = 10;
+		var ip = i, id = i, jr = j, jl = j, searchRadius = 0;
+		while (dendroMatrix[id] && dendroMatrix[id][j]==undefined && dendroMatrix[ip] && dendroMatrix[ip][j]==undefined && dendroMatrix[i][jl]==undefined && dendroMatrix[i][jr]==undefined && searchRadius < searchRadiusMax){id--,ip++,jl--,jr++,searchRadius++;} // search up and down for for closest dendro bar
+		if (!dendroMatrix[id] || !dendroMatrix[ip] || searchRadius == searchRadiusMax){
+			return false;
+		}
 		if (dendroMatrix[id][j]!=undefined){
 			i = id;
-		} else {
+		} else if (dendroMatrix[ip][j]!=undefined){
 			i = ip;
+		} else if (dendroMatrix[i][jl]!=undefined){
+			j = jl;
+		} else if (dendroMatrix[i][jr]!=undefined){
+			j = jr;
 		}
 		var leftAndRightExtremes = NgChm.DDR.exploreToEndOfBar(i,j,dendroMatrix); // find the endpoints of the highest level node
 		var thisBar = {height:i, left: leftAndRightExtremes[0], right: leftAndRightExtremes[1]};
@@ -282,6 +292,7 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 			NgChm.SEL.selectedStop = 0;
 			NgChm.SEL.changeMode('NORMAL');
 		}
+		return true;
 	}
 }
 
@@ -410,9 +421,11 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 		NgChm.SUM.colDendro.clearSelection();
 		NgChm.SUM.rowDendro.clearSelection();
 		dendroMatrix = buildMatrix();
-		highlightMatrix(matrixY,matrixX);
-		NgChm.SUM.rowDendro.draw();
-		NgChm.SUM.colDendro.draw();
+		var newDendro = highlightMatrix(matrixY,matrixX);
+		if (newDendro){
+			NgChm.SUM.rowDendro.draw();
+			NgChm.SUM.colDendro.draw();
+		}
 	}
 	function clearSelection(){
 		chosenBar = {};
@@ -486,7 +499,7 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 			var height = Number(tokes[2]);
 			var leftLoc = findLocationFromIndex(leftIndex); // this is the position it occupies in the dendroMatrix space
 			var rightLoc = findLocationFromIndex(rightIndex);
-			var normHeight = Math.round(normDendroMatrixHeight*height/maxHeight);
+			var normHeight = height == 0 ? 1 : Math.round(normDendroMatrixHeight*height/maxHeight);
 			bars.push({"left":leftLoc, "right":rightLoc, "height":normHeight});
 			for (var j = leftLoc; j < rightLoc; j++){
 				matrix[normHeight][j] = 1;
@@ -527,25 +540,22 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 		return max;
 	}
 	
-	//Find the maximum dendro height.
-	function getMaxHeight(dendroData) {
-		var max = 0;
-		for (var i = 0; i < dendroData.length; i++){
-			var height = Number(dendroData[i].split(",")[2]);
-			if (height > max)
-				max = height;
-		}
-		return max;
-	}
-	
 	function highlightMatrix(i, j){ // i-th row, j-th column of dendro matrix
 		var leftExtreme, rightExtreme;
-		var ip = i, id = i;
-		while (dendroMatrix[id][j]==undefined && dendroMatrix[ip][j]==undefined){ id--,ip++;}
+		var searchRadiusMax = 10;
+		var ip = i, id = i, jr = j, jl = j, searchRadius = 0;
+		while (dendroMatrix[id] && dendroMatrix[id][j]==undefined && dendroMatrix[ip] && dendroMatrix[ip][j]==undefined && dendroMatrix[i][jl]==undefined && dendroMatrix[i][jr]==undefined && searchRadius < searchRadiusMax){id--,ip++,jl--,jr++,searchRadius++;} // search up and down for for closest dendro bar
+		if (!dendroMatrix[id] || !dendroMatrix[ip] || searchRadius == searchRadiusMax){
+			return false;
+		}
 		if (dendroMatrix[id][j]!=undefined){
 			i = id;
-		} else {
+		} else if (dendroMatrix[ip][j]!=undefined){
 			i = ip;
+		} else if (dendroMatrix[i][jl]!=undefined){
+			j = jl;
+		} else if (dendroMatrix[i][jr]!=undefined){
+			j = jr;
 		}
 		var leftAndRightExtremes = NgChm.DDR.exploreToEndOfBar(i,j,dendroMatrix); // find the endpoints of the highest level node
 		var thisBar = {height:i, left: leftAndRightExtremes[0], right: leftAndRightExtremes[1]};
@@ -587,7 +597,7 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 			dendroBoxRightBottomArray = new Float32Array([0, 0]);  
 			NgChm.SEL.changeMode('NORMAL');
 		}
-		
+		return true;
 	}
 	
 }
