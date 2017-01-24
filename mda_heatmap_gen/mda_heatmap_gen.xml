@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <tool id="mda_heatmap_gen" name="NG-CHM Generator" version="6.0.2">
   <description>Create Clustered Heat Maps</description>
-<command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap.sh  '$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__' ${d_rows.rowDendroCut} ${d_cols.colDendroCut} 
+<command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap.sh  '$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__' ${d_rows.rowDendroCut} ${d_cols.colDendroCut} $rowDataType $colDataType
     #for $op in $operations
        ${op.class_name}
        ${op.repeatinput.file_name}
@@ -14,8 +14,8 @@
 	</stdio>
   <inputs>
     <param name="inputmatrix" type="data" label="Input Matrix" />
-    <param name="hmname" size="20" type="text" value="HM_name" label="User Defined Heat Map Name"/>
-    <param name="hmdesc" size="100" optional="true" type="text" value="_" label="Optional Heat Map Description"/>
+    <param name="hmname" size="20" type="text" value="Heat_Map_name" label="User Defined Heat Map Name"/>
+    <param name="hmdesc" size="100" optional="true" type="text" value="Heat_Map_description" label="User Defined Heat Map Description"/>
     <param name="summarymethod" 	type="select"  label="Data Summarization Method">
 		<option value="average">average</option>
 		<option value="sample">sample</option>
@@ -71,9 +71,25 @@
         </when>
     </conditional>
     <param name="rowDataType" type="select" label="Linkouts to row data type info" >
-        <option value="None" selected="true" >None</option>
-        <option value="Gene" >Gene</option>
-        <option value="Special" >Special</option>
+        <option value="labels" selected="true" >None</option>
+        <option value="bio.probe.affymetrix" >Affymetrix Probe Id</option>
+        <option value="bio.feature.agilent" >Agilent Id</option>
+        <option value="bio.sample.cbioportal" >cBioPortal sample Id</option>
+        <option value="bio.transcript.ensemble" >Ensemble transcript Id</option>
+        <option value="bio.gene.entrez" >Gene Entrez Id</option>
+        <option value="bio.gene.hugo" >Gene HUGO symbol</option>
+        <option value="bio.go" >Gene Ontology (GO) Id</option>
+        <option value="bio.geo.acc" >GEO Accession Id</option>
+        <option value="bio.probe.illumina" >Illumina Probe Id</option>
+        <option value="bio.probe.infinium" >Infinium Probe Id</option>
+        <option value="bio.pathway.mdanderson" >MD Anderson pathway Id</option>
+        <option value="bio.mirna" >miRNA Id</option>
+        <option value="bio.mirna.mimat" >miRNA MIMAT Id</option>
+        <option value="bio.pubmed" >Pubmed Id</option>
+        <option value="bio.pubmed.search" >Pubmed Search Term</option>
+        <option value="scholar" >Scholarly term</option>
+        <option value="bio.gene.unigene" >Unigene CID</option>
+        <option value="bio.protein.uniprot" >UniProt Id</option>
     </param>    
 	<conditional name="d_cols">
 	<param name="columnOrderMethod" type="select" label="Column ordering method" help="Choices -- Hierarchical Clustering, Original Order, Random">
@@ -125,9 +141,25 @@
         </when>
     </conditional>
     <param name="colDataType" type="select" label="Linkouts to column data type info" >
-        <option value="None" selected="true" >None</option>
-        <option value="Sample" >Sample</option>
-        <option value="Special" >Special</option>
+        <option value="labels" selected="true" >None</option>
+        <option value="bio.probe.affymetrix" >Affymetrix Probe Id</option>
+        <option value="bio.feature.agilent" >Agilent Id</option>
+        <option value="bio.sample.cbioportal" >cBioPortal sample Id</option>
+        <option value="bio.transcript.ensemble" >Ensemble transcript Id</option>
+        <option value="bio.gene.entrez" >Gene Entrez Id</option>
+        <option value="bio.gene.hugo" >Gene HUGO symbol</option>
+        <option value="bio.go" >Gene Ontology (GO) Id</option>
+        <option value="bio.geo.acc" >GEO Accession Id</option>
+        <option value="bio.probe.illumina" >Illumina Probe Id</option>
+        <option value="bio.probe.infinium" >Infinium Probe Id</option>
+        <option value="bio.pathway.mdanderson" >MD Anderson pathway Id</option>
+        <option value="bio.mirna" >miRNA Id</option>
+        <option value="bio.mirna.mimat" >miRNA MIMAT Id</option>
+        <option value="bio.pubmed" >Pubmed Id</option>
+        <option value="bio.pubmed.search" >Pubmed Search Term</option>
+        <option value="scholar" >Scholarly term</option>
+        <option value="bio.gene.unigene" >Unigene CId</option>
+        <option value="bio.protein.uniprot" >UniProt Id</option>
     </param>    
     <repeat name="operations" title="Covariate Bars">
         <param name="class_name" size="20" type="text" value="" label="Axis Covariate Name">
