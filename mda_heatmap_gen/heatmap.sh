@@ -4,7 +4,7 @@ tdir=${11}/$(date +%y%m%d%M%S)
 echo $tdir
 mkdir $tdir
 #run R to cluster matrix
-output="$(R --slave --vanilla --file=${11}/CHM.R --args $3 $4 $5 $6 $7 $8 $9 $tdir/ROfile.txt $tdir/COfile.txt $tdir/RDfile.txt $tdir/CDfile.txt ${12} ${13} 2>&1)"
+output="$(R --slave --vanilla --file=${11}/CHM.R --args $3 $4 $5 $6 $7 $8 $9 $tdir/ROfile.txt $tdir/COfile.txt $tdir/RDfile.txt $tdir/CDfile.txt ${12} ${13} ${14} ${15} 2>&1)"
 rc=$?;
 if [ $rc != 0 ]
 then
@@ -35,13 +35,13 @@ fi
 
 #now add the user provided classification files 
 for i in "$@"; do
-  if [ $count -gt 12 ]
+  if [ $count -gt 14 ]
   then
     classifications=$classifications' '$i
   fi
   count=$((count+1))
 done
 #call java program to generate NGCHM viewer files.
-java -jar ${11}/GalaxyMapGen.jar "${1}" "${2}" DataLayer1 $3 linear Row Column $4 $5 $6 $tdir/ROfile.txt $tdir/RDfile.txt $7 $8 $9 $tdir/COfile.txt $tdir/CDfile.txt ${10} $classifications
+java -jar ${11}/GalaxyMapGen.jar "${1}" "${2}" DataLayer1 $3 linear ${14} ${15} $4 $5 $6 $tdir/ROfile.txt $tdir/RDfile.txt $7 $8 $9 $tdir/COfile.txt $tdir/CDfile.txt ${10} $classifications
 #clean up tempdir
 rm -rf $tdir
