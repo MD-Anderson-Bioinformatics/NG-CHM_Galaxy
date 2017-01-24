@@ -43,13 +43,7 @@ NgChm.SUM.displayInfoMessage = function() {
 
 //Main function that draws the summary heat map. chmFile is only used in file mode.
 NgChm.SUM.initSummaryDisplay = function() {
-	// Add custom.js to head once Heatmap has loaded
-    var head = document.getElementsByTagName('head')[0];
-    var script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.src = 'javascript/custom.js';
-    head.appendChild(script);
- 
+	NgChm.SUM.addCustomJS();
     NgChm.SUM.setBrowserMinFontSize();
     if (NgChm.DET.minLabelSize > 5) {
     	var msgButton = document.getElementById('messageOpen_btn');
@@ -145,6 +139,18 @@ NgChm.SUM.summaryInit = function() {
 	NgChm.SUM.clearSelectionMarks();
 	NgChm.SUM.drawRowSelectionMarks();
 	NgChm.SUM.drawColSelectionMarks();
+}
+
+NgChm.SUM.addCustomJS = function(){
+	if (NgChm.heatMap.isInitialized()){
+		var head = document.getElementsByTagName('head')[0];
+	    var script = document.createElement('script');
+	    script.type = 'text/javascript';
+	    script.src = NgChm.staticPath + 'javascript/custom.js';
+	    head.appendChild(script);
+	} else {
+		setTimeout(function(){ NgChm.SUM.addCustomJS();}, 100);
+	}
 }
 
 // Sets summary and detail chm to the config height and width.
