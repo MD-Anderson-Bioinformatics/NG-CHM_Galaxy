@@ -339,14 +339,14 @@ NgChm.LNK.populateLabelMenu = function(axis, axisLabelsLength){
 
 NgChm.LNK.addMenuItemToTable = function(axis, table, linkout,clickable){
 	var body = table.getElementsByClassName('labelMenuBody')[0];
-	var row = body.insertRow();
-	var cell = row.insertCell();
 	
 	var functionWithParams = function(){ // this is the function that gets called when the linkout is clicked
 		var input = NgChm.LNK.getLabelsByType(axis,linkout)
 		linkout.callback(input,axis); // linkout functions will have inputs that correspond to the labelType used in the addlinkout function used to make them.
 	};
 	if (linkout.reqAttributes == null){
+		var row = body.insertRow();
+		var cell = row.insertCell();
 		if (clickable){
 			cell.innerHTML = linkout.title;
 			cell.addEventListener('click', functionWithParams);
@@ -356,7 +356,9 @@ NgChm.LNK.addMenuItemToTable = function(axis, table, linkout,clickable){
 			cell.addEventListener("click", NgChm.LNK.selectionError)
 		}
 	} else {
-		if (linkouts.getAttribute(linkout.reqAttributes)){
+		if (typeof(linkout.reqAttributes) == 'string' && linkouts.getAttribute(linkout.reqAttributes)){
+			var row = body.insertRow();
+			var cell = row.insertCell();
 			if (clickable){
 				cell.innerHTML = linkout.title;
 				cell.addEventListener('click', functionWithParams);
@@ -364,6 +366,25 @@ NgChm.LNK.addMenuItemToTable = function(axis, table, linkout,clickable){
 				cell.innerHTML = linkout.title;
 				cell.classList.add('unclickable');
 				cell.addEventListener("click", NgChm.LNK.selectionError)
+			}
+		} else if (typeof(linkout.reqAttributes) == 'object'){
+			var add = true;
+			for (var i = 0; i < linkout.reqAttributes.length; i++){
+				if (!linkouts.getAttribute(linkout.reqAttributes[i])){
+					add = false;
+				}
+			}
+			if (add){
+				var row = body.insertRow();
+				var cell = row.insertCell();
+				if (clickable){
+					cell.innerHTML = linkout.title;
+					cell.addEventListener('click', functionWithParams);
+				} else{
+					cell.innerHTML = linkout.title;
+					cell.classList.add('unclickable');
+					cell.addEventListener("click", NgChm.LNK.selectionError)
+				}
 			}
 		}
 	}
@@ -375,9 +396,11 @@ NgChm.LNK.selectionError = function(e){
 }
 
 NgChm.LNK.getDefaultLinkouts = function(){
-	NgChm.LNK.addLinkout("Copy " + NgChm.heatMap.getColLabels().label_type[0] +" to Clipboard", NgChm.heatMap.getColLabels().label_type[0], linkouts.MULTI_SELECT, NgChm.LNK.copyToClipBoard,null,0);
-	if (NgChm.heatMap.getRowLabels().label_type[0] !== NgChm.heatMap.getColLabels().label_type[0]){
-		NgChm.LNK.addLinkout("Copy " + NgChm.heatMap.getRowLabels().label_type[0] + " to Clipboard", NgChm.heatMap.getRowLabels().label_type[0], linkouts.MULTI_SELECT, NgChm.LNK.copyToClipBoard,null,0);
+	var colLabelType = NgChm.heatMap.getColLabels().label_type;
+	var rowLabelType = NgChm.heatMap.getRowLabels().label_type;
+	NgChm.LNK.addLinkout("Copy " + (colLabelType[0].length < 20 ? colLabelType[0] : "Column Labels") +" to Clipboard", colLabelType[0], linkouts.MULTI_SELECT, NgChm.LNK.copyToClipBoard,null,0);
+	if (rowLabelType[0] !== colLabelType[0]){
+		NgChm.LNK.addLinkout("Copy " + (rowLabelType[0].length < 20 ? rowLabelType[0] : "Row Labels") + " to Clipboard", rowLabelType[0], linkouts.MULTI_SELECT, NgChm.LNK.copyToClipBoard,null,0);
 	}
 	
 	NgChm.LNK.addLinkout("Copy bar data for all labels", "ColumnCovar", null, NgChm.LNK.copyEntireClassBarToClipBoard,null,0);
