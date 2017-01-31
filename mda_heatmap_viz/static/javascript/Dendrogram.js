@@ -5,7 +5,7 @@ NgChm.createNS('NgChm.DDR');
  *  SUMMARY COLUMN DENDROGRAM *
  ******************************/
 NgChm.DDR.SummaryColumnDendrogram = function() {
-	var normDendroMatrixHeight = 500; // this is the height of the dendro matrices created in buildDendroMatrix
+	var dendroDisplaySize = 500; // this is a static number used to determine how big the dendro canvas will be in conjunction with the dendroConfig.heigh property
 	var pointsPerLeaf = 3; // each leaf will get 3 points in the dendrogram array. This is to avoid lines being right next to each other
 	var bars = [];
 	var chosenBar = {}; // this is the bar that is clicked on the summary side (Subdendro selection)
@@ -13,24 +13,30 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 	var dendroConfig = NgChm.heatMap.getColDendroConfig();
 	var hasData = dendroConfig.show === 'NA' ? false : true;
 	var dendroData = NgChm.heatMap.getColDendroData();
+	var normDendroMatrixHeight = Math.max(500,dendroData.length); // this is the height of the dendro matrices created in buildDendroMatrix
 	var maxHeight = dendroData.length > 0 ? getMaxHeight(dendroData) : 0; 
 	var dendroMatrix;                       
 	if (hasData) {
-		dendroMatrix = buildMatrix();
+		while(dendroMatrix == undefined){dendroMatrix = buildMatrix();}
 	}
 	var originalDendroMatrix = dendroMatrix;
 	var selectedBars = []; // these are the bars/areas that are selected from the detail side
 	var sumChm = document.getElementById("summary_chm");
 	dendroCanvas.addEventListener('click',subDendroClick);
-	
 	this.getDivWidth = function(){
 		return parseInt(dendroCanvas.clientWidth);
 	}
 	this.getDivHeight = function(){
-		return parseInt(dendroConfig.height)/500*sumChm.clientHeight*NgChm.SUM.heightPct;
+		return parseInt(dendroConfig.height)/dendroDisplaySize*sumChm.clientHeight*NgChm.SUM.heightPct;
 	}
 	this.getBars = function(){
 		return bars;
+	}
+	this.getDendroMatrixHeight = function(){
+		return normDendroMatrixHeight;
+	}
+	this.getDendroMatrix = function(){
+		return dendroMatrix;
 	}
 
 	this.addSelectedBar = function(extremes, shift){
@@ -100,7 +106,7 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 	this.draw = function(){
 		resize();
 		dendroCanvas.width = NgChm.SUM.canvas.clientWidth*NgChm.SUM.matrixWidth/NgChm.SUM.totalWidth;
-		dendroCanvas.height = parseInt(dendroConfig.height)/500 * sumChm.clientHeight*NgChm.SUM.heightPct;
+		dendroCanvas.height = parseInt(dendroConfig.height)/dendroDisplaySize * sumChm.clientHeight*NgChm.SUM.heightPct;
 		draw();
 	}
 	
@@ -141,7 +147,7 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 		dendroCanvas.style.width = NgChm.SUM.canvas.clientWidth*NgChm.SUM.matrixWidth/NgChm.SUM.totalWidth;
 		dendroCanvas.style.left = NgChm.SUM.canvas.offsetLeft + (1-NgChm.SUM.matrixWidth/NgChm.SUM.totalWidth)*NgChm.SUM.canvas.offsetWidth;
 		if (dendroConfig.show !== "NONE"){
-			dendroCanvas.style.height = parseInt(dendroConfig.height)/500*sumChm.clientHeight*NgChm.SUM.heightPct; // the dendro should take 1/5 of the height at 100% dendro height
+			dendroCanvas.style.height = parseInt(dendroConfig.height)/dendroDisplaySize*sumChm.clientHeight*NgChm.SUM.heightPct; // the dendro should take 1/5 of the height at 100% dendro height
 		}else{
 			dendroCanvas.style.height = 0;
 		}
@@ -152,9 +158,9 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 			var xRatio = dendroCanvas.width/dendroMatrix[0].length;
 			var yRatio = dendroCanvas.height/dendroMatrix.length;
 			var colgl = dendroCanvas.getContext("2d");
+			colgl.fillStyle = "black";
 			for (var i=0; i<dendroMatrix.length; i++){
 				// draw the non-highlighted regions
-				colgl.fillStyle = "black";
 				for (var j in dendroMatrix[i]){
 					j = parseInt(j);
 					// x,y,w,h
@@ -186,32 +192,64 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 		bars = []; // clear out the bars array otherwise it will add more and more bars and slow everything down!
 		var numNodes = dendroData.length;
 		var matrix = new Array(normDendroMatrixHeight+1);
-		for (var i = 0; i < normDendroMatrixHeight+1; i++){ // 500rows * (3xWidth)cols matrix
+		for (var i = 0; i < normDendroMatrixHeight+1; i++){ // normDendroMatrixHeight many rows * (3xWidth)cols matrix
 			matrix[i] = new Array(pointsPerLeaf*NgChm.heatMap.getNumColumns('d'));
 		}
-		for (var i = 0; i < numNodes; i++){
-			var tokes = dendroData[i].split(",");
-			var leftIndex = Number(tokes[0]); // index is the location of the bar in the clustered data
-			var rightIndex = Number(tokes[1]);
-			var height = Number(tokes[2]);
-			var leftLoc = findLocationFromIndex(leftIndex); // this is the position it occupies in the dendroMatrix space
-			var rightLoc = findLocationFromIndex(rightIndex);
-			var normHeight = height == 0 ? 1 : Math.round(normDendroMatrixHeight*height/maxHeight);
-			bars.push({"left":leftLoc, "right":rightLoc, "height":normHeight});
-			for (var j = leftLoc; j < rightLoc; j++){
-				matrix[normHeight][j] = 1;
+		if (normDendroMatrixHeight >= 5000){ // if the dendro matrix height is already at the highest possible, just build it
+			for (var i = 0; i < numNodes; i++){
+				var tokes = dendroData[i].split(",");
+				var leftIndex = Number(tokes[0]); // index is the location of the bar in the clustered data
+				var rightIndex = Number(tokes[1]);
+				var height = Number(tokes[2]);
+				var leftLoc = findLocationFromIndex(leftIndex); // this is the position it occupies in the dendroMatrix space
+				var rightLoc = findLocationFromIndex(rightIndex);
+				var normHeight = height < 0.000001*matrix.length ? 1 : Math.round(normDendroMatrixHeight*height/maxHeight); // if the height of the bar is close enough to 0, just place it at the lowest level
+				bars.push({"left":leftLoc, "right":rightLoc, "height":normHeight});
+				for (var j = leftLoc; j < rightLoc; j++){
+					matrix[normHeight][j]=1;
+				}
+				var drawHeight = normHeight-1;
+				while (drawHeight > 0 && matrix[drawHeight][leftLoc] != 1){	// this fills in any spaces 		
+					matrix[drawHeight][leftLoc] = 1;
+					drawHeight--;
+				}
+				drawHeight = normHeight;
+				while (matrix[drawHeight][rightLoc] != 1 && drawHeight > 0){			
+					matrix[drawHeight][rightLoc] = 1;
+					drawHeight--;
+				}
 			}
-			var drawHeight = normHeight-1;
-			while (drawHeight > 0 && matrix[drawHeight][leftLoc] != 1){	// this fills in any spaces 		
-				matrix[drawHeight][leftLoc] = 1;
-				drawHeight--;
-			}
-			drawHeight = normHeight;
-			while (matrix[drawHeight][rightLoc] != 1 && drawHeight > 0){			
-				matrix[drawHeight][rightLoc] = 1;
-				drawHeight--;
+		} else { // otherwise build it and increase height as necessary
+			for (var i = 0; i < numNodes; i++){
+				var tokes = dendroData[i].split(",");
+				var leftIndex = Number(tokes[0]); // index is the location of the bar in the clustered data
+				var rightIndex = Number(tokes[1]);
+				var height = Number(tokes[2]);
+				var leftLoc = findLocationFromIndex(leftIndex); // this is the position it occupies in the dendroMatrix space
+				var rightLoc = findLocationFromIndex(rightIndex);
+				var normHeight = height < 0.000001*matrix.length ? 1 : Math.round(normDendroMatrixHeight*height/maxHeight); // if the height of the bar is close enough to 0, just place it at the lowest level
+				bars.push({"left":leftLoc, "right":rightLoc, "height":normHeight});
+				for (var j = leftLoc; j < rightLoc; j++){
+					if (!matrix[normHeight][j]){
+						matrix[normHeight][j] = 1;
+					} else {
+						normDendroMatrixHeight += 1000; // if there is a bar overlap, increase the dendro matrix height by another 500
+						return;
+					}
+				}
+				var drawHeight = normHeight-1;
+				while (drawHeight > 0 && matrix[drawHeight][leftLoc] != 1){	// this fills in any spaces 		
+					matrix[drawHeight][leftLoc] = 1;
+					drawHeight--;
+				}
+				drawHeight = normHeight;
+				while (matrix[drawHeight][rightLoc] != 1 && drawHeight > 0){			
+					matrix[drawHeight][rightLoc] = 1;
+					drawHeight--;
+				}
 			}
 		}
+		
 		return matrix;
 		
 		// returns the position in terms of the 3N space
@@ -304,7 +342,7 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
  ***************************/
 NgChm.DDR.SummaryRowDendrogram = function() {
 	// internal variables
-	var normDendroMatrixHeight = 500; // this is the height of the dendro matrices created in buildMatrix
+	var dendroDisplaySize = 500; // this is a static number used to determine how big the dendro canvas will be in conjunction with the dendroConfig.heigh property
 	var pointsPerLeaf = 3; // each leaf will get 3 points in the dendrogram array. This is to avoid lines being right next to each other
 	var bars = [];
 	var chosenBar = {};
@@ -312,10 +350,11 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 	var dendroConfig = NgChm.heatMap.getRowDendroConfig();
 	var hasData = dendroConfig.show === 'NA' ? false : true;
 	var dendroData = NgChm.heatMap.getRowDendroData();
+	var normDendroMatrixHeight = Math.max(500,dendroData.length); // this is the height of the dendro matrices created in buildDendroMatrix
 	var maxHeight = dendroData.length > 0 ? Number(dendroData[dendroData.length-1].split(",")[2]) : 0; // this assumes the heightData is ordered from lowest height to highest
 	var dendroMatrix;
 	if (hasData) {
-		dendroMatrix = buildMatrix();
+		while(dendroMatrix == undefined){dendroMatrix = buildMatrix();}
 	}
 	var originalDendroMatrix = dendroMatrix;
 	var selectedBars;
@@ -327,13 +366,19 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 	// public functions
 	this.getDivWidth = function(){
 		// the dendrogram will take up 1/5 of the summary side by default (100% = 1/5 of summary_chm).
-		return parseInt(dendroConfig.height)/500*sumChm.clientWidth;
+		return parseInt(dendroConfig.height)/dendroDisplaySize*sumChm.clientWidth;
 	}
 	this.getDivHeight = function(){
 		return parseInt(dendroCanvas.clientHeight);
 	}
 	this.getBars = function(){
 		return bars;
+	}
+	this.getDendroMatrixHeight = function(){
+		return normDendroMatrixHeight;
+	}
+	this.getDendroMatrix = function(){
+		return dendroMatrix;
 	}
 	
 	this.addSelectedBar = function(extremes, shift){		
@@ -402,7 +447,7 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 	this.draw = function(){
 		resize();
 		dendroCanvas.height = NgChm.SUM.canvas.clientHeight*NgChm.SUM.matrixHeight/NgChm.SUM.totalHeight;
-		dendroCanvas.width = dendroConfig.height/500*sumChm.clientWidth*NgChm.SUM.widthPct;
+		dendroCanvas.width = dendroConfig.height/dendroDisplaySize*sumChm.clientWidth*NgChm.SUM.widthPct;
 		draw();
 	}
 	
@@ -444,7 +489,7 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 		dendroCanvas.style.height = NgChm.SUM.canvas.clientHeight*NgChm.SUM.matrixHeight/NgChm.SUM.totalHeight;
 		dendroCanvas.style.top = NgChm.SUM.canvas.offsetTop + (NgChm.SUM.totalHeight - NgChm.SUM.matrixHeight)/NgChm.SUM.totalHeight*NgChm.SUM.canvas.offsetHeight;
 		if (dendroConfig.show !== "NONE"){
-			dendroCanvas.style.width = dendroConfig.height/500*sumChm.clientWidth*NgChm.SUM.widthPct;
+			dendroCanvas.style.width = dendroConfig.height/dendroDisplaySize*sumChm.clientWidth*NgChm.SUM.widthPct;
 		} else {
 			dendroCanvas.style.width = 0;
 		}
@@ -492,27 +537,58 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 		for (var i = 0; i < normDendroMatrixHeight+1; i++){ // 500rows * (3xWidth)cols matrix
 			matrix[i] = new Array(pointsPerLeaf*NgChm.heatMap.getNumRows('d'));
 		}
-		for (var i = 0; i < numNodes; i++){
-			var tokes = dendroData[i].split(",");
-			var leftIndex = Number(tokes[0]); // index is the location of the bar in the clustered data
-			var rightIndex = Number(tokes[1]);
-			var height = Number(tokes[2]);
-			var leftLoc = findLocationFromIndex(leftIndex); // this is the position it occupies in the dendroMatrix space
-			var rightLoc = findLocationFromIndex(rightIndex);
-			var normHeight = height == 0 ? 1 : Math.round(normDendroMatrixHeight*height/maxHeight);
-			bars.push({"left":leftLoc, "right":rightLoc, "height":normHeight});
-			for (var j = leftLoc; j < rightLoc; j++){
-				matrix[normHeight][j] = 1;
+		if (normDendroMatrixHeight >= 5000){ // if the dendro matrix height is already at the highest possible, just build it
+			for (var i = 0; i < numNodes; i++){
+				var tokes = dendroData[i].split(",");
+				var leftIndex = Number(tokes[0]); // index is the location of the bar in the clustered data
+				var rightIndex = Number(tokes[1]);
+				var height = Number(tokes[2]);
+				var leftLoc = findLocationFromIndex(leftIndex); // this is the position it occupies in the dendroMatrix space
+				var rightLoc = findLocationFromIndex(rightIndex);
+				var normHeight = height < 0.000001*matrix.length ? 1 : Math.round(normDendroMatrixHeight*height/maxHeight); // if the height of the bar is close enough to 0, just place it at the lowest level
+				bars.push({"left":leftLoc, "right":rightLoc, "height":normHeight});
+				for (var j = leftLoc; j < rightLoc; j++){
+					matrix[normHeight][j]=1;
+				}
+				var drawHeight = normHeight-1;
+				while (drawHeight > 0 && matrix[drawHeight][leftLoc] != 1){	// this fills in any spaces 		
+					matrix[drawHeight][leftLoc] = 1;
+					drawHeight--;
+				}
+				drawHeight = normHeight;
+				while (matrix[drawHeight][rightLoc] != 1 && drawHeight > 0){			
+					matrix[drawHeight][rightLoc] = 1;
+					drawHeight--;
+				}
 			}
-			var drawHeight = normHeight-1;
-			while (drawHeight > 0 && matrix[drawHeight][leftLoc] != 1){			
-				matrix[drawHeight][leftLoc] = 1;
-				drawHeight--;
-			}
-			drawHeight = normHeight;
-			while (matrix[drawHeight][rightLoc] != 1 && drawHeight > 0){			
-				matrix[drawHeight][rightLoc] = 1;
-				drawHeight--;
+		} else { // otherwise build it and increase height as necessary
+			for (var i = 0; i < numNodes; i++){
+				var tokes = dendroData[i].split(",");
+				var leftIndex = Number(tokes[0]); // index is the location of the bar in the clustered data
+				var rightIndex = Number(tokes[1]);
+				var height = Number(tokes[2]);
+				var leftLoc = findLocationFromIndex(leftIndex); // this is the position it occupies in the dendroMatrix space
+				var rightLoc = findLocationFromIndex(rightIndex);
+				var normHeight = height < 0.000001*matrix.length ? 1 : Math.round(normDendroMatrixHeight*height/maxHeight); // if the height of the bar is close enough to 0, just place it at the lowest level
+				bars.push({"left":leftLoc, "right":rightLoc, "height":normHeight});
+				for (var j = leftLoc; j < rightLoc; j++){
+					if (!matrix[normHeight][j]){
+						matrix[normHeight][j] = 1;
+					} else {
+						normDendroMatrixHeight += 1000; // if there is a bar overlap, increase the dendro matrix height by another 500
+						return;
+					}
+				}
+				var drawHeight = normHeight-1;
+				while (drawHeight > 0 && matrix[drawHeight][leftLoc] != 1){	// this fills in any spaces 		
+					matrix[drawHeight][leftLoc] = 1;
+					drawHeight--;
+				}
+				drawHeight = normHeight;
+				while (matrix[drawHeight][rightLoc] != 1 && drawHeight > 0){			
+					matrix[drawHeight][rightLoc] = 1;
+					drawHeight--;
+				}
 			}
 		}
 		return matrix;
