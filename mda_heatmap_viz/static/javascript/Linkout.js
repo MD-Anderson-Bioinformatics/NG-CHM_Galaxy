@@ -193,15 +193,15 @@ NgChm.LNK.labelHelpClose = function(axis){
 NgChm.LNK.labelHelpOpen = function(axis, e){
 	var labelMenu =  axis !== "Matrix" ? document.getElementById(axis + 'LabelMenu') : document.getElementById("MatrixMenu");
 	var labelMenuTable = axis !== "Matrix" ? document.getElementById(axis + 'LabelMenuTable') : document.getElementById('MatrixMenuTable');
-    var axisLabelsLength = axis !== "Matrix" ? NgChm.DET.getSearchLabelsByAxis(axis).length : NgChm.DET.getSearchLabelsByAxis("Row").length +  NgChm.DET.getSearchLabelsByAxis("Column").length;
+	var axisLabelsLength = axis !== "Matrix" ? NgChm.DET.getSearchLabelsByAxis(axis).length : {"Row":NgChm.DET.getSearchLabelsByAxis("Row").length ,"Column":  NgChm.DET.getSearchLabelsByAxis("Column").length};
     var header = labelMenu.getElementsByClassName('labelMenuHeader')[0];
     var row = header.getElementsByTagName('TR')[0];
     if (axisLabelsLength > 0 && axis !== "Matrix"){
     	row.innerHTML = "Selected " + axis.replace("Covar"," Classification") + "s : " + axisLabelsLength;
     	labelMenuTable.getElementsByTagName("TBODY")[0].style.display = 'inherit';
     	NgChm.LNK.populateLabelMenu(axis,axisLabelsLength);
-    } else if (axisLabelsLength > 0 && axis == "Matrix"){
-    	row.innerHTML = "Selected Rows: " + NgChm.DET.getSearchLabelsByAxis("Row").length + "<br>Selected Columns: " + NgChm.DET.getSearchLabelsByAxis("Column").length;
+    } else if (axisLabelsLength["Row"] > 0 && axisLabelsLength["Column"] > 0 && axis == "Matrix"){
+    	row.innerHTML = "Selected Rows: " + axisLabelsLength["Row"] + "<br>Selected Columns: " + axisLabelsLength["Column"];
     	NgChm.LNK.populateLabelMenu(axis,axisLabelsLength);
     } else {
     	row.innerHTML = "Please select a " + axis.replace("Covar"," Classification");
@@ -258,9 +258,11 @@ NgChm.LNK.populateLabelMenu = function(axis, axisLabelsLength){
 					clickable = false;
 				} else if (labelType == "RowCovar" && NgChm.DET.getSearchLabelsByAxis("Row").length == 0 && linkout.selectType){
 					clickable = false;
-				} else if (linkout.selectType == linkouts.SINGLE_SELECT && axisLabelsLength > 1){
+				} else if (linkout.selectType == linkouts.SINGLE_SELECT && axisLabelsLength > 1 && (axis == "Row" || axis == "Column")){
 					clickable = false;
-				} else {
+				} else if (linkout.selectType == linkouts.SINGLE_SELECT && (axisLabelsLength["Row"] > 1 || axisLabelsLength["Column"] > 1) && axis == "Matrix"){
+					clickable = false;
+				}else {
 					clickable = true;
 				}
 				
