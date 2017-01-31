@@ -162,7 +162,7 @@ NgChm.DET.clickStart = function (e) {
 			var X = (NgChm.SEL.currentCol + (NgChm.SEL.dataPerRow*(clickX-rowDendroW-rowClassW)/mapW));
 			var Y = (colDendroH-clickY)/colDendroH/heightRatio;
 			var matrixX = Math.round(X*3-2);
-			var matrixY = Math.round(Y*500);
+			var matrixY = Math.round(Y*NgChm.SUM.colDendro.getDendroMatrixHeight());
 			var extremes = NgChm.SUM.colDendro.findExtremes(matrixY,matrixX);
 			if (extremes){
 				NgChm.DET.colDendroMatrix = NgChm.DET.buildDetailDendroMatrix('col', NgChm.SEL.currentCol, NgChm.SEL.currentCol+NgChm.SEL.dataPerRow, NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerRow);	
@@ -178,7 +178,7 @@ NgChm.DET.clickStart = function (e) {
 			var X = (NgChm.SEL.currentRow + (NgChm.SEL.dataPerCol*(clickY-colDendroH-colClassH)/mapH));
 			var Y = (rowDendroW-clickX)/rowDendroW/heightRatio; // this is a percentage of how high up on the entire dendro matrix (not just the detail view) the click occured
 			var matrixX = Math.round(X*3-2);
-			var matrixY = Math.round(Y*500);
+			var matrixY = Math.round(Y*NgChm.SUM.rowDendro.getDendroMatrixHeight());
 			var extremes = NgChm.SUM.rowDendro.findExtremes(matrixY,matrixX);
 			if (extremes){
 				NgChm.DET.rowDendroMatrix = NgChm.DET.buildDetailDendroMatrix('row', NgChm.SEL.currentRow, NgChm.SEL.currentRow+NgChm.SEL.dataPerCol, NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerCol);
@@ -2013,7 +2013,7 @@ NgChm.DET.buildDetailDendroMatrix = function (axis, start, stop, heightRatio) {
 		
 		var leftLoc = convertJsonIndexToDataViewSpace(leftJsonIndex); // Loc is the location in the dendro matrix
 		var rightLoc = convertJsonIndexToDataViewSpace(rightJsonIndex);
-		var normHeight = height == 0 ? 1 : Math.round(NgChm.DET.normDendroMatrixHeight*height/maxHeight); // height in matrix
+		var normHeight = height < 0.0001*matrix.length ? 1 : Math.round(NgChm.DET.normDendroMatrixHeight*height/maxHeight); // height in matrix (if height is roughly 0, treat as such)
 		var leftEnd = Math.max(leftLoc, 0);
 		var rightEnd = Math.min(rightLoc, matrixWidth-1);
 		
