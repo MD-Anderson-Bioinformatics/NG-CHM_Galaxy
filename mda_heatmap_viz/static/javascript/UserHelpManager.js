@@ -294,7 +294,7 @@ NgChm.UHM.detailDataToolHelp = function(e,text,width,align) {
 	NgChm.UHM.userHelpClose();
 	NgChm.DET.detailPoint = setTimeout(function(){
 		if (typeof width === "undefined") {
-			width=50;
+			width=text.length*8;
 		}
 		if ((NgChm.SEL.isSub) && (text == "Split Into Two Windows")) {
 			text = "Join Screens";
@@ -309,7 +309,7 @@ NgChm.UHM.detailDataToolHelp = function(e,text,width,align) {
 	    	if (e.offsetLeft === 0) {
 		    	helptext.style.left = e.offsetLeft - 40;
 	    	} else {
-		    	helptext.style.left = e.offsetLeft - 180;
+		    	helptext.style.left = e.offsetLeft - ((width/2)+20);  
 	    	}
 	    } else {
 	    	if (e.offsetLeft !== 0) {
@@ -570,6 +570,18 @@ NgChm.UHM.mapNotFound = function(heatMapName) {
 	NgChm.UHM.initMessageBox();
 	NgChm.UHM.setMessageBoxHeader("Requested Heat Map Not Found");
 	NgChm.UHM.setMessageBoxText("<br>The Heat Map (" + heatMapName + ") that you requested cannot be found OR connectivity to the Heat Map repository has been interrupted.<br><br>Please check the Heat Map name and try again.");
+	NgChm.UHM.setMessageBoxButton(3, "images/prefCancel.png", "", "NgChm.UHM.messageBoxCancel");
+	document.getElementById('msgBox').style.display = '';
+}
+
+/**********************************************************************************
+ * FUNCTION - invalidFileFormat: This function displays an error when the user selects
+ * a file that is not an NG-CHM file.
+ **********************************************************************************/
+NgChm.UHM.invalidFileFormat = function() {
+	NgChm.UHM.initMessageBox();
+	NgChm.UHM.setMessageBoxHeader("Invalid File Format");
+	NgChm.UHM.setMessageBoxText("<br>The file chosen is not an NG-CHM file.<br><br>Please select a .ngchm file and try again.");
 	NgChm.UHM.setMessageBoxButton(3, "images/prefCancel.png", "", "NgChm.UHM.messageBoxCancel");
 	document.getElementById('msgBox').style.display = '';
 }
