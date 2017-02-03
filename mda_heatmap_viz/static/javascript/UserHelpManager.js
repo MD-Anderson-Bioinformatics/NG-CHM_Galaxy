@@ -593,7 +593,7 @@ NgChm.UHM.invalidFileFormat = function() {
 NgChm.UHM.minimumFontSize = function() {
 	NgChm.UHM.initMessageBox();
 	NgChm.UHM.setMessageBoxHeader("Minimum Font Size Found"); 
-	if (NgChm.DET.minLabelSize > 10) {
+	if (NgChm.DET.minLabelSize > 11) {
 		NgChm.UHM.setMessageBoxText("<br>Your browser settings include a minimum font size setting that is too large. This will block the display of row, column, and covariate bar labels in the Ng-Chm application.<br><br>You may wish to turn off or adjust this setting in your browser.");  
 	} else {
 		NgChm.UHM.setMessageBoxText("<br>Your browser settings include a minimum font size setting. This may interfere with the display of row, column, and covariate bar labels in the Ng-Chm application.<br><br>You may wish to turn off or adjust this setting in your browser.");

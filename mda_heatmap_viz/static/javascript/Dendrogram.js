@@ -121,11 +121,12 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 	function subDendroClick(event){
 		var clickX = event.offsetX, clickY = this.height-event.offsetY;
 		var matrixX = Math.round(clickX/(this.width/dendroMatrix[0].length)), matrixY = Math.round(clickY/(this.height/dendroMatrix.length));
+		NgChm.SUM.clearSelectionMarks();
 		NgChm.SUM.rowDendro.clearSelection();
 		NgChm.SUM.colDendro.clearSelection();
 		dendroMatrix = buildMatrix();
 		var newDendro = highlightMatrix(matrixY,matrixX);
-		if (newDendro){
+		if (newDendro){   
 			NgChm.SUM.rowDendro.draw();
 			NgChm.SUM.colDendro.draw();
 		}
@@ -463,6 +464,7 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 	function subDendroClick(event){
 		var clickX = event.offsetX, clickY = event.offsetY;
 		var matrixX = Math.round(clickY/(this.height/dendroMatrix[0].length)), matrixY = Math.round((this.width-clickX)/(this.width/dendroMatrix.length));
+		NgChm.SUM.clearSelectionMarks();
 		NgChm.SUM.colDendro.clearSelection();
 		NgChm.SUM.rowDendro.clearSelection();
 		dendroMatrix = buildMatrix();

@@ -210,12 +210,12 @@ linkouts.addLinkout("View Uniprot", "bio.protein.uniprotid", linkouts.SINGLE_SEL
 
 
 // Linkouts for Zodiac
-linkouts.addLinkout("View Zodiac", "bio.gene.hugo", linkouts.SINGLE_SELECT, function (genes) {
+linkouts.addLinkout("View Zodiac", "bio.gene.hugo", linkouts.MULTI_SELECT, function (genes) {
     genes = genes.sort().filter(function(el,i,a){return i==a.indexOf(el);});
     var glist = encodeURIComponent(genes.join('\n'));
     window.open('http://compgenome.org/zodiac?Gene_List=' + glist, 'linkout');
 });
-NgChm.LNK.addMatrixLinkout("View Zodiac", ["bio.gene.hugo"], ["bio.gene.hugo"], linkouts.SINGLE_SELECT, function (labels) {
+NgChm.LNK.addMatrixLinkout("View Zodiac", ["bio.gene.hugo"], ["bio.gene.hugo"], linkouts.MULTI_SELECT, function (labels) {
     let g1 = labels.Row.sort().filter(function(el,i,a){return i==a.indexOf(el);});
     let g2 = labels.Column.sort().filter(function(el,i,a){return i==a.indexOf(el);});
     var glist = encodeURIComponent(g1.concat(g2).join('\n'));

@@ -193,7 +193,7 @@ NgChm.LNK.labelHelpClose = function(axis){
 NgChm.LNK.labelHelpOpen = function(axis, e){
 	var labelMenu =  axis !== "Matrix" ? document.getElementById(axis + 'LabelMenu') : document.getElementById("MatrixMenu");
 	var labelMenuTable = axis !== "Matrix" ? document.getElementById(axis + 'LabelMenuTable') : document.getElementById('MatrixMenuTable');
-	var axisLabelsLength = axis !== "Matrix" ? NgChm.DET.getSearchLabelsByAxis(axis).length : {"Row":NgChm.DET.getSearchLabelsByAxis("Row").length ,"Column":  NgChm.DET.getSearchLabelsByAxis("Column").length};
+    var axisLabelsLength = axis !== "Matrix" ? NgChm.DET.getSearchLabelsByAxis(axis).length : {"Row":NgChm.DET.getSearchLabelsByAxis("Row").length ,"Column":  NgChm.DET.getSearchLabelsByAxis("Column").length};
     var header = labelMenu.getElementsByClassName('labelMenuHeader')[0];
     var row = header.getElementsByTagName('TR')[0];
     if (axisLabelsLength > 0 && axis !== "Matrix"){
