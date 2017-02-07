@@ -59,7 +59,7 @@
                NgChm.heatMap.addEventListener(NgChm.DET.processDetailMapUpdate);
                NgChm.SUM.initSummaryDisplay();
                NgChm.DET.initDetailDisplay();
-               document.addEventListener('wheel', NgChm.SEL.handleScroll, false);
+               document.getElementById("container").addEventListener('wheel', NgChm.SEL.handleScroll, false);
                document.getElementById("detail_canvas").focus();
            }
        };
