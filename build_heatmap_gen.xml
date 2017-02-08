@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+      Script to build the tar files that can be put into the Galaxy toolshed.
+-->
+
+<project default="all" name="Create Runnable Jar for Project NGCHM">
+
+  <target name="all" depends="clean, tar_heatmap_gen, tar_advanced_heatmap_gen, remove_temp ">
+  </target>
+	 <delete>
+	    <fileset file="mda_heatmap_viz.zip"/>
+	    <fileset file="mda_heatmap_gen.tar"/>
+		<fileset file="mda_advanced_heatmap_gen.tar"/>
+	  </delete>
+  <target name="clean">
+	
+  </target>	
+  <target name="zipviz">
+  	 <zip destfile="mda_heatmap_viz.zip"
+  	       basedir="mda_heatmap_viz"
+  	  />	
+  </target>	
+	
+  <target name="tar_heatmap_gen" depends="zipviz">
+  	<tar destfile="mda_heatmap_gen.tar">
+  	  <tarfileset dir="mda_heatmap_gen"/>
+   	  <tarfileset dir="ngchm-matrix-functional-test-data"
+  	  			  prefix="ngchm-matrix-functional-test-data"
+  	   />
+      <tarfileset file="GalaxyMapGen.jar"/>	
+      <tarfileset file="mda_heatmap_viz.zip"/>		
+	</tar>
+  </target>  
+	
+  <target name="tar_advanced_heatmap_gen" depends="zipviz">
+  	<tar destfile="mda_advanced_heatmap_gen.tar">
+  	  <tarfileset dir="mda_advanced_heatmap_gen"/>
+   	  <tarfileset dir="ngchm-matrix-functional-test-data"
+  	  			  prefix="ngchm-matrix-functional-test-data"
+  	   />
+       <tarfileset file="GalaxyMapGen.jar"/>
+   	   <tarfileset file="mda_heatmap_viz.zip"/>		
+	</tar>
+  </target>  	
+	
+  <target name="remove_temp">
+	 <delete>
+	    <fileset file="mda_heatmap_viz.zip"/>
+	 </delete>	
+  </target>	
+	
+</project>
