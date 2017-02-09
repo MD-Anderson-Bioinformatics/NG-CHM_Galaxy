@@ -42,6 +42,6 @@ for i in "$@"; do
   count=$((count+1))
 done
 #call java program to generate NGCHM viewer files.
-java -jar ${11}/GalaxyMapGen.jar "${1}" "${2}" DataLayer1 $3 linear ${14} ${15} $4 $5 $6 $tdir/ROfile.txt $tdir/RDfile.txt $7 $8 $9 $tdir/COfile.txt $tdir/CDfile.txt ${10} ${16} $classifications
+java -jar ${11}/GalaxyMapGen.jar "${1}" "${2}" DataLayer1 $3 linear ${14} ${15} $4 $5 $6 $tdir/ROfile.txt $tdir/RDfile.txt $7 $8 $9 $tdir/COfile.txt $tdir/CDfile.txt ${10} "${16}" $classifications
 #clean up tempdir
 rm -rf $tdir

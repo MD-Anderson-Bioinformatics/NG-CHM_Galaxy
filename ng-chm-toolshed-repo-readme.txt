@@ -8,7 +8,8 @@ Generate a clustered Heat Map from a data matrix, with many options for clusteri
 The input matrix is required to have labels in the first column and the first row containing. 
 For example, column headers could be patient IDs and row headers (first column) could contain gene symbols.  
 Covariate files add additional information bars to the heat map.  For example, a patients smoking status 
-could be provided as a covariate file.  Any input covariate bar files must have the same row or column  labels as in the input matrix to associate the covariate information with the appropriate row or column..
+could be provided as a covariate file.  Any input covariate bar files must have the same row or column  
+labels as in the input matrix to associate the covariate information with the appropriate row or column.
 The output is a compressed ngchm file that can be displayed in the NG-CHM viewer.  To access the viewer 
 in Galaxy, use the visualize icon at the bottom of the Galaxy History NG-CHM tool output file.  
 Expand the History output file, then at the bottom are several icons the order being -- 
@@ -22,7 +23,7 @@ Full Documentation: http://bioinformatics.mdanderson.org/main/NG-CHM-V2:Overview
 The Galaxy visualization component does not install automatically.  You will need to run the following commands in terminal mode:
 NOTE: The following assumes /galaxy-central is the home directory for your Galaxy instance, otherwise replace /galaxy-central with your Galaxy instance's root directory
 
-1) mv /galaxy-central/../shed_tools/toolshed.g2.bx.psu.edu/repos/md-anderson-bioinformatics/ngchm/*/ngchm/mda_heatmap_viz  /galaxy-central/config/plugins/visualizations/
+1) mv /galaxy-central/../shed_tools/toolshed.g2.bx.psu.edu/repos/md-anderson-bioinformatics/heat_map_creation/*/heat_map_creation/mda_heatmap_viz.zip  /galaxy-central/config/plugins/visualizations/
 2) cd /galaxy-central/config/plugins/visualizations/
 3) unzip mda_heatmap_viz.zip
 

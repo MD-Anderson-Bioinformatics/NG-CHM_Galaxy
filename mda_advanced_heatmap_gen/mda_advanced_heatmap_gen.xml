@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<tool id="mda_heatmap_gen" name="NG-CHM Generator" version="6.0.2">
-  <description>Create Clustered Heat Maps</description>
-<command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap_advanced.sh  '$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__' ${d_rows.rowDendroCut} ${d_cols.colDendroCut} $rowDataType $colDataType
+<tool id="mda_advanced_heatmap_gen" name="Advanced NG-CHM Generator" version="2.0.3">
+  <description> Create Clustered Heat Maps</description>
+<command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap_advanced.sh  '$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__' ${d_rows.rowDendroCut} ${d_cols.colDendroCut} $rowDataType $colDataType 
+
+    "
+    #for $attr in $hm_attribute
+      ${attr.attrbute_key}:${attr.attrbute_value};
+    #end for
+    "
+
     #for $op in $operations
        ${op.class_name}
        ${op.repeatinput.file_name}
@@ -13,13 +20,13 @@
       <exit_code range="1:" level="fatal" />
 	</stdio>
   <inputs>
-    <param name="inputmatrix" type="data" label="Input Matrix" />
+    <param name="inputmatrix" type="data" format="Tabular" label="Input Matrix" />
     <param name="hmname" size="20" type="text" value="Heat_Map_name" label="User Defined Heat Map Name"/>
     <param name="hmdesc" size="100" optional="true" type="text" value="Heat_Map_description" label="User Defined Heat Map Description"/>
     <param name="summarymethod" 	type="select"  label="Data Summarization Method">
-		<option value="average">average</option>
-		<option value="sample">sample</option>
-		<option value="mode">mode</option>
+		<option value="average">Average</option>
+		<option value="sample">Sample</option>
+		<option value="mode">Mode</option>
     </param>
       <conditional name="d_rows">
 	<param name="rowOrderMethod" type="select" label="Row ordering method" help="Choices -- Hierarchical Clustering, Original Order, Random">
@@ -28,7 +35,7 @@
 		<option value="Random">Random</option>	    
 	</param>
         <when value="Hierarchical">
-	<param name="rowDistanceMeasure" type="select"  label="Row Distance Metric" help="euclidean, binary, manhattan, maximum, canberra, minkowski, or correlation">
+	<param name="rowDistanceMeasure" type="select"  label="Row Distance Metric" help="Euclidean, Binary, Manhattan, Maximum, Canberra, Minkowski, or Correlation">
 		<option value="euclidean">Euclidean</option>
 		<option value="binary">Binary</option>
 		<option value="manhattan">Manhattan</option>
@@ -37,7 +44,7 @@
 		<option value="minkowski">Minkowski</option>	    
 		<option value="correlation">Correlation</option>	    
 	</param>
-	<param name="rowAgglomerationMethod" type="select"  label="Row Clustering Method" help="Choices: 'average' for Average Linkage, 'complete' for Complete Linkage, 'single' for Single Linkage, 'ward', 'mcquitty', 'median', or 'centroid'.">
+	<param name="rowAgglomerationMethod" type="select"  label="Row Clustering Method" help="Choices:  Average Linkage, Complete Linkage,  Single Linkage, 'Ward', 'Mcquitty', 'Median', or 'Centroid'.">
 		<option value="average">Average Linkage</option>
 		<option value="complete">Complete Linkage</option>
 		<option value="single">Single Linkage</option>
@@ -88,7 +95,7 @@
         <option value="bio.pubmed" >Pubmed Id</option>
         <option value="bio.pubmed.search" >Pubmed Search Term</option>
         <option value="scholar" >Scholarly term</option>
-        <option value="bio.gene.unigene" >Unigene CID</option>
+        <option value="bio.gene.unigene" >Unigene CId</option>
         <option value="bio.protein.uniprot" >UniProt Id</option>
     </param>    
 	<conditional name="d_cols">
@@ -98,7 +105,7 @@
 		<option value="Random">Random</option>	    
 	</param>
         <when value="Hierarchical">
-	<param name="columnDistanceMeasure" type="select"  label="Column Distance Metric" help="euclidean, binary, manhattan, maximum, canberra, minkowski, or correlation">
+	<param name="columnDistanceMeasure" type="select"  label="Column Distance Metric" help="Euclidean, Binary, Manhattan, Maximum, Canberra, Minkowski, or Correlation">
 		<option value="euclidean">Euclidean</option>
 		<option value="binary">Binary</option>
 		<option value="manhattan">Manhattan</option>
@@ -107,7 +114,7 @@
 		<option value="minkowski">Minkowski</option>	    
 		<option value="correlation">Correlation</option>	    
 	</param>
-	<param name="columnAgglomerationMethod" type="select"  label="Column Clustering Method" help="Choices: 'average' for Average Linkage, 'complete' for Complete Linkage, 'single' for Single Linkage, 'ward', 'mcquitty', 'median', or 'centroid'.">
+	<param name="columnAgglomerationMethod" type="select"  label="Column Clustering Method" help="Choices:  Average Linkage, Complete Linkage,  Single Linkage, 'Ward', 'Mcquitty', 'Median', or 'Centroid'.">
 		<option value="average">Average Linkage</option>
 		<option value="complete">Complete Linkage</option>
 		<option value="single">Single Linkage</option>
@@ -174,11 +181,33 @@
         </param>
         <param name="repeatinput" type="data" format="text" label="Axis Covariate File"/>
 	<param name="cat" type="select" label="Axis Covariate Type">
-	  <option value="row_categorical" >row categorical</option>
-	  <option value="row_continuous" >row continuous</option>
-	  <option value="column_categorical" >column categorical</option>
-	  <option value="column_continuous" >column continuous</option>
+	  <option value="row_categorical" >Row Categorical</option>
+	  <option value="row_continuous" >Row Continuous</option>
+	  <option value="column_categorical" >Column Categorical</option>
+	  <option value="column_continuous" >Column Continuous</option>
 	</param>
+    </repeat>       
+     <repeat name="hm_attribute" title="Heat Map Attributes">
+        <param name="attrbute_key" size="50" type="text" value="" label="Heat Map Attributes json pair-- key ">
+           <sanitizer invalid_char="_">
+              <valid initial="">
+                <add preset="string.letters"/>
+                <add preset="string.digits"/>
+              </valid>
+              <mapping initial="">
+              </mapping>
+           </sanitizer>
+        </param>
+        <param name="attrbute_value" size="50" type="text" label="Heat Map Attributes json pairs -- value ">
+           <sanitizer invalid_char="_">
+              <valid initial="">
+                <add preset="string.letters"/>
+                <add preset="string.digits"/>
+              </valid>
+              <mapping initial="">
+              </mapping>
+           </sanitizer>
+        </param>
     </repeat>       
   </inputs>
   <outputs>
@@ -189,13 +218,13 @@
       <param name="inputmatrix" value="400x400.txt" />
       <param name="hmname" value="testRun" />
       <param name="$hmdesc" value="validateTool" />
-      <param name="summarymethod" value="average" />
+      <param name="summarymethod" value="Average" />
       <param name="rowOrderMethod" value="Hierarchical" />
-      <param name="rowDistanceMeasure" value="manhattan" />
-      <param name="rowAgglomerationMethod" value="ward" />
+      <param name="rowDistanceMeasure" value="Manhattan" />
+      <param name="rowAgglomerationMethod" value="Ward" />
       <param name="columnOrderMethod" value="Hierarchical" />
-      <param name="columnDistanceMeasure" value="manhattan" />
-      <param name="columnAgglomerationMethod" value="ward" />
+      <param name="columnDistanceMeasure" value="Manhattan" />
+      <param name="columnAgglomerationMethod" value="Ward" />
       <output name="output" file="Galaxy400x400-noCovariates.ngchm" lines_diff="10" />     
 
     </test>
