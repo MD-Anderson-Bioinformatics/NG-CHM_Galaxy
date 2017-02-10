@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <tool id="mda_advanced_heatmap_gen" name="Advanced NG-CHM Generator" version="2.0.3">
   <description> Create Clustered Heat Maps</description>
-<command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap_advanced.sh  '$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__' ${d_rows.rowDendroCut} ${d_cols.colDendroCut} $rowDataType $colDataType 
+<command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap_advanced.sh  'Heat_Map_$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__' ${d_rows.rowDendroCut} ${d_cols.colDendroCut} $rowDataType $colDataType 
 
     "
     #for $attr in $hm_attribute
@@ -21,7 +21,7 @@
 	</stdio>
   <inputs>
     <param name="inputmatrix" type="data" format="Tabular" label="Input Matrix" />
-    <param name="hmname" size="20" type="text" value="Heat_Map_name" label="User Defined Heat Map Name"/>
+    <param name="hmname" size="20" type="text" value="Heat_Map_name"  label="User Defined Heat Map Name"/>
     <param name="hmdesc" size="100" optional="true" type="text" value="Heat_Map_description" label="User Defined Heat Map Description"/>
     <param name="summarymethod" 	type="select"  label="Data Summarization Method">
 		<option value="average">Average</option>
@@ -211,7 +211,7 @@
     </repeat>       
   </inputs>
   <outputs>
-    <data name="output" label='${hmname}' format="ngchm"/>
+    <data name="output" label='Heat_Map_$hmname' format="ngchm"/>
   </outputs>
  <tests>
     <test>
