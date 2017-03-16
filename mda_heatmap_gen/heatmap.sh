@@ -1,8 +1,24 @@
 echo $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${14} ${15} ${16} ${17}
-#create temp directory for row and col order and dendro files.
-tdir=${11}/$(date +%y%m%d%M%S)
-echo $tdir
-mkdir $tdir
+
+# run python to validate the input matrix and covariate files (if any)
+count=0
+pyInput= ${4}' '
+
+#now add the user provided classification files 
+for i in "$@"; do
+  if [ $count -gt 14 ]
+  then
+    pyInput=$pyInput' '$i
+  fi
+  count=$((count+1))
+done
+
+#echo $count
+echo $pyInput
+
+python mda_heatmap_gen.py $pyInput
+
+
 #run R to cluster matrix
 output="$(R --slave --vanilla --file=${11}/CHM.R --args $3 $4 $5 $6 $7 $8 $9 $tdir/ROfile.txt $tdir/COfile.txt $tdir/RDfile.txt $tdir/CDfile.txt ${12} ${13} ${14} ${15} 2>&1)"
 rc=$?;
@@ -16,6 +32,11 @@ then
   fi
   exit $rc;
 fi
+
+#create temp directory for row and col order and dendro files.
+tdir=${11}/$(date +%y%m%d%M%S)
+echo $tdir
+mkdir $tdir
 
 #there are a variable number of triplicate parameters for classification bars
 count=0

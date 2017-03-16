@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<tool id="mda_heatmap_gen" name="NG-CHM Generator" version="2.0.2">
+<tool id="mda_heatmap_gen" name="NG-CHM Generator" version="2.0.3">
   <description>Create Clustered Heat Maps</description>
-<command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap.sh  'Heat_Map_$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__' 0 0 labels labels 'None'
+<command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap_advanced.sh  $__tool_directory__ 'Heat_Map_$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__' 0 0 labels labels 'None'
     #for $op in $operations
        ${op.class_name}
        ${op.repeatinput.file_name}
