@@ -93,6 +93,8 @@ NgChm.CMM.ColorMap = function(colorMapObj) {
 	
 		if (value >= NgChm.SUM.maxValues || value == "Missing"){
 			color = rgbaMissingColor;
+		}else if(value <= NgChm.SUM.minValues){
+			color = (255, 255, 255, 0);
 		}else if(value <= thresholds[0]){
 			color = rgbaColors[0]; // return color for lowest threshold if value is below range
 		} else if (value >= thresholds[numBreaks-1]){
@@ -107,6 +109,9 @@ NgChm.CMM.ColorMap = function(colorMapObj) {
 	
 	this.getClassificationColor = function(value){
 		var color;
+		if (value == "!CUT!") {
+			return (255, 255, 255, 0);
+		}
 		if (type == "discrete"){
 			for (var i = 0; i < thresholds.length; i++){
 				if (value == thresholds[i]){
