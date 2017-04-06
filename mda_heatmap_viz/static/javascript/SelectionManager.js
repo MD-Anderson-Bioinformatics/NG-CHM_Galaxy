@@ -121,12 +121,13 @@ NgChm.SEL.handleScroll = function(evt) {
 NgChm.SEL.keyNavigate = function(e) {
 	NgChm.UHM.userHelpClose();
     clearTimeout(NgChm.DET.detailPoint);
-    if (e.target.type != "text"){
+    if (e.target.type != "text" && e.target.type != "textarea"){
 		switch(e.keyCode){ // prevent default added redundantly to each case so that other key inputs won't get ignored
 			case 37: // left key 
 				if (document.activeElement.id !== "search_text"){
 					e.preventDefault();
 					if (e.shiftKey){NgChm.SEL.currentCol -= NgChm.SEL.dataPerRow;} 
+					else if (e.ctrlKey){NgChm.SEL.currentCol -= 1;NgChm.SEL.selectedStart -= 1;NgChm.SEL.selectedStop -= 1; NgChm.SEL.changeMode(NgChm.SEL.mode);} 
 					else {NgChm.SEL.currentCol--;}
 				}
 				break;
@@ -134,6 +135,7 @@ NgChm.SEL.keyNavigate = function(e) {
 				if (document.activeElement.id !== "search_text"){
 					e.preventDefault();
 					if (e.shiftKey){NgChm.SEL.currentRow -= NgChm.SEL.dataPerCol;} 
+					else if (e.ctrlKey){NgChm.SEL.selectedStop += 1; NgChm.SEL.changeMode(NgChm.SEL.mode);} 
 					else {NgChm.SEL.currentRow--;}
 				}
 				break;
@@ -141,6 +143,7 @@ NgChm.SEL.keyNavigate = function(e) {
 				if (document.activeElement.id !== "search_text"){
 					e.preventDefault();
 					if (e.shiftKey){NgChm.SEL.currentCol += NgChm.SEL.dataPerRow;} 
+					else if (e.ctrlKey){NgChm.SEL.currentCol += 1;NgChm.SEL.selectedStart += 1;NgChm.SEL.selectedStop += 1; NgChm.SEL.changeMode(NgChm.SEL.mode);} 
 					else {NgChm.SEL.currentCol++;}
 				}
 				break;
@@ -148,6 +151,7 @@ NgChm.SEL.keyNavigate = function(e) {
 				if (document.activeElement.id !== "search_text"){
 					e.preventDefault();
 					if (e.shiftKey){NgChm.SEL.currentRow += NgChm.SEL.dataPerCol;} 
+					else if (e.ctrlKey){NgChm.SEL.selectedStop -= 1; NgChm.SEL.changeMode(NgChm.SEL.mode);} 
 					else {NgChm.SEL.currentRow++;}
 				}
 				break;
@@ -637,7 +641,6 @@ NgChm.SEL.flickChange = function(fromList) {
 	}
 	NgChm.DET.drawDetailHeatMap();
 }
-
 
 
 
