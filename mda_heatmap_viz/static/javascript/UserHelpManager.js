@@ -43,8 +43,10 @@ NgChm.UHM.userHelpOpen = function(e) {
     	var colLabels = NgChm.heatMap.getColLabels().labels;
     	NgChm.UHM.setTableRow(helpContents, ["<u>"+"Data Details"+"</u>", "&nbsp;"], 2);
     	var matrixValue = NgChm.heatMap.getValue(NgChm.MMGR.DETAIL_LEVEL,row,col);
-    	if (matrixValue >= NgChm.SUM.maxValues) {
+     	if (matrixValue >= NgChm.SUM.maxValues) {
     		matrixValue = "Missing Value";
+    	} else if (matrixValue <= NgChm.SUM.minValues) {
+    		return;
     	} else {
     		matrixValue = matrixValue.toFixed(5);
     	}
@@ -138,6 +140,10 @@ NgChm.UHM.userHelpOpen = function(e) {
     		var colorMap = NgChm.heatMap.getColorMapManager().getColorMap("row",hoveredBar);
     	}
     	var value = hoveredBarValues[pos-1];
+    	//No help popup when clicking on a gap in the class bar
+    	if (value === '!CUT!') {
+    		return;
+    	}
     	var colors = colorMap.getColors();
     	var classType = colorMap.getType();
     	if (value == 'null') {
@@ -305,11 +311,12 @@ NgChm.UHM.detailDataToolHelp = function(e,text,width,align) {
 	    }
 	    helptext.style.position = "absolute";
 	    e.parentElement.appendChild(helptext);
+    
 	    if (2*width + e.getBoundingClientRect().right > document.body.offsetWidth-50){ // 2*width and -50 from window width to force elements close to right edge to move
 	    	if (e.offsetLeft === 0) {
 		    	helptext.style.left = e.offsetLeft - 40;
 	    	} else {
-		    	helptext.style.left = e.offsetLeft - ((width/2)+20);  
+		    	helptext.style.left = e.offsetLeft - width;  
 	    	}
 	    } else {
 	    	if (e.offsetLeft !== 0) {
@@ -326,7 +333,7 @@ NgChm.UHM.detailDataToolHelp = function(e,text,width,align) {
 	    helptext.style.width = width;
 		var htmlclose = "</font></b>";
 		helptext.innerHTML = "<b><font size='2' color='#0843c1'>"+text+"</font></b>";
-		helptext.style.display="inherit";
+		helptext.style.display="inherit"; 
 	},1000);
 }
 
@@ -491,6 +498,20 @@ NgChm.UHM.zipSaveNotification = function(autoSave) {
 }
 
 /**********************************************************************************
+ * FUNCTION - viewerAppVersionExpiredNotification: This function handles all of the tasks 
+ * necessary display a modal window whenever a user's version of the file application 
+ * has been superceded and a new version of the file application should be downloaded. 
+ **********************************************************************************/
+NgChm.UHM.viewerAppVersionExpiredNotification = function(oldVersion, newVersion) {
+	NgChm.UHM.initMessageBox();
+	NgChm.UHM.setMessageBoxHeader("New NG-CHM File Viewer Version Available");
+	NgChm.UHM.setMessageBoxText("<br>The version of the NG-CHM File Viewer application that you are running ("+oldVersion+") has been superceded by a newer version ("+newVersion+"). You will be able to view all pre-existing heat maps with this new backward-compatible version.<br><br>You may wish to download and install the latest version of the viewer.");
+	NgChm.UHM.setMessageBoxButton(1, "images/getZipViewer.png", "Download NG-CHM Viewer App", "NgChm.UHM.zipRequestAppDownload");
+	NgChm.UHM.setMessageBoxButton(3, "images/closeButton.png", "", "NgChm.UHM.messageBoxCancel");
+	document.getElementById('msgBox').style.display = '';
+}
+
+/**********************************************************************************
  * FUNCTION - zipRequestAppDownload: This function handles all of the tasks necessary 
  * display a modal window whenever an NG-CHM File Viewer Application download is 
  * requested.  
@@ -587,23 +608,6 @@ NgChm.UHM.invalidFileFormat = function() {
 }
 
 /**********************************************************************************
- * FUNCTION - minimumFontSize: This function displays an error minimum font size
- * interferes with label presentation.
- **********************************************************************************/
-NgChm.UHM.minimumFontSize = function() {
-	NgChm.UHM.initMessageBox();
-	NgChm.UHM.setMessageBoxHeader("Minimum Font Size Found"); 
-	if (NgChm.DET.minLabelSize > 11) {
-		NgChm.UHM.setMessageBoxText("<br>Your browser settings include a minimum font size setting that is too large. This will block the display of row, column, and covariate bar labels in the Ng-Chm application.<br><br>You may wish to turn off or adjust this setting in your browser.");  
-	} else {
-		NgChm.UHM.setMessageBoxText("<br>Your browser settings include a minimum font size setting. This may interfere with the display of row, column, and covariate bar labels in the Ng-Chm application.<br><br>You may wish to turn off or adjust this setting in your browser.");
-	}
-	NgChm.UHM.setMessageBoxButton(3, "images/prefCancel.png", "", "NgChm.UHM.messageBoxCancel");
-	document.getElementById('msgBox').style.display = '';
-}
-
-
-/**********************************************************************************
  * FUNCTIONS - MESSAGE BOX FUNCTIONS
  * 
  * We use a generic message box for most of the modal request windows in the 
@@ -659,5 +663,57 @@ NgChm.UHM.openHelp = function() {
 		url = url.replace(location.pathname,NgChm.staticPath);
 		window.open(url+"chmHelp.html",'_blank');
 	}
+}
+
+/**********************************************************************************
+ * FUNCTION - displayStartupWarnings: The purpose of this function is to display any
+ * heat map startup warnings in a popup box when the user opens a heat map.  Multiple
+ * possible warnings may be displayed in the box.
+ **********************************************************************************/
+NgChm.UHM.displayStartupWarnings = function() {
+	NgChm.UHM.userHelpClose();
+	NgChm.UHM.initMessageBox();
+	var headingText = "NG-CHM Startup Warning";
+	var warningText = "";
+	var msgFound = false;
+	var warningsFound = 1;
+	if (NgChm.UTIL.getBrowserType() === 'IE') {
+		warningText = "<br><b>Unsupported Browser Warning:</b> Your current browser is Internet Explorer. The NG-CHM application is optimized for use with the Google Chrome and Mozilla Firefox browsers.  While you may view maps in IE, the performance of the application cannot be guaranteed.<br><br>You may wish to switch to one of these supported browsers.";
+		msgFound = true;
+	} else {
+		var zoomVal = NgChm.UTIL.isScreenZoomed();
+		if (zoomVal < 0) {
+			if (msgFound) { warningText = warningText+"<br>" }
+			warningText = "<br><b>Zoom Level Warning:</b> Current browser settings include a zoom level that is too low. This will interfere with the proper display of the NG-CHM application. You may wish to increase the zoom setting in your browser.";
+			msgFound = true;
+			warningsFound++;
+		} else {
+			if (zoomVal > 0) {
+				if (msgFound) { warningText = warningText+"<br>" }
+				warningText = "<br><b>Zoom Level Warning:</b> Current browser settings include a zoom level that is too high. This will interfere with the proper display of the NG-CHM application. You may wish to decrease the zoom setting in your browser.";
+				msgFound = true;
+				warningsFound++;
+			} 
+			if (NgChm.DET.minLabelSize > 11) {
+				if (msgFound) { warningText = warningText+"<br>" }
+				warningText = warningText+"<br><b>Minimum Font Warning:</b> Current browser settings include a minimum font size setting that is too large. This will block the display of row, column, and covariate bar labels in the NG-CHM application. You may wish to turn off or adjust this setting in your browser."
+				msgFound = true;
+				warningsFound++;
+			} 
+			if (NgChm.DET.minLabelSize > 5) {
+				if (msgFound) { warningText = warningText+"<br>" }
+				warningText = warningText+"<br><b>Minimum Font Warning:</b> Current browser settings include a minimum font size setting. This may interfere with the display of row, column, and covariate bar labels in the NG-CHM application. You may wish to turn off or adjust this setting in your browser."
+				msgFound = true;
+				warningsFound++;
+			}
+		}
+	}
+	if (warningsFound > 2) {
+		headingText = headingText+"s"
+	}
+	NgChm.UHM.setMessageBoxHeader(headingText); 
+	NgChm.UHM.setMessageBoxText(warningText);
+	NgChm.UHM.setMessageBoxButton(3, "images/prefCancel.png", "", "NgChm.UHM.messageBoxCancel");
+	document.getElementById('msgBox').style.display = '';
 }
 

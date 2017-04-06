@@ -165,6 +165,14 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 		return colorMapMgr;
 	}
 	
+	this.getRowConfig = function() {
+		return mapConfig.row_configuration;
+	}
+	
+	this.getColConfig = function() {
+		return mapConfig.col_configuration;
+	}
+	
 	this.getRowClassificationConfig = function() {
 		return mapConfig.row_configuration.classifications;
 	}
@@ -507,6 +515,8 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 		//Retrieve  all map supporting data (e.g. labels, dendros) from JSON.
 		webFetchJson('mapData', addMapData);
 	} else {
+		//Check file mode viewer software version
+		fileModeFetchVersion();
 		//fileSrc is file so get the JSON files from the zip file.
 		//First create a dictionary of all the files in the zip.
 		var zipBR = new zip.BlobReader(chmFile);
@@ -639,7 +649,7 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 
 	function zipAppFileMode() {
 		var success = "";
-		var name = "ZipAppDownload"; 
+		var name = NgChm.CM.webServerUrl+"ZipAppDownload"; 
 		callServlet("POST", name, false);
 		return true;
 	}
@@ -857,6 +867,27 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 		        	//Got the result - call appropriate setter.
 		        	setterFunction(JSON.parse(req.response));
 			    }
+			}
+		};
+		req.send();
+	}
+	
+	//Helper function to fetch a json file from server.  
+	//Specify which file to get and what function to call when it arrives.
+	function fileModeFetchVersion() {
+		var req = new XMLHttpRequest();
+		req.open("GET", NgChm.CM.webServerUrl+"GetSoftwareVersion", true);
+		req.onreadystatechange = function () {
+			if (req.readyState == req.DONE) {
+		        if (req.status != 200) {
+		        	//Log failure, otherwise, do nothing.
+		            console.log('Failed to get software version: ' + req.status);
+		        } else {
+		        	var latestVersion = req.response;
+		        	if (latestVersion !== NgChm.CM.version) {
+		        		NgChm.UHM.viewerAppVersionExpiredNotification(NgChm.CM.version, latestVersion);   
+		        	}
+			    } 
 			}
 		};
 		req.send();

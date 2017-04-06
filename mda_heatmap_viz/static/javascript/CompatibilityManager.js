@@ -4,13 +4,16 @@ NgChm.createNS('NgChm.CM');
 // This string contains the entire configuration.json file.  This was previously located in a JSON file stored with the application code
 // but has been placed here at the top of the CompatibilityManager class so that the configuration can be utilized in File Mode.
 NgChm.CM.jsonConfigStr = "{\"row_configuration\": {\"classifications\": {\"show\": \"Y\",\"height\": 15},\"classifications_order\": 1,\"organization\": {\"agglomeration_method\": \"unknown\","+
-			"\"order_method\": \"unknown\",\"distance_metric\": \"unknown\"},\"dendrogram\": {\"show\": \"ALL\",\"height\": \"100\"}},"+
+			"\"order_method\": \"unknown\",\"distance_metric\": \"unknown\"},\"dendrogram\": {\"show\": \"ALL\",\"height\": \"100\"},\"label_display_length\": \"20\",\"label_display_method\": \"END\",\"top_items\": \"[]\"},"+
 			"\"col_configuration\": {\"classifications\": {\"show\": \"Y\",\"height\": 15},\"classifications_order\": 1,"+ 
 		    "\"organization\": {\"agglomeration_method\": \"unknown\",\"order_method\": \"unknown\",\"distance_metric\": \"unknown\"},"+
-		    "\"dendrogram\": {\"show\": \"ALL\",\"height\": \"100\"}},\"data_configuration\": {\"map_information\": {\"data_layer\": {"+
+		    "\"dendrogram\": {\"show\": \"ALL\",\"height\": \"100\"},\"label_display_length\": \"20\",\"label_display_method\": \"END\",\"top_items\": \"[]\"},\"data_configuration\": {\"map_information\": {\"data_layer\": {"+
 		    "\"name\": \"Data Layer\",\"grid_show\": \"Y\",\"grid_color\": \"#FFFFFF\",\"selection_color\": \"#00FF38\"},\"name\": \"CHM Name\",\"description\": \""+
-		    "Full length description of this heatmap\",\"summary_width\": \"50\",\"summary_height\": \"100\",\"detail_width\": \"50\",\"detail_height\": \"100\",\"read_only\": \"N\",\"version_id\": \"1.0.0\",\"label_display_length\": \"20\",\"label_display_truncation\": \"END\"}}}";
+		    "Full length description of this heatmap\",\"summary_width\": \"50\",\"summary_height\": \"100\",\"detail_width\": \"50\",\"detail_height\": \"100\",\"read_only\": \"N\",\"version_id\": \"1.0.0\",\"map_cut_rows\": \"0\",\"map_cut_cols\": \"0\"}}}";
 
+// CURRENT VERSION NUMBER
+NgChm.CM.version = "2.0.2";
+NgChm.CM.webServerUrl = "http://projects.insilico.us.com:8081/NGCHM/";
 NgChm.CM.classOrderStr = ".classifications_order";
 
 /**********************************************************************************
@@ -68,6 +71,10 @@ NgChm.CM.CompatibilityManager = function(mapConfig) {
 				for (i=0;i<parts.length;i++) {
 					obj = obj[parts[i]];
 				}
+				//For adding empty array for top_items
+				if (searchValue == "[]") {
+					searchValue = [];
+				}
 				obj[newItem] = searchValue;
 				foundUpdate = true;
 	    	} else {
@@ -122,7 +129,11 @@ NgChm.CM.buildConfigComparisonObject = function(obj, stack, configObj, mapConfig
     for (var property in obj) {
         if (obj.hasOwnProperty(property)) {
             if (typeof obj[property] == "object") {
-            	NgChm.CM.buildConfigComparisonObject(obj[property], stack + '.' + property, configObj, mapConfig);
+            	if ((typeof mapConfig === 'undefined') && (property === 'top_items')) {
+            		configObj[stack+"."+property] = obj[property];
+            	} else {
+                	NgChm.CM.buildConfigComparisonObject(obj[property], stack + '.' + property, configObj, mapConfig);
+            	}
             } else {
                var jsonPath = stack+"."+property;
                 //If we are processing the default config object tree, use the heatmap's config object to retrieve
@@ -160,4 +171,3 @@ NgChm.CM.buildConfigComparisonObject = function(obj, stack, configObj, mapConfig
         }
     }
 }
-

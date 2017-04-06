@@ -111,6 +111,7 @@ NgChm.UPM.editPreferences = function(e,errorMsg) {
 		NgChm.UPM.showLayerBreak(NgChm.SEL.currentDl);
 		NgChm.UPM.showRowsColsPrefs();
 	}
+	
 	errorMsg = null;
 
 }
@@ -275,7 +276,7 @@ NgChm.UPM.prefsSuccess = function() {
 	NgChm.UPM.bkpColorMaps = null;
 	NgChm.SUM.summaryInit();
 	NgChm.DET.drawDetailHeatMap();
-	NgChm.SEL.changeMode('NORMAL');
+	NgChm.SEL.callDetailDrawFunction(NgChm.SEL.mode);
 	NgChm.UPM.prefsCancelButton();
 }
 
@@ -305,6 +306,13 @@ NgChm.UPM.prefsApply = function() {
 		rowDendroConfig.show = rowDendroShowVal;
 		rowDendroConfig.height = document.getElementById("rowDendroHeightPref").value;
 	}	
+	var rowTopItems = document.getElementById("rowTopItems").value.split(",");
+	//Flush top items array
+	NgChm.heatMap.getRowConfig().top_items = [];
+	//Fill top items array from prefs element contents
+	for (var i=0;i<rowTopItems.length;i++) {
+		NgChm.heatMap.getRowConfig().top_items[i] = rowTopItems[i];
+	}
 	var colDendroConfig = NgChm.heatMap.getColDendroConfig();
 	var colOrganization = NgChm.heatMap.getColOrganization();
 	var colOrder = colOrganization['order_method'];
@@ -313,6 +321,11 @@ NgChm.UPM.prefsApply = function() {
 		colDendroConfig.show = colDendroShowVal;
 		colDendroConfig.height = document.getElementById("colDendroHeightPref").value;
 	}	
+	var colTopItems = document.getElementById("colTopItems").value.split(",");
+	NgChm.heatMap.getColConfig().top_items = [];
+	for (var i=0;i<colTopItems.length;i++) {
+		NgChm.heatMap.getColConfig().top_items[i] = colTopItems[i];
+	}
 	// Apply Covariate Bar Preferences
 	var rowClassBars = NgChm.heatMap.getRowClassificationConfig();
 	for (var key in rowClassBars){
@@ -347,9 +360,11 @@ NgChm.UPM.prefsApply = function() {
 	NgChm.heatMap.getMapInformation().detail_height = heightSize; */
 	
 	// Apply Label Sizing Preferences
-	NgChm.heatMap.getMapInformation().label_display_length = document.getElementById("labelSizePref").value;
-	NgChm.heatMap.getMapInformation().label_display_truncation = document.getElementById("labelTruncPref").value;  
-	
+	NgChm.heatMap.getColConfig().label_display_length = document.getElementById("colLabelSizePref").value;
+	NgChm.heatMap.getColConfig().label_display_method = document.getElementById("colLabelAbbrevPref").value;  
+	NgChm.heatMap.getRowConfig().label_display_length = document.getElementById("rowLabelSizePref").value;
+	NgChm.heatMap.getRowConfig().label_display_method = document.getElementById("rowLabelAbbrevPref").value;  
+
 	// Apply Data Layer Preferences
 	var dataLayers = NgChm.heatMap.getDataLayers();
 	for (var key in dataLayers){
@@ -369,7 +384,14 @@ NgChm.UPM.prefsApply = function() {
  **********************************************************************************/
 NgChm.UPM.prefsValidate = function() {
 	var errorMsg = null;
+	if (document.getElementById("rowTopItems").value.split(",").length > 10) {
+		return  ["ALL", "rowColPrefs", "ERROR: Top Row entries cannot exceed 10"];
+	};
+	if (document.getElementById("colTopItems").value.split(",").length > 10) {
+		return  ["ALL", "rowColPrefs", "ERROR: Top Column entries cannot exceed 10"];
+	};
 	errorMsg = NgChm.UPM.prefsValidateForNumeric();
+
 	//Validate all breakpoints and colors for the main data layer
 	if (errorMsg === null) {
 		var dataLayers = NgChm.heatMap.getDataLayers();
@@ -1282,16 +1304,16 @@ NgChm.UPM.setupRowColPrefs = function(e, prefprefs) {
 	var prefContents = document.createElement("TABLE");
 	NgChm.UHM.addBlankRow(prefContents);
 	NgChm.UHM.setTableRow(prefContents,["MAP INFORMATION:"], 2);
-	NgChm.UHM.addBlankRow(prefContents);
-	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Version Id:", NgChm.heatMap.getMapInformation().version_id]);
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Software Version:", NgChm.CM.version]);
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Map Version:", NgChm.heatMap.getMapInformation().version_id]);
 	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Read Only:", NgChm.heatMap.getMapInformation().read_only]);
 	NgChm.UHM.addBlankRow(prefContents,2);
 	NgChm.UHM.setTableRow(prefContents,["ROW INFORMATION:"], 2);
-	NgChm.UHM.addBlankRow(prefContents);
 	var rowLabels = NgChm.heatMap.getRowLabels();
 	var rowOrganization = NgChm.heatMap.getRowOrganization();
 	var rowOrder = rowOrganization['order_method'];
-	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Total Rows:",NgChm.heatMap.getTotalRows()]);
+	var totalRows = NgChm.heatMap.getTotalRows()-NgChm.heatMap.getMapInformation().map_cut_rows;
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Total Rows:",totalRows]);
 	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Labels Type:",rowLabels['label_type']]);
 	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Ordering Method:",rowOrder]);
 	var dendroShowOptions = "<option value='ALL'>Summary and Detail</option><option value='SUMMARY'>Summary Only</option><option value='NONE'>Hide</option></select>";
@@ -1306,14 +1328,24 @@ NgChm.UPM.setupRowColPrefs = function(e, prefprefs) {
 		rowDendroHeightSelect = rowDendroHeightSelect+dendroHeightOptions;
 		NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Dendrogram Height:",rowDendroHeightSelect]); 
 	}  
-	NgChm.UHM.addBlankRow(prefContents,2);
-	NgChm.UHM.setTableRow(prefContents,["COLUMN INFORMATION:"], 2);
+	var rowLabelSizeSelect = "<select name='rowLabelSizePref' id='rowLabelSizePref'><option value='10'>10 Characters</option><option value='15'>15 Characters</option><option value='20'>20 Characters</option><option value='25'>25 Characters</option><option value='30'>30 Characters</option><option value='35'>35 Characters</option><option value='40'>40 Characters</option>"
+	var rowLabelAbbrevSelect = "<select name='rowLabelAbbrevPref' id='rowLabelAbbrevPref'><option value='START'>Beginning</option><option value='MIDDLE'>Middle</option><option value='END'>End</option>"
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Maximum Label Length:",rowLabelSizeSelect]);
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Trim Label Text From:",rowLabelAbbrevSelect]);
+
+	var topRowItemData = NgChm.heatMap.getRowConfig().top_items.toString();
+	var topRowItems = "&nbsp;&nbsp;<textarea name='rowTopItems' id='rowTopItems' rows='3', cols='80'>"+topRowItemData+"</textarea>";
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Top Rows:"]);
+	NgChm.UHM.setTableRow(prefContents,[topRowItems],2);
+
 	NgChm.UHM.addBlankRow(prefContents);
+	NgChm.UHM.setTableRow(prefContents,["COLUMN INFORMATION:"], 2);
 	
 	var colLabels = NgChm.heatMap.getColLabels();
 	var colOrganization = NgChm.heatMap.getColOrganization();
 	var colOrder = colOrganization['order_method'];
-	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Total Columns:",NgChm.heatMap.getTotalCols()]);
+	var totalCols = NgChm.heatMap.getTotalCols()-NgChm.heatMap.getMapInformation().map_cut_cols;
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Total Columns:",totalCols]);
 	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Labels Type:",colLabels['label_type']]);
 	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Ordering Method:",colOrder]);
 	if (colOrder === "Hierarchical") {
@@ -1326,7 +1358,14 @@ NgChm.UPM.setupRowColPrefs = function(e, prefprefs) {
 		NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Show Dendrogram:",colDendroShowSelect]);
 		NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Dendrogram Height:",colDendroHeightSelect]);
 	}
-	NgChm.UHM.addBlankRow(prefContents,2);
+	var colLabelSizeSelect = "<select name='colLabelSizePref' id='colLabelSizePref'><option value='10'>10 Characters</option><option value='15'>15 Characters</option><option value='20'>20 Characters</option><option value='25'>25 Characters</option><option value='30'>30 Characters</option><option value='35'>35 Characters</option><option value='40'>40 Characters</option>"
+	var colLabelAbbrevSelect = "<select name='colLabelAbbrevPref' id='colLabelAbbrevPref'><option value='START'>Beginning</option><option value='MIDDLE'>Middle</option><option value='END'>End</option>"
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Maximum Label Length:",colLabelSizeSelect]);
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Trim Label Text From:",colLabelAbbrevSelect]);
+	var topColItemData = NgChm.heatMap.getColConfig().top_items.toString();
+	var topColItems = "&nbsp;&nbsp;<textarea name='colTopItems' id='colTopItems' rows='3', cols='80'>"+topColItemData+"</textarea>";
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Top Columns:"]);
+	NgChm.UHM.setTableRow(prefContents,[topColItems],2);
 /*	THIS CODE WAS COMMENTED OUT TO REMOVE MAP SIZING FEATURE BUT MAY RETURN
  * NgChm.UHM.setTableRow(prefContents,["MAP SIZING:"]);
 	var sumWidth = Math.round(document.getElementById('summary_chm').offsetWidth/(.96*document.getElementById('container').offsetWidth)*100);
@@ -1336,11 +1375,6 @@ NgChm.UPM.setupRowColPrefs = function(e, prefprefs) {
 	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Detail Width:","<input type=\"text\" name=\"detailWidthPref\" id=\"detailWidthPref\" style=\"width:40px\" value=\"" + detWidth + "\">%"]);
 	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Map Height:","<input type=\"text\" name=\"mapHeightPref\" id=\"mapHeightPref\" style=\"width:40px\" value=\"" + mapHeight + "\">%"]);
 	NgChm.UHM.addBlankRow(prefContents,2); */
-	NgChm.UHM.setTableRow(prefContents,["LABEL SIZING:"]);
-	var labelSizeSelect = "<select name='labelSizePref' id='labelSizePref'><option value='10'>10 Characters</option><option value='15'>15 Characters</option><option value='20'>20 Characters</option><option value='25'>25 Characters</option><option value='30'>30 Characters</option><option value='35'>35 Characters</option><option value='40'>40 Characters</option>"
-	var labelTruncSelect = "<select name='labelTruncPref' id='labelTruncPref'><option value='START'>Beginning</option><option value='MIDDLE'>Middle</option><option value='END'>End</option>"
-	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Maximum Length:",labelSizeSelect]);
-	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Trim Text From:",labelTruncSelect]);
 	
 	rowcolprefs.appendChild(prefContents);
 
@@ -1403,12 +1437,10 @@ NgChm.UPM.showDendroSelections = function() {
  * states of the label length and truncation preferences.
  **********************************************************************************/
 NgChm.UPM.showLabelSelections = function() {
-	var labelSize = NgChm.heatMap.getMapInformation().label_display_length;
-	var labelTrunc = NgChm.heatMap.getMapInformation().label_display_truncation;
-	var labelSizePref = document.getElementById("labelSizePref");
-	var labelTruncPref = document.getElementById("labelTruncPref");
-	labelSizePref.value = labelSize;
-	labelTruncPref.value = labelTrunc;
+	document.getElementById("colLabelSizePref").value =  NgChm.heatMap.getColConfig().label_display_length;
+	document.getElementById("colLabelAbbrevPref").value = NgChm.heatMap.getColConfig().label_display_method;
+	document.getElementById("rowLabelSizePref").value =  NgChm.heatMap.getRowConfig().label_display_length;
+	document.getElementById("rowLabelAbbrevPref").value = NgChm.heatMap.getRowConfig().label_display_method;
 }
 
 /**********************************************************************************
@@ -1464,6 +1496,5 @@ NgChm.UPM.dendroColShowChange = function() {
 		colHeightPref.disabled = false;
 	}
 }
-
 
 
