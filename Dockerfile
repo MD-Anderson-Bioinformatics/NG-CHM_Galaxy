@@ -8,15 +8,17 @@ FROM bgruening/galaxy-stable
 ##### Place Regular MD Anderson Heat Map software in Tools and Visualization directories #####
 ADD ./mda_heatmap_gen/* /galaxy-central/tools/Heat_Map_Creation/
 ADD ./GalaxyMapGen.jar /galaxy-central/tools/Heat_Map_Creation/
-RUN  chmod +x /galaxy-central/tools/Heat_Map_Creation/heatmap.sh
+RUN  chmod +x /galaxy-central/tools/Heat_Map_Creation/
 RUN  chmod 777 /galaxy-central/tools/Heat_Map_Creation
 
 COPY ./mda_heatmap_viz/  /galaxy-central/config/plugins/visualizations/mda_heatmap_viz/
 RUN  chmod 777 /galaxy-central/config/plugins/visualizations/mda_heatmap_viz/
 
+#todo make whole dir 777 and -x like above
 
 ##### Place ADVANCED MD Anderson Heat Map software in Tools #####
 ADD ./mda_advanced_heatmap_gen/* /galaxy-central/tools/Advanced_Heat_Map_Creation/
+ADD ./mda_heatmap_gen/mda_heatmap_gen.py /galaxy-central/tools/Advanced_Heat_Map_Creation/
 ADD ./GalaxyMapGen.jar /galaxy-central/tools/Advanced_Heat_Map_Creation/
 RUN  chmod +x /galaxy-central/tools/Advanced_Heat_Map_Creation/heatmap_advanced.sh
 RUN  chmod 777 /galaxy-central/tools/Advanced_Heat_Map_Creation

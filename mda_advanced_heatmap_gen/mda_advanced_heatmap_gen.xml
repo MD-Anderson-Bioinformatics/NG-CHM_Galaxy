@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<tool id="mda_advanced_heatmap_gen" name="Advanced NG-CHM Generator" version="2.0.3">
+<tool id="mda_advanced_heatmap_gen" name="Advanced NG-CHM Generator" version="2.0.5">
   <description> Create Clustered Heat Maps</description>
-<command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap_advanced.sh  'Heat_Map_$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__' ${d_rows.rowDendroCut} ${d_cols.colDendroCut} $rowDataType $colDataType 
+<!-- command interpreter="python" detect_errors="aggressive">$__tool_directory__/mad_advanced_heatmap_gen.py  'Heat_Map_$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__' ${d_rows.rowDendroCut} ${d_cols.colDendroCut} $rowDataType $colDataType  -->
+<command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap_advanced.sh  'Heat_Map_$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__' ${d_rows.rowDendroCut} ${d_cols.colDendroCut} $rowDataType $colDataType
 
     "
     #for $attr in $hm_attribute

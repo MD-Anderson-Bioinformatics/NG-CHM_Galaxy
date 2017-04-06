@@ -15,79 +15,76 @@ import traceback
 def main():
     
     try:
-        print 'Starting Heat Map file validation ......\n'
-        argvals= ''
-        for i in range(2,len(sys.argv)): 
-            if i < 5:   argvals+= "'"+str(sys.argv[i])+"' "
-            else:       argvals+= str(sys.argv[i])+" "
-     
-        print "heat map sys args len and values = ",len(sys.argv), str(sys.argv[1]), '++',argvals
+        print '\nStarting Heat Map file validation ......' 
+        #print "\nheat map sys args len and values = ",len(sys.argv), str(sys.argv)   #, '++',argvals
+
       
-        error=              False
-        startCovarParam=    2 # beginning loc for covar triplet info
-        inMatrix=           sys.argv[1]
-        
-#test        inMatrix= "/Users/bobbrown/Desktop/NGCHM-Galaxy-Test-Files/400x400firstRowShift.txt"
-#test        covarFN= '/Users/bobbrown/Desktop/400x400-column-covariate-continuous-TestingErrors.txt'
-#test        row_col_cat_contin= 'column_continuous'
-#test        row_col_cat_contin= 'column_categorical'  
-#test        covarLabel = 'bob test'
-#test        numCovariates= 1
-        
-        error,inMatrixRowLabels,inMatrixColLabels= ValidateHMInputMatrix(inMatrix)   # verify input matrix
+        #error=              False
+        endCovarParam=  len(sys.argv)-2 # IF any ending of loc for covar triplet info 
+        startCovarParam=    17 # beginning loc for covar triplet info
+        inMatrix=           sys.argv[3]
 
-        print " First & last Row labels ", inMatrixRowLabels[0],inMatrixRowLabels[-1]," and Columns ", inMatrixColLabels[0],inMatrixColLabels[-1], " number Rows= ",len(inMatrixRowLabels)," number Columns= ",len(inMatrixColLabels)
-        
-# continue reviewing covariates to catch any errors in any of the input info
+        for i in range( endCovarParam, 15, -3):
+            if len(sys.argv[i]) > 6:
+                if sys.argv[i][0:4].find('row_') == 0 or sys.argv[i][0:7].find('column_') == 0:  # 0 is match start position
+                    startCovarParam= i-2                
+                    #print "\nHeat map arg 3 and start covariate index on = " ,str(sys.argv[3]),' - ', startCovarParam, ' covar name= ',str(sys.argv[startCovarParam:])
+                #else: print '\nCovariate param row or column not found at i', i, str(sys.argv[i])
 
-        #numCovariates= xxxtrunc((len(sys.argv)-startCovarParam)/3) # 3 params per covariate
+    #test        inMatrix= "/Users/bobbrown/Desktop/NGCHM-Galaxy-Test-Files/400x400firstRowShift.txt"
+    #test        covarFN= '/Users/bobbrown/Desktop/400x400-column-covariate-continuous-TestingErrors.txt'
+    #test        row_col_cat_contin= 'column_continuous'
+    #test        row_col_cat_contin= 'column_categorical'  
+    #test        covarLabel = 'bob test'
+    #test        numCovariates= 1
         
-#        for i in range(numCovariates):
-#             covarLabel=         sys.argv[startCovarParam+3*i]
-#             covarFN=            sys.argv[startCovarParam+3*i+1]
-#             row_col_cat_contin= sys.argv[startCovarParam+3*i+2]
-
+        errorInMatrix,inMatrixRowLabels,inMatrixColLabels= ValidateHMInputMatrix(inMatrix)   # verify input matrix
+    
+        print "\nFirst & last Row labels ", inMatrixRowLabels[0],inMatrixRowLabels[-1]," and Columns ", inMatrixColLabels[0],inMatrixColLabels[-1], " number Rows= ",len(inMatrixRowLabels)," number Columns= ",len(inMatrixColLabels)
+            
+    # continue reviewing covariates to catch any errors in any of the input info
+        if errorInMatrix == False: print "\n++++ SUCCESS the Input Matrix looks good\n\n"
+    
+    
         i= startCovarParam
         while i < (len(sys.argv)-2):  # todo verify this works with advances tool is one other 0->n param after this
             covarLabel=         sys.argv[i]
+            covarLabel=         covarLabel.replace(' ','')
             covarFN=            sys.argv[i+1]
-            row_col_cat_contin= sys.argv[i+2]
+            covarFN=            covarFN.replace(' ','')
+            row_col_cat_contin=  sys.argv[i+2]
+            row_col_cat_contin=  row_col_cat_contin.replace(' ','')
             i +=3
                                          
-            print "\nValidating covariate file with label= ", covarLabel, " and type= ",row_col_cat_contin
-
+            print "\nSTART Validating covariate file with label= ", covarLabel, " and type= ",row_col_cat_contin
+    
             error= ValidateHMCorvarFile(covarLabel, covarFN, row_col_cat_contin,inMatrixRowLabels,inMatrixColLabels)  # check covariate files
-
-        if error:
-            print"ERROR issues found in input or covariate files\n "
-            sys.stderr.write( "ERROR issues found in input or covariate files\n ") 
-            sys.exit(-1)
-        else:
-            print" Input and Covariate files have been validiated"
-            
-                    
-# calling sequence for java hm tool
-#         'Heat_Map_$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__' 0 0 labels labels 'None'
-#     #for $op in $operations
-#        ${op.class_name}
-#        ${op.repeatinput.file_name}
-#        ${op.cat}
-#      #end for
-#     '$output' 
-# below not used intead modified heatmap.sh to call python then R then Java
-#         if not error:
-#             p = subprocess.Popen([str(sys.argv[1])+"/heatmap.sh "+ argvals], shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-# 
-# #        for line in p.stdout.readlines():
-# #            print line,
-#             retval = p.wait()  
-#                 
+    
+            if error or errorInMatrix:
+                print"\n---ERROR issues found in input or covariate files\n "
+                sys.stderr.write( "ERROR issues found in input or covariate files see errors in Standard Output\n\n ") 
+                sys.exit(-1)
+                
+                
+        print"\n FINISHED -- Validation of the Input Matrix and Covariate files (if any)\n\n"
+        
+        #print" next running the clustered heat map generator \n",str(sys.argv[11])+"/heatmap.sh "+ str(sys.argv[1:])
+    #            p = subprocess.Popen([str(sys.argv[1])+"/heatmap.sh "+ argvals], shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            #p = subprocess.Popen([str(sys.argv[11])+"/heatmap.sh "+ str(sys.argv[1:])], shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+     
+            #retval = p.wait()  
+            #print ' Cluster and Viewer returned\n'
+            #for line in p.stdout.readlines():
+            #    print line
+                     
 #         else: 
 #             sys.stderr.write("\nERROR -- The Heat Map Generator encountered the above errors with the input file(s)\n\n")
 #             sys.exit(-1) # this will error it out :)
-    except:
-        sys.stderr.write(str(traceback.format_exc()))
-        sys.exit(-1) # this will error it out :)
+#     except:
+#         sys.stderr.write(str(traceback.format_exc()))
+#         sys.exit(-1) # this will error it out :)
+    except Exception, err:
+        sys.stderr.write('ERROR: %sn' % str(err))
 
     return 
 
@@ -96,11 +93,15 @@ def main():
 def ValidateHMInputMatrix(inputMatrixPath):           # This sub routine ensures that the slide design input by the user matches a slide design on record
 
      try:
-        error= False
+        error= True
     
-        print "\nInput matrix path and name ", inputMatrixPath
-        
+        inputMatrixPath= inputMatrixPath.replace(' ','')
+
         inMatrixFH= open( inputMatrixPath, 'rU')
+        
+        #print "\nInput matrix path and name ", inputMatrixPath,"\n"
+        error= False
+
         countRow=   0
         lenRow1=    0
         lenAllRows= 0
@@ -109,41 +110,47 @@ def ValidateHMInputMatrix(inputMatrixPath):           # This sub routine ensures
         
         for rawRow in inMatrixFH:
             countRow +=1
+            
             rawRow= rawRow.replace('\n','')
             eachRow=  rawRow.split('\t')
+            if countRow < 2: print 'Input Matrix start 1 to 10= ',eachRow[:10], '\n'
             
             if countRow == 1: 
                 lenRow1= len(eachRow)
                 inMatrixColLabels= eachRow
                 if lenRow1 < 3:  # likely is covariate file not input matrix
-                    print"ERROR Input  number of columns" , lenRow1," is too few likely input matrix is really a covariate file"
-                    SystemError ("ERROR Input  number of columns" , str(lenRow1)," is too few likely input matrix is really a covariate file")
+                    print"----ERROR Input  number of columns" , lenRow1," is too few likely input matrix is really a covariate file"
+                    SystemError ("----ERROR Input  number of columns" , str(lenRow1)," is too few likely input matrix is really a covariate file")
                     error= True
+                    sys.err= -1
             elif countRow == 2: 
                 lenAllRows= len(eachRow)
-                if (lenAllRows-lenRow1 == 0) or (lenAllRows- lenRow1 == 1): 
-                    print"\nValidating Input matrix,  number of Labeled Columns = ", lenAllRows
+                if (lenAllRows == lenRow1):  #or (lenAllRows- lenRow1 == 1): 
+                    print"Validating Input matrix,  number of Labeled Columns = ", lenAllRows
                     inMatrixRowLabels.append(eachRow[0])
                     if (lenAllRows == lenRow1) and (inMatrixColLabels[0]==''): inMatrixColLabels.pop(0)  #remove blank first cell
                 else: 
-                    print"\nInput matrix number columns= ", lenRow1," in first row and second row= ", lenAllRows," mismatch "
-                    sys.stderr.write( "\nInput matrix number columns= "+str(lenRow1)+" in first row and the second row= "+str(lenAllRows)+" mismatch ")
+                    print"\n--ERROR  Input matrix number columns= ", lenRow1," in first row and second row= ", lenAllRows," mismatch "
+                    sys.stderr.write( "\n--ERROR  Input matrix number columns= "+str(lenRow1)+" in first row and the second row= "+str(lenAllRows)+" mismatch ")
                     error= True
-            elif lenAllRows != len(eachRow):
-                    print"\nInput Row ",countRow," number of columns" , len(eachRow)," length mismatch with row 2 length ", lenAllRows
-                    sys.stderr.write ("\nInput Row "+ str(countRow)+" number of columns"+str(len(eachRow))+" length mismatch with row 2 length "+str( lenAllRows))
+                    sys.err= -1
+            elif lenRow1 != len(eachRow):
+                    print"\n--ERROR Input Row ",countRow," number of columns" , len(eachRow)," length mismatch with row 2 length ", lenAllRows
+                    sys.stderr.write ("\n--ERROR  Input Row "+ str(countRow)+" number of columns"+str(len(eachRow))+" length mismatch with row 2 length "+str( lenAllRows))
                     error= True
+                    sys.err= -1
             else:
                 inMatrixRowLabels.append(eachRow[0])
                 
             if (inMatrixColLabels[-1] =='') or (inMatrixColLabels[-1] =='\n'): inMatrixColLabels.pop()
+     
+        inMatrixFH.close()
 
             #print error, lenAllRows, len(eachRow), eachRow[0]
      except:
+        #inMatrixFH.close()
         sys.stderr.write(str(traceback.format_exc()))
-
-     if error == False: print "the Input Matrix looks good"
-     inMatrixFH.close()
+        error= True
     
      return error,inMatrixRowLabels,inMatrixColLabels
 
@@ -156,11 +163,13 @@ def ValidateHMCorvarFile(covarLabel, covariateFilePath, row_col_cat_contin, inMa
 # 2 That if a continuous covar file that the 2nd field is not all text hard to tell if '-' or 'e exponent'
 # 3 That the length of the covar file matches the row or col length of the input matrix 
 
+    error= True
     try:
-        error= False
     
         covFH= open( covariateFilePath, 'rU')
         countRow= 0
+
+        error= False
         
         for rawRow in covFH:
             countRow +=1
@@ -169,9 +178,11 @@ def ValidateHMCorvarFile(covarLabel, covariateFilePath, row_col_cat_contin, inMa
             if countRow== 0: print "\nCovariance file info - label ",covarLabel," row/col categorical or continous",row_col_cat_contin," first row ",eachrow
     
             if len(eachRow) < 2:
-                print"ERROR Input Row ",countRow," less than two TAB delimited columns ", eachRow
-                sys.stderr.write("ERROR Input Row "+str(countRow)+" covariance label and input matrix label mismatch "+ str(eachRow[0])+" not = "+ str(inMatrixColLabels[countRow-1]))
+                print"----ERROR Input Row ",countRow," less than two TAB delimited columns ", eachRow, " Or maybe empty rows in file"
+                sys.stderr.write("----ERROR Input Row "+str(countRow)+" covariance label and input matrix label mismatch "+ str(eachRow[0])+" not = "+ str(inMatrixColLabels[countRow-1]))
                 error= True
+                sys.err= -1
+                #return error
             
             if row_col_cat_contin[0:6] == 'column':
                 if eachRow[0] != inMatrixColLabels[countRow-1]: 
@@ -179,32 +190,30 @@ def ValidateHMCorvarFile(covarLabel, covariateFilePath, row_col_cat_contin, inMa
 #                         print"ERROR Input COLUMN ",countRow," covariance column label and input matrix column label matches Row instead ", eachRow[0]," not = ", inMatrixColLabels[countRow-1],inMatrixRowLabels[countRow-1]
 #                         SystemError ("ERROR Input COLUMN "+str(countRow)+" covariance column label and input matrix column matches Row instead  "+ str(eachRow[0])+" not = "+ str(inMatrixColLabels[countRow-1]+inMatrixRowLabels[countRow-1]))                        
 #                     else:   
-                    print"ERROR Input COLUMN ",countRow," covariance column label and input matrix column label mismatch ", eachRow[0]," not = ", inMatrixColLabels[countRow-1]
-                    sys.stderr.write("ERROR Input COLUMN "+str(countRow)+" covariance column label and input matrix column label mismatch "+ str(eachRow[0])+" not = "+ str(inMatrixColLabels[countRow-1]))
+                    print"----ERROR Input COLUMN ",countRow," covariance column label and input matrix column label mismatch ", eachRow[0]," not = ", inMatrixColLabels[countRow-1]
+                    sys.stderr.write("----ERROR Input COLUMN "+str(countRow)+" covariance column label and input matrix column label mismatch "+ str(eachRow[0])+" not = "+ str(inMatrixColLabels[countRow-1]))
                     error= True
+                    sys.err= -1
             else: #row covar
                 if eachRow[0] != inMatrixRowLabels[countRow-1]: 
-#                     if eachRow[0] == inMatrixColLabels[countRow-1]: 
-#                         print"ERROR Input COLUMN ",countRow," covariance column label and input matrix column label matches Column instead ", eachRow[0]," not = ", inMatrixRowLabels[countRow-1],inMatrixColLabels[countRow-1]
-#                         SystemError ("ERROR Input COLUMN "+str(countRow)+" covariance column label and input matrix column matches Column instead  "+ str(eachRow[0])+" not = "+ str(inMatrixRowLabels[countRow-1]+inMatrixColLabels[countRow-1]))                        
-#                     else:   
-                    print"ERROR Input ROW ",countRow," covariance row label and input matrix row label mismatch ", eachRow[0]," not = ", inMatrixColLabels[countRow-1]
-                    SystemError ("ERROR Input ROW "+str(countRow)+" covariance row label and input row matrix label mismatch "+ str(eachRow[0])+" not = "+str(inMatrixColLabels[countRow-1]))
+                    print"----ERROR Input ROW ",countRow," covariance row label and input matrix row label mismatch ", eachRow[0]," not = ", inMatrixRowLabels[countRow-1]
+                    SystemError ("----ERROR Input ROW "+str(countRow)+" covariance row label and input row matrix label mismatch "+ str(eachRow[0])+" not = "+str(inMatrixRowLabels[countRow-1]))
                     error= True
+                    sys.err= -1
 
-            if row_col_cat_contin[-4:] == 'uous':  # verify continuous is number-ish
-                tmp= re.search('[+-.0123456789eE]',eachRow[1])
-                try:
-                    if tmp.group(0) == '':
-                        tmp= tmp
-                except Exception as e:
-                    print"WARNING Input Row ",countRow," covariance continuous value appears to be non-numeric --", eachRow[1],"--"
-                    sys.stderr.write("WARNING Input Row "+str(countRow)+" covariance continuous value appears to be non-numeric --"+ str(eachRow[1])+"--")
-                    #error= True
+            if not error:
+                if row_col_cat_contin[-4:] == 'uous':  # verify continuous is number-ish
+                    tmp= re.search('[+-.0123456789eE]',eachRow[1])
+                    try:
+                        if tmp.group(0) == '':
+                            tmp= tmp
+                    except Exception as e:
+                        print"-+-+- WARNING Input Row ",countRow," covariance continuous value appears to be non-numeric --", eachRow[1],"--"
+                        sys.stderr.write("\n-+-+-WARNING Input Row "+str(countRow)+" covariance continuous value appears to be non-numeric --"+ str(eachRow[1])+"--")
+                        #error= True
     except:
         sys.stderr.write(str(traceback.format_exc()))
 
-    if error == False: print "the Covaraite file looks good"
     covFH.close()
 
     return error
