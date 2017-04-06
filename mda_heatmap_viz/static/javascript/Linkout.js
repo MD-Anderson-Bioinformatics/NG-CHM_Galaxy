@@ -410,6 +410,7 @@ NgChm.LNK.getDefaultLinkouts = function(){
 	NgChm.LNK.addLinkout("Copy bar data for all labels", "RowCovar", null,NgChm.LNK.copyEntireClassBarToClipBoard,null,0);
 	NgChm.LNK.addLinkout("Copy bar data for selected labels", "RowCovar", linkouts.MULTI_SELECT,NgChm.LNK.copyPartialClassBarToClipBoard,null,1);
 	NgChm.LNK.addLinkout("Copy selected items to clipboard", "Matrix", linkouts.MULTI_SELECT,NgChm.LNK.copySelectionToClipboard,null,0);
+	NgChm.LNK.addLinkout("Set Selection as Detail View.", "Matrix", linkouts.MULTI_SELECT,NgChm.LNK.setDetailView,null,0);
 }
 
 
@@ -454,4 +455,19 @@ NgChm.LNK.copyPartialClassBarToClipBoard = function(labels,axis){
 
 NgChm.LNK.copySelectionToClipboard = function(labels,axis){
 	window.open("","",'width=335,height=330,resizable=1').document.write("Rows: " + labels["Row"].join(", ") + "<br><br> Columns: " + labels["Column"].join(", "));
+}
+
+//This matrix function allows users to create a special sub-ribbon view that matches
+//the currently selected box in the detail panel.  It just uses the first
+//row/col selected and last row/col selected so it will work well with a drag
+//selected box but not with random selections all over the map.
+NgChm.LNK.setDetailView = function(labels,axis){
+	var selCols = Object.keys(NgChm.SEL.searchItems["Column"])
+	var selRows = Object.keys(NgChm.SEL.searchItems["Row"])
+	var startCol = parseInt(selCols[0])
+	var endCol = parseInt(selCols[selCols.length-1])
+	var startRow = parseInt(selRows[0])
+	var endRow = parseInt(selRows[selRows.length-1])
+
+	NgChm.SUM.setSubRibbonView(startRow, endRow, startCol, endCol);
 }
