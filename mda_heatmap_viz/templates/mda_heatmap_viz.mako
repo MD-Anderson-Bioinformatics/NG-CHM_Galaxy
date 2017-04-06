@@ -37,7 +37,11 @@
     <script>
        NgChm.heatMap = null;  //global - heatmap object.
        NgChm.staticPath = "/plugins/visualizations/mda_heatmap_viz/static/"; //path for static web content - changes in galaxy.
-
+       	//Call functions that enable viewing in IE.
+ 		NgChm.UTIL.iESupport();
+ 	    NgChm.UTIL.setBrowserMinFontSize();
+ 		//Run startup checks that enable startup warnings button.
+ 		NgChm.UTIL.startupChecks();
        var url_dict = ${ h.dumps( url_dict ) };
        var hdaId   = '${trans.security.encode_id( hda.id )}';
        var hdaExt  = '${hda.ext}';
@@ -76,7 +80,7 @@
     <div class="mdaServiceHeader" id="mdaServiceHeader">
         <div class="mdaServiceHeaderLogo">
            <a href="https://www.mdanderson.org/education-and-research/departments-programs-and-labs/departments-and-divisions/bioinformatics-and-computational-biology/index.html"  target="_blank">
-               <img src="/plugins/visualizations/mda_heatmap_viz/static/images/mdabcblogo262x108.png" alt=""/>
+               <img id="mdaLogo" src="/plugins/visualizations/mda_heatmap_viz/static/images/mdabcblogo262x108.png" alt=""/>
            </a>
         </div>
         <div id='detail_buttons' style="display:none;" onmouseout='NgChm.UHM.userHelpClose();'>
@@ -117,13 +121,15 @@
 
     <div id="container">
        <div id='summary_chm' style='position: relative;'>
-   	  <img id='messageOpen_btn' style="position:absolute; display: none;" src='/plugins/visualizations/mda_heatmap_viz/static/images/messageButton.png' alt='Open Alert' onclick='NgChm.SUM.displayInfoMessage();' align="top"   />
+       <img id='messageOpen_btn' style="position:absolute; display: none;" src='/plugins/visualizations/mda_heatmap_viz/static/images/messageButton.png' alt='Open Alert' onmouseout="NgChm.UHM.userHelpClose();" onmouseover='NgChm.UHM.detailDataToolHelp(this,"Display Startup Warnings",160)' onclick='NgChm.UHM.displayStartupWarnings();' align="top"   />
           <canvas id='column_dendro_canvas' width='1200' height='500'></canvas>
           <canvas id='row_dendro_canvas' width='1200' height='500'></canvas>
           <canvas id='summary_canvas'></canvas>
           <canvas id='summary_box_canvas' ></canvas>
           <canvas id='summary_col_select_canvas' class='selection_canvas'></canvas>
 			<canvas id='summary_row_select_canvas' class='selection_canvas' ></canvas>
+			<canvas id=summary_col_top_items_canvas class='selection_canvas'></canvas>
+			<canvas id='summary_row_top_items_canvas' class='selection_canvas' ></canvas>
 	  <div id='sumlabelDiv' style="display: inline-block"></div>
        </div>
 
@@ -145,12 +151,12 @@
 
    <div id="pdfPrefsPanel" style="display: none; position: absolute; background-color: rgb(203, 219, 246);">
       <div class="prefsHeader" id="pdfPrefsHeader">PDF Generation</div>
-         <table>
+         <table id="pdfPrefsTable">
             <tbody>
                <tr>
                   <td>
                      <div id="pdfprefprefs" style="display: block; background-color: rgb(203, 219, 246);">
-                        <div style="display: inherit; width: 220px; height: 220px;">
+                        <div style="display: inherit; width: 290px; height: 350px;">
                            <h3 style="margin-bottom:0px;">Show maps:</h3>
                            <input id="pdfInputSummaryMap" type="radio" name="pages" value="summary"> Summary<br>
                            <input id="pdfInputDetailMap" type="radio" name="pages" value="detail"> Detail<br>
@@ -162,7 +168,19 @@
                            <input id="pdfInputCondensed" type="radio" name="condensed" value="condensed"> Condensed 
                            <input id="pdfInputHistogram" type="radio" name="condensed" value="histogram" checked> Histogram <br>							
                            <input id="pdfInputColumn" type="checkbox" name="class" value="row" checked> Column<br>							
-                           <input id="pdfInputRow" type="checkbox" name="class" value="column" checked> Row
+                           <input id="pdfInputRow" type="checkbox" name="class" value="column" checked> Row<br>
+								<h3 style="margin-bottom:0px;">Display Options:</h3>
+						  		Font Size:&nbsp;&nbsp;&nbsp;<input id="pdfInputFont" type="number" name="font" value="" style="width:40" min="0" onchange="NgChm.PDF.customFont=true"><br>  
+								Font Style:&nbsp;&nbsp;<select id="pdfFontStyle">
+									<option value="helvetica">Helvetica</option>
+									<option value="courier">Courier</option>
+									<option value="times">Times-Roman</option>
+								</select><br> 
+								Paper Size:&nbsp;<select id="pdfPaperSize">
+									<option value="standard">Standard Letter (8.5 x 11 inches)</option>
+									<option value="A3">Ledger/Tabloid (11 x 17 inches)</option>
+									<option value="A4">A4 International (210 x 297 mm)</option>
+								</select>
                         </div>
                         <table>
                            <tbody>
