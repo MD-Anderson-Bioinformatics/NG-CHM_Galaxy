@@ -91,7 +91,7 @@ NgChm.CMM.ColorMap = function(colorMapObj) {
 	this.getColor = function(value){
 		var color;
 	
-		if (value >= NgChm.SUM.maxValues){
+		if (value >= NgChm.SUM.maxValues || value == "Missing"){
 			color = rgbaMissingColor;
 		}else if(value <= thresholds[0]){
 			color = rgbaColors[0]; // return color for lowest threshold if value is below range
