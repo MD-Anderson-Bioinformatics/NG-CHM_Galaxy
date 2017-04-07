@@ -41,7 +41,7 @@
  		NgChm.UTIL.iESupport();
  	    NgChm.UTIL.setBrowserMinFontSize();
  		//Run startup checks that enable startup warnings button.
- 		NgChm.UTIL.startupChecks();
+ 		//NgChm.UTIL.startupChecks();
        var url_dict = ${ h.dumps( url_dict ) };
        var hdaId   = '${trans.security.encode_id( hda.id )}';
        var hdaExt  = '${hda.ext}';
@@ -52,6 +52,8 @@
        xmlhttp.responseType = 'blob';
        xmlhttp.onload = function(e) {
            if (this.status == 200) {
+            //Run startup checks that enable startup warnings button.
+			   NgChm.UTIL.startupChecks();
                var blob = new Blob([this.response], {type: 'compress/zip'});
                zip.useWebWorkers = false;
                var matrixMgr = new NgChm.MMGR.MatrixManager(NgChm.MMGR.FILE_SOURCE);
