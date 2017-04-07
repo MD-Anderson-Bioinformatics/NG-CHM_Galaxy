@@ -145,12 +145,12 @@
           <div id='labelDiv' style="display: inline-block"></div>
        </div>
    </div>
-   <div id='insilico_footer' style="left:10px; bottom:15px;position:absolute">
+   <div id='insilico_footer' style="right:5px; bottom:5px;position:absolute">
       <a href="http://insilico.us.com/"  target="_blank">
          <img id='insilicologo' src='/plugins/visualizations/mda_heatmap_viz/static/images/insilicologo.png' alt='insilico' height="28px"/>
       </a>
    </div>
-
+   
    <div id="pdfPrefsPanel" style="display: none; position: absolute; background-color: rgb(203, 219, 246);">
       <div class="prefsHeader" id="pdfPrefsHeader">PDF Generation</div>
          <table id="pdfPrefsTable">
