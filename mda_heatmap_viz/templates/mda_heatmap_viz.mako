@@ -147,7 +147,7 @@
    </div>
    <div id='insilico_footer' style="right:5px; bottom:5px;position:absolute">
       <a href="http://insilico.us.com/"  target="_blank">
-         <img id='insilicologo' src='/plugins/visualizations/mda_heatmap_viz/static/images/insilicologo.png' alt='insilico' height="28px"/>
+         <img id='insilicologo' src='/plugins/visualizations/mda_heatmap_viz/static/images/insilicologo.png' alt='insilico' height="20px"/>
       </a>
    </div>
    
