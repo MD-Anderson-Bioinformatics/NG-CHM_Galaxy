@@ -197,6 +197,7 @@ NgChm.SUM.setSummarySize = function() {
 NgChm.SUM.setTopItemsSize = function (){
 	var sumChm = document.getElementById("summary_chm");
 	if (NgChm.SUM.colTopItems){
+		NgChm.SUM.colTopItemsWidth = 0;
 		for (i = 0; i < NgChm.SUM.colTopItems.length; i++){
 			var p = document.createElement("p");
 			p.innerHTML = NgChm.SUM.colTopItems[i];
@@ -209,6 +210,7 @@ NgChm.SUM.setTopItemsSize = function (){
 		}
 	}
 	if (NgChm.SUM.rowTopItems){
+		NgChm.SUM.rowTopItemsHeight = 0;
 		for (i = 0; i < NgChm.SUM.rowTopItems.length; i++){
 			var p = document.createElement("p");
 			p.innerHTML = NgChm.SUM.rowTopItems[i];
