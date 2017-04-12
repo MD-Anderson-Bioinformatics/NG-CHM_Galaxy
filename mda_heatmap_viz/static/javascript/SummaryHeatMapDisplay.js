@@ -33,6 +33,7 @@ NgChm.SUM.totalHeight;
 NgChm.SUM.totalWidth;
 
 NgChm.SUM.maxValues = 9999999999.99;
+NgChm.SUM.minValues = -9999999999.99;
 NgChm.SUM.avgValue = 0;
 NgChm.SUM.texProgram;
 NgChm.SUM.eventTimer = 0; // Used to delay draw updates
@@ -177,8 +178,8 @@ NgChm.SUM.setSummarySize = function() {
 	var msgButton = document.getElementById('messageOpen_btn');
 	var left = NgChm.SUM.rowDendro.getDivWidth()*NgChm.SUM.widthPct + NgChm.SUM.paddingHeight;
 	var top = NgChm.SUM.colDendro.getDivHeight() + NgChm.SUM.paddingHeight;
-	var width = document.getElementById("summary_chm").clientWidth - NgChm.SUM.rowDendro.getDivWidth() - NgChm.SUM.colTopItemsWidth;
-	var height = document.getElementById("container").clientHeight*NgChm.SUM.heightPct - NgChm.SUM.colDendro.getDivHeight() - NgChm.SUM.rowTopItemsHeight;
+	var width = document.getElementById("summary_chm").clientWidth - NgChm.SUM.rowDendro.getDivWidth() - NgChm.SUM.rowTopItemsHeight;
+	var height = document.getElementById("container").clientHeight*NgChm.SUM.heightPct - NgChm.SUM.colDendro.getDivHeight() - NgChm.SUM.colTopItemsWidth;
 
 	NgChm.SUM.canvas.style.left=left;
 	NgChm.SUM.canvas.style.top=top;
@@ -200,7 +201,7 @@ NgChm.SUM.setTopItemsSize = function (){
 		NgChm.SUM.colTopItemsWidth = 0;
 		for (i = 0; i < NgChm.SUM.colTopItems.length; i++){
 			var p = document.createElement("p");
-			p.innerHTML = NgChm.SUM.colTopItems[i];
+			p.innerHTML = NgChm.SUM.colTopItems[i].split("|")[0];
 			p.className = "topItems";
 			sumChm.appendChild(p);
 			if (p.clientWidth > NgChm.SUM.colTopItemsWidth){
@@ -213,7 +214,7 @@ NgChm.SUM.setTopItemsSize = function (){
 		NgChm.SUM.rowTopItemsHeight = 0;
 		for (i = 0; i < NgChm.SUM.rowTopItems.length; i++){
 			var p = document.createElement("p");
-			p.innerHTML = NgChm.SUM.rowTopItems[i];
+			p.innerHTML = NgChm.SUM.rowTopItems[i].split("|")[0];
 			p.className = "topItems";
 			sumChm.appendChild(p);
 			if (p.clientWidth > NgChm.SUM.rowTopItemsHeight){
@@ -233,7 +234,7 @@ NgChm.SUM.calcTotalSize = function() {
 NgChm.SUM.setSelectionDivSize = function(width, height){ // input params used for PDF Generator to resize canvas based on PDF sizes
 	var colSel = document.getElementById("summary_col_select_canvas");
 	var rowSel = document.getElementById("summary_row_select_canvas");
-	var colTI = document.getElementById("summary_col_top_items_canvas"); //TODO: 
+	var colTI = document.getElementById("summary_col_top_items_canvas");
 	var rowTI = document.getElementById("summary_row_top_items_canvas");
 	colSel.style.left = parseFloat(NgChm.SUM.canvas.style.left) + NgChm.SUM.canvas.clientWidth * ((NgChm.SUM.calculateSummaryTotalClassBarHeight("row"))/NgChm.SUM.canvas.width);;
 	colSel.style.top = NgChm.SUM.colDendro.getDivHeight() + NgChm.SUM.canvas.clientHeight; 
@@ -928,28 +929,32 @@ NgChm.SUM.clearSelectionMarks = function(){
 }
 
 NgChm.SUM.clearRowSelectionMarks = function() {
-	var oldMarks = document.getElementsByClassName("topItems");
-	while (oldMarks.length > 0) {
-		oldMarks[0].remove();
-	}
 	var rowSel = document.getElementById("summary_row_select_canvas");
 	var rowCtx = rowSel.getContext('2d');
 	rowCtx.clearRect(0,0,rowSel.width,rowSel.height);
 }
 
 NgChm.SUM.clearColSelectionMarks = function() {
-	var oldMarks = document.getElementsByClassName("topItems");
-	while (oldMarks.length > 0) {
-		oldMarks[0].remove();
-	}
 	var colSel = document.getElementById("summary_col_select_canvas");
 	var colCtx = colSel.getContext('2d');
 	colCtx.clearRect(0,0,colSel.width,colSel.height);
 }
 
+NgChm.SUM.clearTopItems = function(){
+	var oldMarks = document.getElementsByClassName("topItems");
+	while (oldMarks.length > 0) {
+		oldMarks[0].remove();
+	}
+	var colSel = document.getElementById("summary_col_top_items_canvas");
+	var colCtx = colSel.getContext('2d');
+	colCtx.clearRect(0,0,colSel.width,colSel.height);
+	var rowSel = document.getElementById("summary_row_top_items_canvas");
+	var rowCtx = rowSel.getContext('2d');
+	rowCtx.clearRect(0,0,rowSel.width,rowSel.height);
+}
+
 NgChm.SUM.drawTopItems = function(){
-	NgChm.SUM.clearColSelectionMarks();
-	NgChm.SUM.clearRowSelectionMarks();
+	NgChm.SUM.clearTopItems();
 	var summaryCanvas = document.getElementById("summary_canvas");
 	var colTopItemsIndex = [];
 	var rowTopItemsIndex = [];
@@ -979,7 +984,7 @@ NgChm.SUM.drawTopItems = function(){
 		for (var i = 0; i < NgChm.SUM.colTopItems.length; i++){ // find the indices for each item to draw them later.
 			var topItem = NgChm.SUM.colTopItems[i].trim();
 			for (var j = 0; j < colLabels.length; j++){
-				if (topItem == colLabels[j] && colTopItemsIndex.length < 10){ // limit 10 items per axis
+				if (topItem == colLabels[j].split("|")[0] && colTopItemsIndex.length < 10){ // limit 10 items per axis
 					colTopItemsIndex.push(j);
 				} else if (colTopItemsIndex.length >= 10){
 					break;
@@ -990,10 +995,8 @@ NgChm.SUM.drawTopItems = function(){
 		var colPositionArray = topItemPositions(colTopItemsIndex, matrixW, referenceItem.offsetHeight, colCanvas.width, colSumRatio);
 		if (colPositionArray){
 			var colTopItemsStart = Array(colTopItemsIndex.length);
-			var colTopItemsEnd = Array(colTopItemsIndex.length);
 			for (var i = 0; i < colTopItemsIndex.length; i++){ // fill in the proper start point for each item
 				colTopItemsStart[i] = Math.round(colTopItemsIndex[i]/(colSumRatio*matrixW)*colCanvas.width);
-				colTopItemsEnd[i] = Math.round(colTopItemsIndex[i]/(colSumRatio*matrixW)*colCanvas.width);
 			}
 			
 			for (var i = 0; i < colTopItemsIndex.length;i++){ // check for rightside overlap. move overlapping items to the left
@@ -1011,7 +1014,7 @@ NgChm.SUM.drawTopItems = function(){
 		for (var i = 0; i < NgChm.SUM.rowTopItems.length; i++){ // find indices
 			var topItem = NgChm.SUM.rowTopItems[i].trim();
 			for (var j = 0; j < rowLabels.length; j++){
-				if (topItem == rowLabels[j] && rowTopItemsIndex.length < 10){ // limit 10 items per axis
+				if (topItem == rowLabels[j].split("|")[0] && rowTopItemsIndex.length < 10){ // limit 10 items per axis
 					rowTopItemsIndex.push(j);
 				} else if (rowTopItemsIndex.length >= 10){
 					break;
@@ -1023,10 +1026,8 @@ NgChm.SUM.drawTopItems = function(){
 		var rowPositionArray = topItemPositions(rowTopItemsIndex, matrixH, referenceItem.offsetHeight, rowCanvas.height, rowSumRatio);
 		if (rowPositionArray){
 			var rowTopItemsStart = Array(rowTopItemsIndex.length);
-			var rowTopItemsEnd = Array(rowTopItemsIndex.length);
 			for (var i = 0; i < rowTopItemsIndex.length; i++){ // fill in the proper start point for each item
 				rowTopItemsStart[i] = Math.round(rowTopItemsIndex[i]/(rowSumRatio*matrixH)*rowCanvas.height);
-				rowTopItemsEnd[i] = Math.round(rowTopItemsIndex[i]/(rowSumRatio*matrixH)*rowCanvas.height);
 			}
 			
 			for (var i = 0; i < rowTopItemsIndex.length;i++){ // draw the lines and the labels
@@ -1127,7 +1128,7 @@ NgChm.SUM.drawTopItems = function(){
 		item.axis = axis;
 		item.index = topItemIndex[index];
 		item.className = "topItems";
-		item.innerHTML = NgChm.UTIL.getLabelText(labels[topItemIndex[index]],axis);
+		item.innerHTML = NgChm.UTIL.getLabelText(labels[topItemIndex[index]].split("|")[0],axis);
 		if (!isRow){
 			item.style.transform = "rotate(90deg)";
 		}
@@ -1175,6 +1176,7 @@ NgChm.SUM.dividerMove = function(e) {
 	detail.style.width=detailX+'px';
 	NgChm.DET.clearLabels();
 	NgChm.SUM.clearSelectionMarks();
+	NgChm.SUM.clearTopItems();
 	NgChm.SUM.setSelectionDivSize();
 }
 

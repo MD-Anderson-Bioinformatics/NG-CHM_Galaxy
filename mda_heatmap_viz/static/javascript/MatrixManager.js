@@ -381,7 +381,7 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 			NgChm.UHM.zipSaveNotification(false);
 		} else {
 			zipSaveMapProperties();
-			if (NgChm.staticPath !== "") {
+			if (NgChm.staticPath === "") {
 				NgChm.UHM.zipSaveNotification(false);
 			}
 		}
@@ -395,8 +395,10 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 		if (fileSrc !== "F") {
 			success = webSaveMapProperties(JSON.stringify(mapConfig)); 
 		} else {
-			zipSaveMapProperties();
-			NgChm.UHM.zipSaveNotification(true);
+			if (NgChm.staticPath === "") {
+				zipSaveMapProperties();
+				NgChm.UHM.zipSaveNotification(true);
+			}
 		}
 		return success;
 	}
