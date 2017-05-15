@@ -306,12 +306,14 @@ NgChm.UPM.prefsApply = function() {
 		rowDendroConfig.show = rowDendroShowVal;
 		rowDendroConfig.height = document.getElementById("rowDendroHeightPref").value;
 	}	
-	var rowTopItems = document.getElementById("rowTopItems").value.split(",");
+	var rowTopItems = document.getElementById("rowTopItems").value.split(/[;, \r\n]+/);
 	//Flush top items array
 	NgChm.heatMap.getRowConfig().top_items = [];
 	//Fill top items array from prefs element contents
 	for (var i=0;i<rowTopItems.length;i++) {
-		NgChm.heatMap.getRowConfig().top_items[i] = rowTopItems[i];
+		if (rowTopItems[i]!==""){ 
+			NgChm.heatMap.getRowConfig().top_items.push(rowTopItems[i]);
+		}
 	}
 	var colDendroConfig = NgChm.heatMap.getColDendroConfig();
 	var colOrganization = NgChm.heatMap.getColOrganization();
@@ -321,10 +323,12 @@ NgChm.UPM.prefsApply = function() {
 		colDendroConfig.show = colDendroShowVal;
 		colDendroConfig.height = document.getElementById("colDendroHeightPref").value;
 	}	
-	var colTopItems = document.getElementById("colTopItems").value.split(",");
+	var colTopItems = document.getElementById("colTopItems").value.split(/[;, \r\n]+/);
 	NgChm.heatMap.getColConfig().top_items = [];
 	for (var i=0;i<colTopItems.length;i++) {
-		NgChm.heatMap.getColConfig().top_items[i] = colTopItems[i];
+		if (colTopItems[i]!==""){
+			NgChm.heatMap.getColConfig().top_items.push(colTopItems[i]);
+		}
 	}
 	// Apply Covariate Bar Preferences
 	var rowClassBars = NgChm.heatMap.getRowClassificationConfig();
@@ -384,10 +388,10 @@ NgChm.UPM.prefsApply = function() {
  **********************************************************************************/
 NgChm.UPM.prefsValidate = function() {
 	var errorMsg = null;
-	if (document.getElementById("rowTopItems").value.split(",").length > 10) {
+	if (document.getElementById("rowTopItems").value.split(/[;, ]+/).length > 10) {
 		return  ["ALL", "rowColPrefs", "ERROR: Top Row entries cannot exceed 10"];
 	};
-	if (document.getElementById("colTopItems").value.split(",").length > 10) {
+	if (document.getElementById("colTopItems").value.split(/[;, ]+/).length > 10) {
 		return  ["ALL", "rowColPrefs", "ERROR: Top Column entries cannot exceed 10"];
 	};
 	errorMsg = NgChm.UPM.prefsValidateForNumeric();
@@ -1334,7 +1338,19 @@ NgChm.UPM.setupRowColPrefs = function(e, prefprefs) {
 	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Trim Label Text From:",rowLabelAbbrevSelect]);
 
 	var topRowItemData = NgChm.heatMap.getRowConfig().top_items.toString();
-	var topRowItems = "&nbsp;&nbsp;<textarea name='rowTopItems' id='rowTopItems' rows='3', cols='80'>"+topRowItemData+"</textarea>";
+	if (NgChm.SUM.rowTopItems.length == 1 && NgChm.SUM.rowTopItems[0] == ""){
+		var topRowItemsStyle = "";
+	}else if (NgChm.SUM.rowTopItems.length > 0 && NgChm.SUM.rowTopItemsIndex.length == 0){
+		var topRowItemsStyle = "style='background-color:rgba(255, 0, 0, 0.3)';";
+		topRowItemsStyle += " onmouseout='NgChm.UHM.userHelpClose();' onmouseover='NgChm.UHM.detailDataToolHelp(this,\"No items were found\",160)'";
+	} else if (NgChm.SUM.rowTopItemsIndex.dupe){
+		var topRowItemsStyle = "style='background-color:rgba(255, 255, 0, 0.3)';";
+		topRowItemsStyle += " onmouseout='NgChm.UHM.userHelpClose();' onmouseover='NgChm.UHM.detailDataToolHelp(this,\"Duplicate items were found\",160)'";
+	} else if (NgChm.SUM.rowTopItems.length > NgChm.SUM.rowTopItemsIndex.length && NgChm.SUM.rowTopItemsIndex.length > 0){
+		var topRowItemsStyle = "style='background-color:rgba(255, 255, 0, 0.3)';";
+		topRowItemsStyle += " onmouseout='NgChm.UHM.userHelpClose();' onmouseover='NgChm.UHM.detailDataToolHelp(this,\"Some items were not found\",160)'";
+	}
+	var topRowItems = "&nbsp;&nbsp;<textarea name='rowTopItems' id='rowTopItems' " + topRowItemsStyle +" rows='3', cols='80'>"+topRowItemData+"</textarea>";
 	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Top Rows:"]);
 	NgChm.UHM.setTableRow(prefContents,[topRowItems],2);
 
@@ -1363,7 +1379,19 @@ NgChm.UPM.setupRowColPrefs = function(e, prefprefs) {
 	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Maximum Label Length:",colLabelSizeSelect]);
 	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Trim Label Text From:",colLabelAbbrevSelect]);
 	var topColItemData = NgChm.heatMap.getColConfig().top_items.toString();
-	var topColItems = "&nbsp;&nbsp;<textarea name='colTopItems' id='colTopItems' rows='3', cols='80'>"+topColItemData+"</textarea>";
+	if (NgChm.SUM.colTopItems.length == 1 && NgChm.SUM.colTopItems[0] == ""){
+		var topColItemsStyle = "";
+	}else if (NgChm.SUM.colTopItems.length > 0 && NgChm.SUM.colTopItemsIndex.length == 0){ 
+		var topColItemsStyle = "style='background-color:rgba(255, 0, 0, 0.3)';";
+		topColItemsStyle += " onmouseout='NgChm.UHM.userHelpClose();' onmouseover='NgChm.UHM.detailDataToolHelp(this,\"No items were found\",160)'";
+	} else if (NgChm.SUM.colTopItemsIndex.dupe){
+		var topColItemsStyle = "style='background-color:rgba(255, 255, 0, 0.3)';";
+		topColItemsStyle += " onmouseout='NgChm.UHM.userHelpClose();' onmouseover='NgChm.UHM.detailDataToolHelp(this,\"Duplicate items were found\",160)'";
+	} else if (NgChm.SUM.colTopItems.length > NgChm.SUM.colTopItemsIndex.length && NgChm.SUM.colTopItemsIndex.length > 0){
+		var topColItemsStyle = "style='background-color:rgba(255, 255, 0, 0.3)';";
+		topColItemsStyle += " onmouseout='NgChm.UHM.userHelpClose();' onmouseover='NgChm.UHM.detailDataToolHelp(this,\"Some items were not found\",160)'";
+	}
+	var topColItems = "&nbsp;&nbsp;<textarea name='colTopItems' id='colTopItems' " + topColItemsStyle +" rows='3', cols='80'>"+topColItemData+"</textarea>";
 	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Top Columns:"]);
 	NgChm.UHM.setTableRow(prefContents,[topColItems],2);
 /*	THIS CODE WAS COMMENTED OUT TO REMOVE MAP SIZING FEATURE BUT MAY RETURN
@@ -1496,5 +1524,6 @@ NgChm.UPM.dendroColShowChange = function() {
 		colHeightPref.disabled = false;
 	}
 }
+
 
 
