@@ -151,29 +151,29 @@
       </a>
    </div>
    
-   <div id="pdfPrefsPanel" style="display: none; position: absolute; background-color: rgb(203, 219, 246);">
-      <div class="prefsHeader" id="pdfPrefsHeader">PDF Generation</div>
-         <table id="pdfPrefsTable">
-            <tbody>
-               <tr>
-                  <td>
-                     <div id="pdfprefprefs" style="display: block; background-color: rgb(203, 219, 246);">
-                        <div style="display: inherit; width: 290px; height: 350px;">
-                           <h3 style="margin-bottom:0px;">Show maps:</h3>
-                           <input id="pdfInputSummaryMap" type="radio" name="pages" value="summary"> Summary<br>
-                           <input id="pdfInputDetailMap" type="radio" name="pages" value="detail"> Detail<br>
-                           <input id="pdfInputBothMaps" type="radio" name="pages" value="both" checked> Both<br><br>
-						<!--  		<input id="pdfInputPages" type="checkbox" name="pages" value="separate"> Show maps on separate pages<br>	-->							
-                           <input id="pdfInputPortrait" type="radio" name="orientation" value="portrait"> Portrait 
-                           <input id="pdfInputLandscape" type="radio" name="orientation" value="Landscape" checked> Landscape <br>							
-                           <h3 style="margin-bottom:0px;">Show classification bars:</h3>							
-                           <input id="pdfInputCondensed" type="radio" name="condensed" value="condensed"> Condensed 
-                           <input id="pdfInputHistogram" type="radio" name="condensed" value="histogram" checked> Histogram <br>							
-                           <input id="pdfInputColumn" type="checkbox" name="class" value="row" checked> Column<br>							
-                           <input id="pdfInputRow" type="checkbox" name="class" value="column" checked> Row<br>
+  <div id="pdfPrefsPanel" style="display: none; position: absolute; background-color: rgb(203, 219, 246);">
+		<div class="prefsHeader" id="pdfPrefsHeader">PDF Generation</div>
+		<table id="pdfPrefsTable">
+			<tbody>
+				<tr>
+					<td>
+						<div id="pdfprefprefs" style="display: block; background-color: rgb(203, 219, 246);">
+							<div style="display: inherit; width: 290px; height: 350px;">
+								<h3 style="margin-bottom:0px;">Show maps:</h3>
+								<input id="pdfInputSummaryMap" type="radio" name="pages" value="summary"> Summary<br>
+								<input id="pdfInputDetailMap" type="radio" name="pages" value="detail"> Detail<br>
+								<input id="pdfInputBothMaps" type="radio" name="pages" value="both" checked> Both<br><br>
+						<!--  		<input id="pdfInputPages" type="checkbox" name="pages" value="separate"> Show maps on separate pages<br>	-->						
+								<input id="pdfInputPortrait" type="radio" name="orientation" value="portrait"> Portrait 
+								<input id="pdfInputLandscape" type="radio" name="orientation" value="Landscape" checked> Landscape <br>							
+								<h3 style="margin-bottom:0px;">Show classification bars:</h3>							
+								<input id="pdfInputCondensed" type="radio" name="condensed" value="condensed" checked> Condensed 
+								<input id="pdfInputHistogram" type="radio" name="condensed" value="histogram"> Histogram <br>							
+								<input id="pdfInputColumn" type="checkbox" name="class" value="row" checked> Column<br>							
+								<input id="pdfInputRow" type="checkbox" name="class" value="column" checked> Row<br>
 								<h3 style="margin-bottom:0px;">Display Options:</h3>
-						  		Font Size:&nbsp;&nbsp;&nbsp;<input id="pdfInputFont" type="number" name="font" value="" style="width:40" min="0" onchange="NgChm.PDF.customFont=true"><br>  
-								Font Style:&nbsp;&nbsp;<select id="pdfFontStyle">
+						  		Font Size:&nbsp;&nbsp;&nbsp;<input id="pdfInputFont" type="number" name="font" value="" style="width:40;" min="1" max="36" onchange="NgChm.PDF.customFont=true">								  		Font Size:&nbsp;&nbsp;&nbsp;<input id="pdfInputFont" type="number" name="font" value="" style="width:40" min="0" onchange="NgChm.PDF.customFont=true"><br>  
+						  		<p id="pdfErrorMessage" style="display:none;color:red; font-weight:bold;">Please select a font between 1 and 36</p><br>  								Font Style:&nbsp;&nbsp;<select id="pdfFontStyle">
 									<option value="helvetica">Helvetica</option>
 									<option value="courier">Courier</option>
 									<option value="times">Times-Roman</option>
