@@ -2,11 +2,12 @@
 NgChm.createNS('NgChm.DDR');
 
 //Class used to hold an in memory 2D boolean matrix of the dendrogram 
-NgChm.DDR.DendroMatrix = function(numRows, numCols){
+NgChm.DDR.DendroMatrix = function(numRows, numCols,isRow){
 	// We've moved away from using a 2D matrix and have opted to use one long array for performance purposes.
 	var matrixData = new Uint8Array(numRows * numCols);
 	var numRows = numRows;
 	var numCols = numCols;
+	var isRow = isRow;
 	
 	this.getDataLength = function(){
 		return matrixData.length;
@@ -16,6 +17,9 @@ NgChm.DDR.DendroMatrix = function(numRows, numCols){
 		matrixData[(row * numCols) + col ] = bold ? 2 : 1;
 	}
 	
+	this.isRow = function(){
+		return isRow;
+	}
 	this.get = function(row, col){
 		return (matrixData[(row * numCols) + col ]);
 	}
@@ -227,7 +231,7 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 		bars = []; // clear out the bars array otherwise it will add more and more bars and slow everything down!
 		var numNodes = dendroData.length;
 		var matrixWidth = pointsPerLeaf*NgChm.heatMap.getNumColumns('d');
-		var matrix = new NgChm.DDR.DendroMatrix(normDendroMatrixHeight+1, matrixWidth);
+		var matrix = new NgChm.DDR.DendroMatrix(normDendroMatrixHeight+1, matrixWidth,false);
 		
 		if (normDendroMatrixHeight >= NgChm.DDR.maxDendroMatrixHeight){ // if the dendro matrix height is already at the highest possible, just build it
 			for (var i = 0; i < numNodes; i++){
@@ -573,7 +577,7 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 		var numNodes = dendroData.length;
 		var maxHeight = getMaxHeight(dendroData);
 		var matrixWidth = pointsPerLeaf*NgChm.heatMap.getNumRows('d');
-		var matrix = new NgChm.DDR.DendroMatrix(normDendroMatrixHeight+1, matrixWidth);
+		var matrix = new NgChm.DDR.DendroMatrix(normDendroMatrixHeight+1, matrixWidth,true);
 		
 		if (normDendroMatrixHeight >= NgChm.DDR.maxDendroMatrixHeight){ // if the dendro matrix height is already at the highest possible, just build it
 			for (var i = 0; i < numNodes; i++){
@@ -734,13 +738,18 @@ NgChm.DDR.minDendroMatrixHeight = 500;
 NgChm.DDR.pointsPerLeaf = 3; // each leaf will get 3 points in the dendrogram array. This is to avoid lines being right next to each other
 
 NgChm.DDR.findExtremes = function(i,j,matrix) {
-	var searchRadiusMax = 10; // this determines how far to search before giving up 
-	var ip = i, id = i, jr = j, jl = j, searchRadius = 0;
-	while (matrix.getNumRows() > ip && id > 0 && matrix.get(id,j)==0 && matrix.get(ip,j)==0 && 
-			jl % matrix.getNumCols() !== 0 && jr % matrix.getNumCols() !== 0 && matrix.get(i,jl)==0 && matrix.get(i,jr)==0 && searchRadius < searchRadiusMax){
-		id--,ip++,jl--,jr++,searchRadius++;
-	} // search up and down for for closest dendro bar
-	if (id == 0 || ip == matrix.getNumRows() || searchRadius == searchRadiusMax){
+	var searchRadiusMaxX = matrix.isRow() ? Math.round(NgChm.SEL.dataPerCol/NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL)/10) : 
+											Math.round(NgChm.SEL.dataPerRow/NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL)/10);
+	var searchRadiusMaxY = matrix.isRow() ? Math.round((matrix.getNumRows()*NgChm.SEL.dataPerCol/NgChm.SUM.matrixHeight)/NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL)/10) : 
+											Math.round((matrix.getNumRows()*NgChm.SEL.dataPerRow/NgChm.SUM.matrixWidth)/NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL)/10);
+	var ip = i, id = i, jr = j, jl = j, searchRadius = 0,searchRadiusX = 0,searchRadiusY = 0;
+	while (matrix.getNumRows() > ip && id > 0 && matrix.get(id,j)==0 && matrix.get(ip,j)==0 && searchRadiusY < searchRadiusMaxY){
+		id--,ip++,searchRadiusY++;
+	}
+	while (jl % matrix.getNumCols() !== 0 && jr % matrix.getNumCols() !== 0 && matrix.get(i,jl)==0 && matrix.get(i,jr)==0 && searchRadiusX < searchRadiusMaxX){
+		jl--,jr++,searchRadiusX++;
+	}
+	if (id == 0 || ip == matrix.getNumRows() || (searchRadiusX == searchRadiusMaxX && searchRadiusY == searchRadiusMaxY)){
 		return false;
 	}
 	if (matrix.get(id,j)!=0){
