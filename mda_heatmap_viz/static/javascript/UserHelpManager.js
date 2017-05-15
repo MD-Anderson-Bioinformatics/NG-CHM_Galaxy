@@ -146,7 +146,7 @@ NgChm.UHM.userHelpOpen = function(e) {
     	}
     	var colors = colorMap.getColors();
     	var classType = colorMap.getType();
-    	if (value == 'null') {
+    	if ((value === 'null') || (value === 'NA')) {
         	value = "Missing Value";
     	}
     	var thresholds = colorMap.getThresholds();
@@ -227,19 +227,27 @@ NgChm.UHM.userHelpOpen = function(e) {
         		}
         	}
         	var selPct = Math.round(((valSelected / valTotal) * 100) * 100) / 100;  //new line
-        	NgChm.UHM.setTableRow(helpContents, ["<div class='input-color'><div class='color-box' style='background-color: " + color + ";'></div></div>", modThresh + " (n = " + valSelected + ", " + selPct+ "%)"]);
+        	if (currentBar.bar_type === 'color_plot') {
+            	NgChm.UHM.setTableRow(helpContents, ["<div class='input-color'><div class='color-box' style='background-color: " + color + ";'></div></div>", modThresh + " (n = " + valSelected + ", " + selPct+ "%)"]);
+        	} else {
+            	NgChm.UHM.setTableRow(helpContents, ["<div> </div></div>", modThresh + " (n = " + valSelected + ", " + selPct+ "%)"]);
+        	}
         	prevThresh = currThresh;
     	}
     	var valSelected = 0;  
     	var valTotal = hoveredBarValues.length; 
     	for (var j = 0; j < valTotal; j++) { 
-    		if (hoveredBarValues[j] == "null") { 
+    		if ((hoveredBarValues[j] == "null") || (hoveredBarValues[j] == "NA")) { 
     			valSelected++;  
     		} 
     	} 
     	var selPct = Math.round(((valSelected / valTotal) * 100) * 100) / 100;  //new line
-    	NgChm.UHM.setTableRow(helpContents, ["<div class='input-color'><div class='color-box' style='background-color: " +  colorMap.getMissingColor() + ";'></div></div>", "Missing Color (n = " + valSelected + ", " + selPct+ "%)"]);
-        helptext.style.display="inherit";
+    	if (currentBar.bar_type === 'color_plot') {
+			NgChm.UHM.setTableRow(helpContents, ["<div class='input-color'><div class='color-box' style='background-color: " +  colorMap.getMissingColor() + ";'></div></div>", "Missing Color (n = " + valSelected + ", " + selPct+ "%)"]);
+    	} else {
+			NgChm.UHM.setTableRow(helpContents, ["<div> </div></div>", "Missing Color (n = " + valSelected + ", " + selPct+ "%)"]);
+    	}
+		helptext.style.display="inherit";
     	helptext.appendChild(helpContents);
     	NgChm.UHM.locateHelpBox(e, helptext);
     } else {  
@@ -311,29 +319,34 @@ NgChm.UHM.detailDataToolHelp = function(e,text,width,align) {
 	    }
 	    helptext.style.position = "absolute";
 	    e.parentElement.appendChild(helptext);
-    
-	    if (2*width + e.getBoundingClientRect().right > document.body.offsetWidth-50){ // 2*width and -50 from window width to force elements close to right edge to move
-	    	if (e.offsetLeft === 0) {
-		    	helptext.style.left = e.offsetLeft - 40;
+	    helptext.style.display="inherit";
+	    
+	    if (helptext.offsetParent == e.parentElement){ // in most cases, this will be true
+	    	if (2*width + e.getBoundingClientRect().right > document.body.offsetWidth-50){ // 2*width and -50 from window width to force elements close to right edge to move
+		    	if (e.offsetLeft === 0) {
+			    	helptext.style.left = e.offsetLeft - 40;
+		    	} else {
+			    	helptext.style.left = e.offsetLeft - width;  
+		    	}
+		    } else {
+		    	if (e.offsetLeft !== 0) {
+		    		helptext.style.left = e.offsetLeft ;
+		    	}
+		    }
+		    // Unless close to the bottom, set help text below cursor
+		    // Else, set to right of cursor.
+	    	if (e.offsetTop > 10) {
+	    		helptext.style.top = e.offsetTop + 20;
 	    	} else {
-		    	helptext.style.left = e.offsetLeft - width;  
+	    		helptext.style.top = e.offsetTop + 45;
 	    	}
-	    } else {
-	    	if (e.offsetLeft !== 0) {
-	    		helptext.style.left = e.offsetLeft ;
-	    	}
+	    } else { // in tables (td,tr or anything where e.parentElement does not have position: relative or absolute) the positioning logic above will fail, so we don't move it at all
+	    
 	    }
-	    // Unless close to the bottom, set help text below cursor
-	    // Else, set to right of cursor.
-    	if (e.offsetTop > 10) {
-    		helptext.style.top = e.offsetTop + 20;
-    	} else {
-    		helptext.style.top = e.offsetTop + 45;
-    	}
 	    helptext.style.width = width;
 		var htmlclose = "</font></b>";
 		helptext.innerHTML = "<b><font size='2' color='#0843c1'>"+text+"</font></b>";
-		helptext.style.display="inherit"; 
+//		helptext.style.display="inherit"; 
 	},1000);
 }
 
@@ -716,4 +729,5 @@ NgChm.UHM.displayStartupWarnings = function() {
 	NgChm.UHM.setMessageBoxButton(3, "images/prefCancel.png", "", "NgChm.UHM.messageBoxCancel");
 	document.getElementById('msgBox').style.display = '';
 }
+
 
