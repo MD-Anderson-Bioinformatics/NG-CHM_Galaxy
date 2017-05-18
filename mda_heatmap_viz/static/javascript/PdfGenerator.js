@@ -233,7 +233,7 @@ NgChm.PDF.getPDF = function() {
 		var selectedColor = colorMap.getHexToRgba(layer.selection_color);
 		var rowLabels = 0;
 
-		// Draw row selection boxes first (this way they will not overlap text)
+		// Draw selection boxes first (this way they will not overlap text)
 		for (var i = 0; i < allLabels.length; i++){
 			var label = allLabels[i];
 			if (label.getAttribute("axis") == "Row"){
@@ -245,38 +245,28 @@ NgChm.PDF.getPDF = function() {
 					doc.rect(label.offsetLeft/detClient2PdfWRatio+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop+1, longestRowLabelUnits+2, theFont+2,'F'); 
 				}
 				rowLabels++;
-			}
-		}
-		// Draw row labels 
-		for (var i = 0; i < allLabels.length; i++){
-			var label = allLabels[i];
-			if (label.getAttribute("axis") == "Row"){
-				doc.text(label.offsetLeft/detClient2PdfWRatio+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop+theFont*.75, label.innerHTML);
-
-			} else if (label.getAttribute("axis") == "ColumnCovar"){ // change font for class bars
-				doc.text(label.offsetLeft/detClient2PdfWRatio+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop+theFont*.75, label.innerHTML, null);
-			}
-		}
-		// Draw column selection boxes first
-		for (var i = 0; i < allLabels.length; i++){
-			var label = allLabels[i];
-			if (label.getAttribute("axis") == "Column"){
+			} else if (label.getAttribute("axis") == "Column") {
 				if (NgChm.DET.labelIndexInSearch(NgChm.SEL.currentCol+i-rowLabels,"Column")) {
 					doc.setFillColor(selectedColor.r, selectedColor.g, selectedColor.b);
 					doc.rect((label.offsetLeft/detClient2PdfWRatio)-2.5, label.offsetTop/detClient2PdfHRatio+paddingTop,  theFont+2.5, longestColLabelUnits+2,'F'); 
 				}
 			}
 		}
-		// Draw column labels
+		
+		// Draw labels 
 		for (var i = 0; i < allLabels.length; i++){
 			var label = allLabels[i];
-			if (label.getAttribute("axis") == "Column"){
-				doc.text(label.offsetLeft/detClient2PdfWRatio, label.offsetTop/detClient2PdfHRatio+paddingTop, label.innerHTML, null, 270);
-			} else if (label.getAttribute("axis") == "RowCovar"){
-				doc.text(label.offsetLeft/detClient2PdfWRatio, label.offsetTop/detClient2PdfHRatio+paddingTop, label.innerHTML, null, 270);
-			}
+			if ((label.getAttribute("axis") == "Row") || (label.getAttribute("axis") == "ColumnCovar")) {
+				doc.text(label.offsetLeft/detClient2PdfWRatio+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop+theFont*.75, label.innerHTML, null);
+			} else if ((label.getAttribute("axis") == "Column") || (label.getAttribute("axis") == "RowCovar")) {
+				if (label.id.indexOf("legendDet") > -1) {
+					doc.text((label.offsetLeft+(label.clientWidth*1.5))/detClient2PdfWRatio, label.offsetTop/detClient2PdfHRatio+paddingTop, label.innerHTML, null, 270);
+				} else {
+					doc.text(label.offsetLeft/detClient2PdfWRatio, label.offsetTop/detClient2PdfHRatio+paddingTop, label.innerHTML, null, 270);
+				}
+			} 
+ 
 		}
-	 
 	}
 	
 	// Setup for class bar legends
@@ -522,7 +512,11 @@ NgChm.PDF.getPDF = function() {
 		doc.setFontType("bold");
 		doc.text(leftOff, topOff, splitTitle);
 		doc.setFontType("normal");
-
+		var classBars = NgChm.heatMap.getColClassificationConfig();
+		if (type === 'row') {
+			classBars = NgChm.heatMap.getRowClassificationConfig();
+		}
+		var classBar = classBars[key];
 		//Adjustment for multi-line covariate headers
 		if(splitTitle.length > 1) {
 			classBarHeaderHeight = (classBarHeaderSize*splitTitle.length)+(4*splitTitle.length)+10;   
@@ -579,6 +573,9 @@ NgChm.PDF.getPDF = function() {
 		leftOff += 10;
 		for (var j = 0; j < thresholds.length-1; j++){
 			var rgb = colorMap.getClassificationColor(thresholds[j]);
+			if (classBar.bar_type !== 'color_plot') {
+				rgb = colorMap.getClassificationColor(thresholds[thresholds.length-1]);
+			}
 			doc.setFillColor(rgb.r,rgb.g,rgb.b);
 			doc.setDrawColor(0,0,0);
 			value = counts[thresholds[j]];

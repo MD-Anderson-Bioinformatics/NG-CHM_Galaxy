@@ -319,9 +319,7 @@ NgChm.UHM.detailDataToolHelp = function(e,text,width,align) {
 	    }
 	    helptext.style.position = "absolute";
 	    e.parentElement.appendChild(helptext);
-	    helptext.style.display="inherit";
-	    
-	    if (helptext.offsetParent == e.parentElement){ // in most cases, this will be true
+
 	    	if (2*width + e.getBoundingClientRect().right > document.body.offsetWidth-50){ // 2*width and -50 from window width to force elements close to right edge to move
 		    	if (e.offsetLeft === 0) {
 			    	helptext.style.left = e.offsetLeft - 40;
@@ -340,13 +338,10 @@ NgChm.UHM.detailDataToolHelp = function(e,text,width,align) {
 	    	} else {
 	    		helptext.style.top = e.offsetTop + 45;
 	    	}
-	    } else { // in tables (td,tr or anything where e.parentElement does not have position: relative or absolute) the positioning logic above will fail, so we don't move it at all
-	    
-	    }
 	    helptext.style.width = width;
 		var htmlclose = "</font></b>";
 		helptext.innerHTML = "<b><font size='2' color='#0843c1'>"+text+"</font></b>";
-//		helptext.style.display="inherit"; 
+		helptext.style.display="inherit"; 
 	},1000);
 }
 

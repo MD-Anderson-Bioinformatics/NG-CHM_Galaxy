@@ -333,6 +333,8 @@ NgChm.UPM.prefsApply = function() {
 	// Apply Covariate Bar Preferences
 	var rowClassBars = NgChm.heatMap.getRowClassificationConfig();
 	for (var key in rowClassBars){
+		var currentClassBar = rowClassBars[key];
+		var colorMap = NgChm.heatMap.getColorMapManager().getColorMap("row", key);
 		var keyrow = key+"_row";
 		var showElement = document.getElementById(keyrow+"_showPref");
 		var heightElement = document.getElementById(keyrow+"_heightPref");
@@ -340,10 +342,20 @@ NgChm.UPM.prefsApply = function() {
 			showElement.checked = false;
 		}
 		NgChm.heatMap.setClassificationPrefs(key,"row",showElement.checked,heightElement.value);
+		var barTypeElement = document.getElementById(keyrow+"_barTypePref");
+		var bgColorElement = document.getElementById(keyrow+"_bgColorPref");
+		var fgColorElement = document.getElementById(keyrow+"_fgColorPref");
+		var lowBoundElement = document.getElementById(keyrow+"_lowBoundPref");
+		var highBoundElement = document.getElementById(keyrow+"_highBoundPref");
+		if (colorMap.getType() === 'continuous') {
+			NgChm.heatMap.setClassBarScatterPrefs(key, "row", barTypeElement.value, lowBoundElement.value, highBoundElement.value, fgColorElement.value, bgColorElement.value);
+		}
 		NgChm.UPM.prefsApplyBreaks(key,"row");
 	}
 	var colClassBars = NgChm.heatMap.getColClassificationConfig();
 	for (var key in colClassBars){
+		var currentClassBar = colClassBars[key];
+		var colorMap = NgChm.heatMap.getColorMapManager().getColorMap("col", key);
 		var keycol = key+"_col";
 		var showElement = document.getElementById(keycol+"_showPref");
 		var heightElement = document.getElementById(keycol+"_heightPref");
@@ -351,17 +363,16 @@ NgChm.UPM.prefsApply = function() {
 			showElement.checked = false;
 		}
 		NgChm.heatMap.setClassificationPrefs(key,"col",showElement.checked,heightElement.value);
+		var barTypeElement = document.getElementById(keycol+"_barTypePref");
+		var bgColorElement = document.getElementById(keycol+"_bgColorPref");
+		var fgColorElement = document.getElementById(keycol+"_fgColorPref");
+		var lowBoundElement = document.getElementById(keycol+"_lowBoundPref");
+		var highBoundElement = document.getElementById(keycol+"_highBoundPref");
+		if (colorMap.getType() === 'continuous') {
+			NgChm.heatMap.setClassBarScatterPrefs(key, "col", barTypeElement.value, lowBoundElement.value, highBoundElement.value, fgColorElement.value, bgColorElement.value);
+		}
 		NgChm.UPM.prefsApplyBreaks(key,"col");
-	}
-/*	THIS CODE WAS COMMENTED OUT TO REMOVE MAP SIZING FEATURE BUT MAY RETURN
-	// Apply Map Sizing Preferences
-	var sumSize = document.getElementById("summaryWidthPref").value;
-	var detSize = document.getElementById("detailWidthPref").value;
-	var heightSize = document.getElementById("mapHeightPref").value;
-	NgChm.heatMap.getMapInformation().summary_width = sumSize;
-	NgChm.heatMap.getMapInformation().detail_width = detSize;
-	NgChm.heatMap.getMapInformation().summary_height = heightSize;
-	NgChm.heatMap.getMapInformation().detail_height = heightSize; */
+	} 
 	
 	// Apply Label Sizing Preferences
 	NgChm.heatMap.getColConfig().label_display_length = document.getElementById("colLabelSizePref").value;
@@ -417,45 +428,65 @@ NgChm.UPM.prefsValidateForNumeric = function() {
 	var errorMsg = null;
 	var rowClassBars = NgChm.heatMap.getRowClassificationConfig();
 	for (var key in rowClassBars) {
+		var currentClassBar = rowClassBars[key];
+		var keyrow = key+"_row";
 		var elem = document.getElementById(key+"_row_heightPref");
 		var elemVal = elem.value;
 		if ((isNaN(elemVal)) || (parseInt(elemVal) < 0) || (elemVal === "")) {
 			errorMsg =  ["ALL", "classPrefs", "ERROR: Bar heights must be between 0 and 99"];
 		    return errorMsg;
 		}
+		if (currentClassBar.bar_type !== 'color_plot') {
+			var lowBoundElement = document.getElementById(keyrow+"_lowBoundPref");
+			if (isNaN(lowBoundElement.value)) {
+				errorMsg =  [keyrow, "classPrefs", "ERROR: Covariate bar low bound must be numeric"];
+			    return errorMsg;
+			}
+			var highBoundElement = document.getElementById(keyrow+"_highBoundPref");
+			if (isNaN(highBoundElement.value)) {
+				errorMsg =  [keyrow, "classPrefs", "ERROR: Covariate bar high bound must be numeric"];
+			    return errorMsg;
+			}
+			var bgColorElement = document.getElementById(keyrow+"_bgColorPref");
+			var fgColorElement = document.getElementById(keyrow+"_fgColorPref");
+			if (bgColorElement.value === fgColorElement.value) {
+				errorMsg =  [keyrow, "classPrefs", "ERROR: Duplicate foreground and background colors found"];
+			    return errorMsg;
+			}
+		}
 	}
 	if (errorMsg === null) {
 		var colClassBars = NgChm.heatMap.getColClassificationConfig();
 		for (var key in colClassBars) {
+			var keycol = key+"_col";
+			var currentClassBar = colClassBars[key];
 			var elem = document.getElementById(key+"_col_heightPref");
 			var elemVal = elem.value;
 			if ((isNaN(elemVal)) || (parseInt(elemVal) < 0) || (elemVal === "")) {
 				errorMsg =  ["ALL", "classPrefs", "ERROR: Bar heights must be between 0 and 99"];
 				 return errorMsg;
 			}
+			if (currentClassBar.bar_type !== 'color_plot') {
+				var lowBoundElement = document.getElementById(keycol+"_lowBoundPref");
+				if (isNaN(lowBoundElement.value)) {
+					errorMsg =  [keycol, "classPrefs", "ERROR: Covariate bar low bound must be numeric"];
+				    return errorMsg;
+				}
+				var highBoundElement = document.getElementById(keycol+"_highBoundPref");
+				if (isNaN(highBoundElement.value)) {
+					errorMsg =  [keycol, "classPrefs", "ERROR: Covariate bar high bound must be numeric"];
+				    return errorMsg;
+				}
+				var bgColorElement = document.getElementById(keycol+"_bgColorPref");
+				var fgColorElement = document.getElementById(keycol+"_fgColorPref");
+				if (bgColorElement.value === fgColorElement.value) {
+					errorMsg =  [keycol, "classPrefs", "ERROR: Duplicate foreground and background colors found"];
+				    return errorMsg;
+				}
+			}
 		}
 	}
-	/*	THIS CODE WAS COMMENTED OUT TO REMOVE MAP SIZING FEATURE BUT MAY RETURN
-	if (errorMsg === null) {
-		var elem = document.getElementById("summaryWidthPref");
-		var elemVal = elem.value;
-		if ((isNaN(elemVal)) || (parseInt(elemVal) < 0) || (parseInt(elemVal) > 100)) {
-			errorMsg =  [null, "rowsColsPrefs", "ERROR: Summary Width % must be between 0 and 100"];
-			 return errorMsg;
-		}
-		var elem = document.getElementById("detailWidthPref");
-		var elemVal = elem.value;
-		if ((isNaN(elemVal)) || (parseInt(elemVal) < 0) || (parseInt(elemVal) > 100)) {
-			errorMsg =  [null, "rowsColsPrefs", "ERROR: Detail Width % must be between 0 and 100"];
-			 return errorMsg;
-		}
-		var elem = document.getElementById("mapHeightPref");
-		var elemVal = elem.value;
-		if ((isNaN(elemVal)) || (parseInt(elemVal) < 0) || (parseInt(elemVal) > 100)) {
-			errorMsg =  [null, "rowsColsPrefs", "ERROR: Map Height % must be between 0 and 100"];
-			 return errorMsg;
-		}
-	} */
+	
 	return errorMsg;
 }
 
@@ -1039,42 +1070,91 @@ NgChm.UPM.setupClassBreaks = function(e, key, barType, classBar) {
 	NgChm.UHM.addBlankRow(prefContents);
 	var pos = NgChm.UTIL.toTitleCase(barType);
 	var typ = NgChm.UTIL.toTitleCase(colorMap.getType());
+	var barPlot = NgChm.UTIL.toTitleCase(classBar.bar_type.replace("_", " "));
 	NgChm.UHM.setTableRow(prefContents,["&nbsp;Bar Position: ","<b>"+pos+"</b>"]);
-	NgChm.UHM.setTableRow(prefContents,["&nbsp;Bar Type: ","<b>"+typ+"</b>"]);
+	NgChm.UHM.setTableRow(prefContents,["&nbsp;Color Type: ","<b>"+typ+"</b>"]);
 	NgChm.UHM.addBlankRow(prefContents, 3);
-	NgChm.UHM.setTableRow(prefContents, ["&nbsp;<u>Category</u>","<b><u>"+"Color"+"</b></u>"]); 
+	var bgColorInput = "<input class='spectrumColor' type='color' name='"+keyRC+"_bgColorPref' id='"+keyRC+"_bgColorPref' value='"+classBar.bg_color+"'>"; 
+	var fgColorInput = "<input class='spectrumColor' type='color' name='"+keyRC+"_fgColorPref' id='"+keyRC+"_fgColorPref' value='"+classBar.fg_color+"'>"; 
+	var lowBound = "<input name='"+keyRC+"_lowBoundPref' id='"+keyRC+"_lowBoundPref' value='"+classBar.low_bound+"' maxlength='3' size='2'>&emsp;";
+	var highBound = "<input name='"+keyRC+"_highBoundPref' id='"+keyRC+"_highBoundPref' value='"+classBar.high_bound+"' maxlength='3' size='2'>&emsp;";
+	if (typ === 'Discrete') {
+		NgChm.UHM.setTableRow(prefContents,["&nbsp;Bar Type: ","<b>"+barPlot+"</b>"]);
+	} else {
+		var typeOptions = "<option value='bar_plot'>Bar Plot</option><option value='color_plot'>Color Plot</option><option value='scatter_plot'>Scatter Plot</option></select>";
+		var typeOptionsSelect = "<select name='"+keyRC+"_barTypePref' id='"+keyRC+"_barTypePref' onchange='NgChm.UPM.showPlotTypeProperties(&quot;"+keyRC+"&quot;)';>"
+		typeOptionsSelect = typeOptionsSelect+typeOptions;
+		NgChm.UHM.setTableRow(prefContents, ["&nbsp;&nbsp;Bar Type:", typeOptionsSelect]);
+	}
+	
+	
+	NgChm.UHM.addBlankRow(prefContents);
+	var helpprefsCB = NgChm.UHM.getDivElement(keyRC+"_breakPrefsCB");
+	var prefContentsCB = document.createElement("TABLE"); 
+	NgChm.UHM.setTableRow(prefContentsCB, ["&nbsp;<u>Category</u>","<b><u>"+"Color"+"</b></u>"]); 
 	for (var j = 0; j < thresholds.length; j++) {
 		var threshold = thresholds[j];
 		var color = colors[j];
 		var threshId = keyRC+"_breakPt"+j;
 		var colorId = keyRC+"_color"+j;
 		var colorInput = "<input class='spectrumColor' type='color' name='"+colorId+"_colorPref' id='"+colorId+"_colorPref' value='"+color+"'>"; 
-		NgChm.UHM.setTableRow(prefContents, ["&nbsp;&nbsp;"+threshold, colorInput]);
+		NgChm.UHM.setTableRow(prefContentsCB, ["&nbsp;&nbsp;"+threshold, colorInput]);
 	} 
-	NgChm.UHM.addBlankRow(prefContents);
-	NgChm.UHM.setTableRow(prefContents, ["&nbsp;Missing Color:",  "<input class='spectrumColor' type='color' name='"+keyRC+"_missing_colorPref' id='"+keyRC+"_missing_colorPref' value='"+colorMap.getMissingColor()+"'>"]);
-	NgChm.UHM.addBlankRow(prefContents, 3);
-	NgChm.UHM.setTableRow(prefContents, ["&nbsp;<u>Choose a pre-defined color palette:</u>"],3);
-	NgChm.UHM.addBlankRow(prefContents);
+	NgChm.UHM.addBlankRow(prefContentsCB);
+	NgChm.UHM.setTableRow(prefContentsCB, ["&nbsp;Missing Color:",  "<input class='spectrumColor' type='color' name='"+keyRC+"_missing_colorPref' id='"+keyRC+"_missing_colorPref' value='"+colorMap.getMissingColor()+"'>"]);
+	NgChm.UHM.addBlankRow(prefContentsCB, 3);
+	NgChm.UHM.setTableRow(prefContentsCB, ["&nbsp;<u>Choose a pre-defined color palette:</u>"],3);
+	NgChm.UHM.addBlankRow(prefContentsCB);
 	if (typ == "Discrete"){
 		var scheme1 = "<div style='display:flex'><div class='presetPalette' style='background: linear-gradient(to right, #1f77b4,#ff7f0e,#2ca02c,#d62728,#9467bd,#8c564b,#e377c2,#7f7f7f,#bcbd22,#17becf);' onclick='NgChm.UPM.setupLayerBreaksToPreset(event, \""+ key+ "\", [\"#1f77b4\",\"#ff7f0e\",\"#2ca02c\", \"#d62728\", \"#9467bd\", \"#8c564b\", \"#e377c2\", \"#7f7f7f\", \"#bcbd22\", \"#17becf\"],\"#ffffff\",\""+barType+"\",\""+typ+"\")'> </div><div class='presetPaletteMissingColor' style='background:white'></div></div>";
 		var scheme2 = "<div style='display:flex'><div class='presetPalette' style='background: linear-gradient(to right, #1f77b4,#aec7e8,#ff7f0e,#ffbb78,#2ca02c,#98df8a,#d62728,#ff9896,#9467bd,#c5b0d5,#8c564b,#c49c94,#e377c2,#f7b6d2,#7f7f7f,#c7c7c7,#bcbd22,#dbdb8d,#17becf,#9edae5);' onclick='NgChm.UPM.setupLayerBreaksToPreset(event, \""+ key+ "\", [\"#1f77b4\",\"#aec7e8\",\"#ff7f0e\",\"#ffbb78\",\"#2ca02c\",\"#98df8a\",\"#d62728\",\"#ff9896\",\"#9467bd\",\"#c5b0d5\",\"#8c564b\",\"#c49c94\",\"#e377c2\",\"#f7b6d2\",\"#7f7f7f\",\"#c7c7c7\",\"#bcbd22\",\"#dbdb8d\",\"#17becf\",\"#9edae5\"],\"#ffffff\",\""+barType+"\",\""+typ+"\")'> </div><div class='presetPaletteMissingColor' style='background:white'></div></div>";
 		var scheme3 = "<div style='display:flex'><div class='presetPalette' style='background: linear-gradient(to right,#393b79, #637939, #8c6d31, #843c39, #7b4173, #5254a3, #8ca252, #bd9e39, #ad494a, #a55194, #6b6ecf, #b5cf6b, #e7ba52, #d6616b, #ce6dbd, #9c9ede, #cedb9c, #e7cb94, #e7969c, #de9ed6);' onclick='NgChm.UPM.setupLayerBreaksToPreset(event, \""+ key+ "\", [\"#393b79\", \"#637939\", \"#8c6d31\", \"#843c39\", \"#7b4173\", \"#5254a3\", \"#8ca252\", \"#bd9e39\", \"#ad494a\", \"#a55194\", \"#6b6ecf\", \"#b5cf6b\", \"#e7ba52\", \"#d6616b\", \"#ce6dbd\", \"#9c9ede\", \"#cedb9c\", \"#e7cb94\", \"#e7969c\", \"#de9ed6\"],\"#ffffff\",\""+barType+"\",\""+typ+"\")'> </div><div class='presetPaletteMissingColor' style='background:white'></div></div>";
-		NgChm.UHM.setTableRow(prefContents, [scheme1,scheme2,scheme3]);
-		NgChm.UHM.setTableRow(prefContents, ["&nbsp;Palette1",  "&nbsp;<b>Palette2</b>","&nbsp;<b>Palette3</b>"]);
+		NgChm.UHM.setTableRow(prefContentsCB, [scheme1,scheme2,scheme3]);
+		NgChm.UHM.setTableRow(prefContentsCB, ["&nbsp;Palette1",  "&nbsp;<b>Palette2</b>","&nbsp;<b>Palette3</b>"]);
 	} else {
 		var rainbow = "<div style='display:flex'><div class='presetPalette' style='background: linear-gradient(to right, red,orange,yellow,green,blue,violet);' onclick='NgChm.UPM.setupLayerBreaksToPreset(event, \""+ key+ "\", [\"#FF0000\",\"#FF8000\",\"#FFFF00\",\"#00FF00\",\"#0000FF\",\"#FF00FF\"],\"#000000\",\""+barType+"\",\""+typ+"\")' > </div><div class='presetPaletteMissingColor' style='background:black'></div></div>";
 		var greyscale = "<div style='display:flex'><div class='presetPalette' style='background: linear-gradient(to right, white,black);' onclick='NgChm.UPM.setupLayerBreaksToPreset(event, \""+ key+ "\", [\"#FFFFFF\",\"#000000\"],\"#FF0000\",\""+barType+"\",\""+typ+"\")' > </div><div class='presetPaletteMissingColor' style='background:red'></div></div>";
 		var redBlackGreen = "<div style='display:flex'><div id='setRedBlackGreen' class='presetPalette' style='background: linear-gradient(to right, green,black,red);' onclick='NgChm.UPM.setupLayerBreaksToPreset(event, \""+ key +"\", [\"#00FF00\",\"#000000\",\"#FF0000\"],\"#ffffff\",\""+barType+"\",\""+typ+"\")'> </div>" +
 		"<div class='presetPaletteMissingColor' style='background:white'></div></div>"
-		NgChm.UHM.setTableRow(prefContents, [greyscale,rainbow,redBlackGreen]);
-		NgChm.UHM.setTableRow(prefContents, ["&nbsp;Greyscale",  "&nbsp;<b>Rainbow</b>","&nbsp;<b>Green Red</b>"]);
+		NgChm.UHM.setTableRow(prefContentsCB, [greyscale,rainbow,redBlackGreen]);
+		NgChm.UHM.setTableRow(prefContentsCB, ["&nbsp;Greyscale",  "&nbsp;<b>Rainbow</b>","&nbsp;<b>Green Red</b>"]);
 	}
-	helpprefs.style.height = prefContents.rows.length;
+	helpprefsCB.style.height = prefContentsCB.rows.length;
+	helpprefsCB.appendChild(prefContentsCB);
+	var helpprefsBB = NgChm.UHM.getDivElement(keyRC+"_breakPrefsBB");
+	var prefContentsBB = document.createElement("TABLE"); 
+	NgChm.UHM.setTableRow(prefContentsBB, ["&nbsp;&nbsp;Lower Bound:", lowBound]);
+	NgChm.UHM.setTableRow(prefContentsBB, ["&nbsp;&nbsp;Upper Bound:", highBound]);
+	NgChm.UHM.setTableRow(prefContentsBB, ["&nbsp;&nbsp;Foreground Color:", fgColorInput]);
+	NgChm.UHM.setTableRow(prefContentsBB, ["&nbsp;&nbsp;Background Color:", bgColorInput]);
+	NgChm.UHM.addBlankRow(prefContentsBB);
+	helpprefsBB.appendChild(prefContentsBB);
 	helpprefs.appendChild(prefContents);
-
+	helpprefs.appendChild(helpprefsCB);
+	helpprefs.appendChild(helpprefsBB);
+	if (classBar.bar_type === 'color_plot') {
+		helpprefsBB.style.display="none";
+		helpprefsCB.style.display="block";
+	} else {
+		helpprefsCB.style.display="none";
+		helpprefsBB.style.display="block";
+	}
 	return helpprefs;
 }	
+
+NgChm.UPM.showPlotTypeProperties = function(keyRC) {
+	var barTypeSel = document.getElementById(keyRC+"_barTypePref");
+	var barTypeVal = barTypeSel.value;
+	var bbDiv = document.getElementById(keyRC+"_breakPrefsBB");
+	var cbDiv = document.getElementById(keyRC+"_breakPrefsCB");
+	if (barTypeVal === 'color_plot') {
+		bbDiv.style.display="none";
+		cbDiv.style.display="block";
+	} else {
+		cbDiv.style.display="none";
+		bbDiv.style.display="block";
+	}
+}
 
 /**********************************************************************************
  * FUNCTION - showAllBars: The purpose of this function is to set the condition of
@@ -1249,6 +1329,11 @@ NgChm.UPM.addClassPrefOptions = function() {
 		} else {
 			hiddenOpts.push(displayName);
 		}
+		var barType = document.getElementById(keyrow+"_barTypePref");
+		if (barType !== null) {
+			var currentClassBar = rowClassBars[key];
+			barType.value = currentClassBar.bar_type;
+		}
 	}
 	for (var i=0; i < colClassBarsOrder.length;i++){
 		var key = colClassBarsOrder[i];
@@ -1261,6 +1346,11 @@ NgChm.UPM.addClassPrefOptions = function() {
 			classSelect.options[classSelect.options.length] = new Option(displayName, keycol);
 		} else {
 			hiddenOpts.push(displayName);
+		}
+		var barType = document.getElementById(keycol+"_barTypePref");
+		if (barType !== null) {
+			var currentClassBar = colClassBars[key];
+			barType.value = currentClassBar.bar_type;
 		}
 	}
 	
@@ -1394,16 +1484,6 @@ NgChm.UPM.setupRowColPrefs = function(e, prefprefs) {
 	var topColItems = "&nbsp;&nbsp;<textarea name='colTopItems' id='colTopItems' " + topColItemsStyle +" rows='3', cols='80'>"+topColItemData+"</textarea>";
 	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Top Columns:"]);
 	NgChm.UHM.setTableRow(prefContents,[topColItems],2);
-/*	THIS CODE WAS COMMENTED OUT TO REMOVE MAP SIZING FEATURE BUT MAY RETURN
- * NgChm.UHM.setTableRow(prefContents,["MAP SIZING:"]);
-	var sumWidth = Math.round(document.getElementById('summary_chm').offsetWidth/(.96*document.getElementById('container').offsetWidth)*100);
-	var detWidth = Math.round(document.getElementById('detail_chm').offsetWidth/(.96*document.getElementById('container').offsetWidth)*100);
-	var mapHeight = Math.round(document.getElementById('detail_chm').clientHeight/container.clientHeight*100);
-	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Summary Width:","<input type=\"text\" name=\"summaryWidthPref\" id=\"summaryWidthPref\" style=\"width:40px\" value=\"" + sumWidth+"\">%"]);
-	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Detail Width:","<input type=\"text\" name=\"detailWidthPref\" id=\"detailWidthPref\" style=\"width:40px\" value=\"" + detWidth + "\">%"]);
-	NgChm.UHM.setTableRow(prefContents,["&nbsp;&nbsp;Map Height:","<input type=\"text\" name=\"mapHeightPref\" id=\"mapHeightPref\" style=\"width:40px\" value=\"" + mapHeight + "\">%"]);
-	NgChm.UHM.addBlankRow(prefContents,2); */
-	
 	rowcolprefs.appendChild(prefContents);
 
 	return rowcolprefs;

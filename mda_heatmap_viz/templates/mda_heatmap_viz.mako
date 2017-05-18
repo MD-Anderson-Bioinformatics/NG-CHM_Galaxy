@@ -172,8 +172,9 @@
 								<input id="pdfInputColumn" type="checkbox" name="class" value="row" checked> Column<br>							
 								<input id="pdfInputRow" type="checkbox" name="class" value="column" checked> Row<br>
 								<h3 style="margin-bottom:0px;">Display Options:</h3>
-						  		Font Size:&nbsp;&nbsp;&nbsp;<input id="pdfInputFont" type="number" name="font" value="" style="width:40;" min="1" max="36" onchange="NgChm.PDF.customFont=true">								  		Font Size:&nbsp;&nbsp;&nbsp;<input id="pdfInputFont" type="number" name="font" value="" style="width:40" min="0" onchange="NgChm.PDF.customFont=true"><br>  
-						  		<p id="pdfErrorMessage" style="display:none;color:red; font-weight:bold;">Please select a font between 1 and 36</p><br>  								Font Style:&nbsp;&nbsp;<select id="pdfFontStyle">
+						  		Font Size:&nbsp;&nbsp;&nbsp;<input id="pdfInputFont" type="number" name="font" value="" style="width:40;" min="1" max="36" onchange="NgChm.PDF.customFont=true"><br>  
+						  		<p id="pdfErrorMessage" style="display:none;color:red; font-weight:bold;">Please select a font between 1 and 36</p><br>	
+						  		Font Style:&nbsp;&nbsp;<select id="pdfFontStyle">
 									<option value="helvetica">Helvetica</option>
 									<option value="courier">Courier</option>
 									<option value="times">Times-Roman</option>

@@ -144,8 +144,8 @@ NgChm.SUM.summaryInit = function() {
 	NgChm.SUM.drawRowSelectionMarks();
 	NgChm.SUM.drawColSelectionMarks();
 	NgChm.SUM.drawTopItems();
-	NgChm.SUM.drawColClassBarLegends(true);
-	NgChm.SUM.drawRowClassBarLegends(true);
+	//NgChm.SUM.drawColClassBarLegends(true); Temporarily removed legends from summary
+	//NgChm.SUM.drawRowClassBarLegends(true); they may or may not come back later
 }
 
 NgChm.SUM.addCustomJS = function(){
@@ -397,6 +397,11 @@ NgChm.SUM.onMouseUpCanvas = function(evt) {
 		} else {
 			var sumOffsetX = evt.touches ? evt.layerX : evt.offsetX;
 			var sumOffsetY = evt.touches ? evt.layerY : evt.offsetY;
+			var rowClassXLimit = NgChm.SUM.rowClassBarWidth/NgChm.SUM.canvas.width*NgChm.SUM.canvas.clientWidth;
+			var colClassYLimit = NgChm.SUM.colClassBarHeight/NgChm.SUM.canvas.height*NgChm.SUM.canvas.clientHeight;
+			if (sumOffsetX < rowClassXLimit || sumOffsetY < colClassYLimit){ // top left deadspace corner clicked
+				return;
+			}
 			var xPos = NgChm.SUM.getCanvasX(sumOffsetX);
 			var yPos = NgChm.SUM.getCanvasY(sumOffsetY);
 			NgChm.SUM.clickSelection(xPos, yPos);
@@ -876,6 +881,7 @@ NgChm.SUM.drawColClassBarLegends = function (isSummary) {
 	}
 }
 
+// THIS FUNCTION NOT CURRENTLY CALLED BUT MAY BE ADDED BACK IN IN THE FUTURE
 NgChm.SUM.drawColClassBarLegend = function(key,currentClassBar,prevHeight,totalHeight, fewClasses) {
 	//calculate where covariate bars end and heatmap begins by using the top items canvas (which is lined up with the heatmap)
 	var rowCanvas = document.getElementById("summary_row_top_items_canvas");
@@ -1008,6 +1014,7 @@ NgChm.SUM.drawScatterBarPlotRowClassBar = function(dataBuffer, pos, height, clas
 	return pos;
 }
 
+//THIS FUNCTION NOT CURRENTLY CALLED BUT MAY BE ADDED BACK IN IN THE FUTURE
 NgChm.SUM.drawRowClassBarLegends = function (isSummary) {
 	var classBarsConfig = NgChm.heatMap.getRowClassificationConfig(); 
 	var classBarConfigOrder = NgChm.heatMap.getRowClassificationOrder();
@@ -1068,25 +1075,37 @@ NgChm.SUM.drawRowClassBarLegend = function(key,currentClassBar,prevHeight,totalH
 	NgChm.SUM.setLegendDivElement(key+"SumLow","-"+highVal,topPos,endPos,true,true);
 }
 
-NgChm.SUM.setLegendDivElement = function (itemId,boundVal,topVal,LeftVal,isRowVal,isSummary) {
+NgChm.SUM.setLegendDivElement = function (itemId,boundVal,topVal,leftVal,isRowVal,isSummary) {
 	//Create div and place high legend value
 	var itemElem = document.getElementById(itemId);
 	if (itemElem === null) {
 		itemElem = document.createElement("Div"); 
 		itemElem.id = itemId;
-		itemElem.className = "classLegend";
 		itemElem.innerHTML = boundVal;
 		if (isSummary) {
+			itemElem.className = "classLegend";
+			if (isRowVal) {
+				itemElem.style.transform = "rotate(90deg)";
+			}
 			document.getElementById("summary_chm").appendChild(itemElem);
 		} else {
-			document.getElementById("detail_chm").appendChild(itemElem);
-		}
+			itemElem.className = "DynamicLabel ClassBar";
+			if (isRowVal) {
+				itemElem.style.transform = 'rotate(90deg)';
+				itemElem.style.webkitTransform = "rotate(90deg)";
+				itemElem.setAttribute('axis','RowCovar');
+			} else {
+				itemElem.setAttribute('axis','ColumnCovar');
+			}
+			itemElem.style.position = "absolute";
+			itemElem.style.fontSize = '5pt';
+			itemElem.style.fontFamily = 'sans-serif';
+			itemElem.style.fontWeight = 'bold';
+			NgChm.DET.labelElement.appendChild(itemElem);
+		} 
 	}
 	itemElem.style.top = topVal;
-	itemElem.style.left = LeftVal;
-	if (isRowVal) {
-		itemElem.style.transform = "rotate(90deg)";
-	}
+	itemElem.style.left = leftVal;
 }
 
 NgChm.SUM.buildScatterBarPlotMatrix = function(height, classBarValues, start, classBarLength, currentClassBar, barSize, isSummary) {
@@ -1124,7 +1143,7 @@ NgChm.SUM.buildScatterBarPlotMatrix = function(height, classBarValues, start, cl
 					//select just the current position in the matrix
 					matrix[valHeight][normalizedK] = 1;
 					//if rows/cols large, select around the current position in the matrix
-					if ((isSummary) && (barSize > 500)) {
+	/*				if ((isSummary) && (barSize > 500)) {
 						matrix[valHeight][k+1] = 1;
 						if (typeof matrix[valHeight+1] != 'undefined') {
 							matrix[valHeight+1][k] = 1;
@@ -1132,7 +1151,7 @@ NgChm.SUM.buildScatterBarPlotMatrix = function(height, classBarValues, start, cl
 								matrix[valHeight+1][k+1] = 1;
 							}
 						} 
-					}
+					} */
 				}
 			} 		
 		}
@@ -1192,8 +1211,8 @@ NgChm.SUM.summaryResize = function() {
 		NgChm.SUM.drawMissingRowClassBarsMark();
 		NgChm.SUM.drawMissingColClassBarsMark();
 		NgChm.SUM.drawTopItems();
-		NgChm.SUM.drawColClassBarLegends(true);
-		NgChm.SUM.drawRowClassBarLegends(true);
+//		NgChm.SUM.drawColClassBarLegends(true); Removed for the time being
+//		NgChm.SUM.drawRowClassBarLegends(true);
 	}
 }
 
@@ -1559,8 +1578,8 @@ NgChm.SUM.dividerEnd = function(e) {
 	NgChm.SUM.drawRowSelectionMarks();
 	NgChm.SUM.drawColSelectionMarks();
 	NgChm.SUM.drawTopItems();
-	NgChm.SUM.drawColClassBarLegends(true);
-	NgChm.SUM.drawRowClassBarLegends(true);
+//	NgChm.SUM.drawColClassBarLegends(true);  Removed for the time being
+//	NgChm.SUM.drawRowClassBarLegends(true);
 }
 
 NgChm.SUM.setBrowserMinFontSize = function () {
