@@ -1,8 +1,10 @@
 echo $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${14} ${15} ${16} ${17} ${18} ${19}
 
 #run python to validate the input matrix and covariate files (if any)
-python  ${11}/mda_heatmap_gen.py $@
+#output="$(python  ${11}/mda_heatmap_gen.py $@)"
+output=$(python  ${11}/mda_heatmap_gen.py "$@")
 rc=$?;
+echo $output;
 if [ $rc != 0 ]
 then
   exit $rc;
