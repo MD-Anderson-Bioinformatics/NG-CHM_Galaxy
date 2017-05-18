@@ -18,6 +18,8 @@ NgChm.SUM.colDendro;
 NgChm.SUM.rowDendro;
 NgChm.SUM.colTopItems;
 NgChm.SUM.rowTopItems;
+NgChm.SUM.colTopItemsIndex;
+NgChm.SUM.rowTopItemsIndex;
 NgChm.SUM.colTopItemsWidth = 0;
 NgChm.SUM.rowTopItemsHeight = 0;
 
@@ -32,8 +34,8 @@ NgChm.SUM.matrixHeight;
 NgChm.SUM.totalHeight;
 NgChm.SUM.totalWidth;
 
-NgChm.SUM.maxValues = 9999999999.99;
-NgChm.SUM.minValues = -9999999999.99;
+NgChm.SUM.maxValues = 2147483647;
+NgChm.SUM.minValues = -2147483647;
 NgChm.SUM.avgValue = 0;
 NgChm.SUM.texProgram;
 NgChm.SUM.eventTimer = 0; // Used to delay draw updates
@@ -142,6 +144,8 @@ NgChm.SUM.summaryInit = function() {
 	NgChm.SUM.drawRowSelectionMarks();
 	NgChm.SUM.drawColSelectionMarks();
 	NgChm.SUM.drawTopItems();
+	//NgChm.SUM.drawColClassBarLegends(true); Temporarily removed legends from summary
+	//NgChm.SUM.drawRowClassBarLegends(true); they may or may not come back later
 }
 
 NgChm.SUM.addCustomJS = function(){
@@ -393,6 +397,11 @@ NgChm.SUM.onMouseUpCanvas = function(evt) {
 		} else {
 			var sumOffsetX = evt.touches ? evt.layerX : evt.offsetX;
 			var sumOffsetY = evt.touches ? evt.layerY : evt.offsetY;
+			var rowClassXLimit = NgChm.SUM.rowClassBarWidth/NgChm.SUM.canvas.width*NgChm.SUM.canvas.clientWidth;
+			var colClassYLimit = NgChm.SUM.colClassBarHeight/NgChm.SUM.canvas.height*NgChm.SUM.canvas.clientHeight;
+			if (sumOffsetX < rowClassXLimit || sumOffsetY < colClassYLimit){ // top left deadspace corner clicked
+				return;
+			}
 			var xPos = NgChm.SUM.getCanvasX(sumOffsetX);
 			var yPos = NgChm.SUM.getCanvasY(sumOffsetY);
 			NgChm.SUM.clickSelection(xPos, yPos);
@@ -738,9 +747,9 @@ NgChm.SUM.getScaledHeight = function(height, axis) {
     return scaledHeight;
 }
 
-// draws row classification bars into the texture array ("dataBuffer"). "names"/"colorSchemes" should be array of strings.
+//draws row classification bars into the texture array ("dataBuffer"). "names"/"colorSchemes" should be array of strings.
 NgChm.SUM.drawColClassBars = function(dataBuffer) {
-	if (document.getElementById("missingColClassBars"))document.getElementById("missingColClassBars").remove();
+	if (document.getElementById("missingSumColClassBars"))document.getElementById("missingSumColClassBars").remove();
 	var classBarsConfig = NgChm.heatMap.getColClassificationConfig(); 
 	var classBarConfigOrder = NgChm.heatMap.getColClassificationOrder();
 	var classBarsData = NgChm.heatMap.getColClassificationData(); 
@@ -754,6 +763,7 @@ NgChm.SUM.drawColClassBars = function(dataBuffer) {
 		if (currentClassBar.show === 'Y') {
 			var height = NgChm.SUM.getScaledHeight(currentClassBar.height, "col"); 
 			var colorMap = colorMapMgr.getColorMap("col",key); // assign the proper color scheme...
+			var classType = colorMap.getType();       
 			var classBarValues = classBarsData[key].values;
 			var classBarLength = classBarValues.length;
 			if (typeof classBarsData[key].svalues != 'undefined') {
@@ -764,36 +774,149 @@ NgChm.SUM.drawColClassBars = function(dataBuffer) {
 			if (NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL) > 41) {
 				pos += (NgChm.SUM.totalWidth)*NgChm.SUM.colClassPadding*NgChm.SUM.BYTE_PER_RGBA; // draw padding between class bars
 			}
-			var line = new Uint8Array(new ArrayBuffer(classBarLength * NgChm.SUM.BYTE_PER_RGBA)); // save a copy of the class bar
-			var loc = 0;
-			for (var k = 0; k < classBarLength; k++) { 
-				var val = classBarValues[k];
-				var color = colorMap.getClassificationColor(val);
-				if (val == "null") {
-					color = colorMap.getHexToRgba(colorMap.getMissingColor());
-				}
-				line[loc] = color['r'];
-				line[loc + 1] = color['g'];
-				line[loc + 2] = color['b'];
-				line[loc + 3] = color['a'];
-				loc += NgChm.SUM.BYTE_PER_RGBA;
+			if (currentClassBar.bar_type === 'color_plot') {
+				pos = NgChm.SUM.drawColorPlotColClassBar(dataBuffer, pos, height, classBarValues, classBarLength, colorMap);
+			} else {
+				pos = NgChm.SUM.drawScatterBarPlotColClassBar(dataBuffer, pos, height-NgChm.SUM.colClassPadding, classBarValues, classBarLength, colorMap, currentClassBar);
 			}
-			loc = 0;
-			for (var j = 0; j < height-NgChm.SUM.colClassPadding; j++){ // draw the class bar into the dataBuffer
-				pos += NgChm.SUM.rowClassBarWidth*NgChm.SUM.BYTE_PER_RGBA;
-				for (var k = 0; k < line.length; k++) { 
-					dataBuffer[pos] = line[k];
-					pos++;
-				}
-			}		
 		} else {
-			if (!document.getElementById("missingColClassBars")){
+			if (!document.getElementById("missingSumColClassBars")){
 				var x = NgChm.SUM.canvas.offsetLeft + NgChm.SUM.canvas.offsetWidth + 2;
 				var y = NgChm.SUM.canvas.offsetTop + NgChm.SUM.canvas.clientHeight/NgChm.SUM.totalHeight - 10;
-				NgChm.DET.addLabelDiv(document.getElementById('sumlabelDiv'), "missingColClassBars", "ClassBar MarkLabel", "...", x, y, 10, "F", null,"Column")
+				NgChm.DET.addLabelDiv(document.getElementById('sumlabelDiv'), "missingSumColClassBars", "ClassBar MarkLabel", "...", "...", x, y, 10, "F", null,"Column")
 			}		
 		}
 	}
+} 
+
+NgChm.SUM.drawColorPlotColClassBar = function(dataBuffer, pos, height, classBarValues, classBarLength, colorMap) {
+	var line = new Uint8Array(new ArrayBuffer(classBarLength * NgChm.SUM.BYTE_PER_RGBA)); // save a copy of the class bar
+	var loc = 0;
+	for (var k = 0; k < classBarLength; k++) { 
+		var val = classBarValues[k];
+		var color = colorMap.getClassificationColor(val);
+		if (val == "null") {
+			color = colorMap.getHexToRgba(colorMap.getMissingColor());
+		}
+		line[loc] = color['r'];
+		line[loc + 1] = color['g'];
+		line[loc + 2] = color['b'];
+		line[loc + 3] = color['a'];
+		loc += NgChm.SUM.BYTE_PER_RGBA;
+	}
+	for (var j = 0; j < height-NgChm.SUM.colClassPadding; j++){ // draw the class bar into the dataBuffer
+		pos += NgChm.SUM.rowClassBarWidth*NgChm.SUM.BYTE_PER_RGBA;
+		for (var k = 0; k < line.length; k++) { 
+			dataBuffer[pos] = line[k];
+			pos++;
+		}
+	}	
+	return pos;
+}
+
+NgChm.SUM.drawScatterBarPlotColClassBar = function(dataBuffer, pos, height, classBarValues, classBarLength, colorMap, currentClassBar) {
+	var barFgColor = colorMap.getHexToRgba(currentClassBar.fg_color);
+	var barBgColor = colorMap.getHexToRgba(currentClassBar.bg_color);
+	var barCutColor = colorMap.getHexToRgba("#FFFFFF");
+	var matrix = NgChm.SUM.buildScatterBarPlotMatrix(height, classBarValues, 0, classBarLength, currentClassBar, NgChm.heatMap.getTotalCols(), true);
+
+	//offset value for width of row class bars
+	var offset = NgChm.SUM.rowClassBarWidth*NgChm.SUM.BYTE_PER_RGBA;
+	for (var h = 0; h < matrix.length; h++) { 
+		pos += offset;
+		var row = matrix[h];
+		for (var k = 0; k < row.length; k++) { 
+			var posVal = row[k];
+			if (posVal == 1) {
+				dataBuffer[pos] = barFgColor['r'];
+				dataBuffer[pos+1] = barFgColor['g'];
+				dataBuffer[pos+2] = barFgColor['b'];
+				dataBuffer[pos+3] = barFgColor['a'];
+			} else if (posVal == 2) {
+				dataBuffer[pos] = barCutColor['r'];
+				dataBuffer[pos+1] = barCutColor['g'];
+				dataBuffer[pos+2] = barCutColor['b'];
+				dataBuffer[pos+3] = barCutColor['a'];
+			} else {
+				if (currentClassBar.subBgColor !== "#FFFFFF") {
+					dataBuffer[pos] = barBgColor['r'];
+					dataBuffer[pos+1] = barBgColor['g'];
+					dataBuffer[pos+2] = barBgColor['b'];
+					dataBuffer[pos+3] = barBgColor['a'];
+				}
+			}
+			pos+=NgChm.SUM.BYTE_PER_RGBA;
+		}
+	}
+	return pos;
+}
+
+NgChm.SUM.drawColClassBarLegends = function (isSummary) {
+	var classBarsConfig = NgChm.heatMap.getColClassificationConfig(); 
+	var classBarConfigOrder = NgChm.heatMap.getColClassificationOrder();
+	var classBarsData = NgChm.heatMap.getColClassificationData(); 
+	var totalHeight = 0;
+	for (var i = 0; i < classBarConfigOrder.length; i++) {
+		var key = classBarConfigOrder[i];
+		var currentClassBar = classBarsConfig[key];
+		if (currentClassBar.show === 'Y') {
+			totalHeight += parseInt(currentClassBar.height);
+		}
+	}
+	var prevHeight = 0;
+	var fewClasses = classBarConfigOrder.length < 7 ? 2 : 0;
+	for (var i = 0; i < classBarConfigOrder.length; i++) {
+		var key = classBarConfigOrder[i];
+		var currentClassBar = classBarsConfig[key];
+		if (currentClassBar.show === 'Y') {
+			if (currentClassBar.bar_type !== 'color_plot') {
+				if (isSummary) {
+					NgChm.SUM.drawColClassBarLegend(key, currentClassBar,prevHeight,totalHeight, fewClasses);
+				} else {
+					NgChm.DET.drawColClassBarLegend(key,currentClassBar,prevHeight,totalHeight);
+				}
+			}
+			prevHeight += parseInt(currentClassBar.height);
+		}
+	}
+}
+
+// THIS FUNCTION NOT CURRENTLY CALLED BUT MAY BE ADDED BACK IN IN THE FUTURE
+NgChm.SUM.drawColClassBarLegend = function(key,currentClassBar,prevHeight,totalHeight, fewClasses) {
+	//calculate where covariate bars end and heatmap begins by using the top items canvas (which is lined up with the heatmap)
+	var rowCanvas = document.getElementById("summary_row_top_items_canvas");
+	var classHgt = NgChm.SUM.canvas.offsetHeight - rowCanvas.offsetHeight;
+	//calculate where the previous bar ends and the current one begins.
+	var prevEndPct = prevHeight/totalHeight;
+	var currEndPct = (prevHeight+parseInt(currentClassBar.height))/totalHeight;
+	//calculate where covariate bars begin and end and use that to calculate the total covariate bars height
+	var beginClasses = NgChm.SUM.canvas.offsetTop-6;
+	var endClasses = beginClasses+classHgt-2;
+	var classHeight = endClasses-beginClasses;
+	//get your horizontal start position (to the right of bars)
+	var leftPos = NgChm.SUM.canvas.offsetLeft + NgChm.SUM.canvas.offsetWidth;
+	//find the first, middle, and last vertical positions for the bar legend being drawn
+	var topPos =  beginClasses+(classHeight*prevEndPct)+fewClasses;
+	var endPos =  beginClasses+(classHeight*currEndPct)+fewClasses;
+	var midPos =  topPos+((endPos-topPos)/2);
+	//Get your 3 values for the legend.
+	var highVal = parseInt(currentClassBar.high_bound);
+	var lowVal = parseInt(currentClassBar.low_bound);
+	var midVal = Math.round((((highVal)-lowVal)/2)+lowVal);
+	//extend values on legend to include decimal points if all values are below 1
+	if (highVal <= 1) {
+		highVal = parseFloat(currentClassBar.high_bound).toFixed(1);
+		lowVal = parseFloat(currentClassBar.low_bound).toFixed(1);
+		var midVal = ((parseFloat(currentClassBar.high_bound)-parseFloat(currentClassBar.low_bound))/2)+parseFloat(currentClassBar.low_bound);
+		var midVal = midVal.toFixed(1)
+	}
+	NgChm.SUM.setLegendDivElement(key+"SumHigh-","-",topPos,leftPos,false,true);
+	NgChm.SUM.setLegendDivElement(key+"SumHigh",highVal,topPos+4,leftPos+3,false,true);
+	//Create div and place mid legend value
+	NgChm.SUM.setLegendDivElement(key+"SumMid","- "+midVal,midPos,leftPos,false,true);
+	//Create div and place low legend value
+	NgChm.SUM.setLegendDivElement(key+"SumLow",lowVal,endPos-3,leftPos+3,false,true);
+	NgChm.SUM.setLegendDivElement(key+"SumLow-","-",endPos,leftPos,false,true);
 }
 
 NgChm.SUM.drawRowClassBars = function(dataBuffer) {
@@ -801,12 +924,8 @@ NgChm.SUM.drawRowClassBars = function(dataBuffer) {
 	var classBarConfigOrder = NgChm.heatMap.getRowClassificationOrder();
 	var classBarsData = NgChm.heatMap.getRowClassificationData(); 
 	var colorMapMgr = NgChm.heatMap.getColorMapManager();
-	if (document.getElementById("missingRowClassBars"))document.getElementById("missingRowClassBars").remove();
-	var offset = (NgChm.SUM.totalWidth)*NgChm.SUM.BYTE_PER_RGBA;
-	// Small Maps - Don't offset if map is really small
-	if (NgChm.heatMap.getNumRows(NgChm.MMGR.SUMMARY_LEVEL) < 40) {
-		offset = 0;
-	}
+	if (document.getElementById("missingSumRowClassBars"))document.getElementById("missingSumRowClassBars").remove();
+	var offset = 0;
 
 	for (var i = 0; i < classBarConfigOrder.length; i++) {
 		var key = classBarConfigOrder[i];
@@ -821,37 +940,227 @@ NgChm.SUM.drawRowClassBars = function(dataBuffer) {
 				classBarValues = classBarsData[key].svalues;
 				classBarLength = classBarValues.length;
 			}
-			for (var j = classBarLength; j > 0; j--){
-				var val = classBarValues[j-1];
-				var color = colorMap.getClassificationColor(val);
-				if (val == "null") {
-					color = colorMap.getHexToRgba(colorMap.getMissingColor());
-				}
-				for (var k = 0; k < height-NgChm.SUM.rowClassPadding; k++){
-					dataBuffer[pos] = color['r'];
-					dataBuffer[pos + 1] = color['g'];
-					dataBuffer[pos + 2] = color['b'];
-					dataBuffer[pos + 3] = color['a'];
-					pos+=NgChm.SUM.BYTE_PER_RGBA;	// 4 bytes per color
-				}
-				// padding between class bars
-				pos+=NgChm.SUM.rowClassPadding*NgChm.SUM.BYTE_PER_RGBA;
-				// go total width of the summary canvas and back up the width of a single class bar to return to starting point for next row 
-				pos+=(NgChm.SUM.totalWidth - height)*NgChm.SUM.BYTE_PER_RGBA; 
+			if (currentClassBar.bar_type === 'color_plot') {
+				pos = NgChm.SUM.drawColorPlotRowClassBar(dataBuffer, pos, height, classBarValues, classBarLength, colorMap);
+			} else {
+				pos = NgChm.SUM.drawScatterBarPlotRowClassBar(dataBuffer, pos, height-NgChm.SUM.colClassPadding, classBarValues, classBarLength, colorMap, currentClassBar);
 			}
 			//offset starting point of one bar to the next by the width of one bar multiplied by BPR (e.g. 15 becomes 60)
 			offset+= height*NgChm.SUM.BYTE_PER_RGBA; 
 		} else {
-			if (!document.getElementById("missingRowClassBars")){
-				var x = NgChm.SUM.canvas.clientWidth/NgChm.SUM.totalWidth + 10;
-				var y = NgChm.SUM.canvas.clientHeight + 2;
-				NgChm.DET.addLabelDiv(document.getElementById('sumlabelDiv'), "missingRowClassBars", "ClassBar MarkLabel", "...", x, y, 10, "T", null,"Row");
+			if (!document.getElementById("missingSumRowClassBars")){
+				var x = NgChm.SUM.canvas.offsetLeft;
+				var y = NgChm.SUM.canvas.offsetTop + NgChm.SUM.canvas.clientHeight + 2;
+				NgChm.DET.addLabelDiv(document.getElementById('sumlabelDiv'), "missingSumRowClassBars", "ClassBar MarkLabel", "...", "...", x, y, 10, "T", null,"Row");
 			}
 		}
 	}
 }
 
-NgChm.SUM.calculateSummaryTotalClassBarHeight = function(axis) {
+NgChm.SUM.drawColorPlotRowClassBar = function(dataBuffer, pos, height, classBarValues, classBarLength, colorMap) {
+	for (var j = classBarLength; j > 0; j--){
+		var val = classBarValues[j-1];
+		var color = colorMap.getClassificationColor(val);
+		if (val == "null") {
+			color = colorMap.getHexToRgba(colorMap.getMissingColor());
+		}
+		for (var k = 0; k < height-NgChm.SUM.rowClassPadding; k++){
+			dataBuffer[pos] = color['r'];
+			dataBuffer[pos + 1] = color['g'];
+			dataBuffer[pos + 2] = color['b'];
+			dataBuffer[pos + 3] = color['a'];
+			pos+=NgChm.SUM.BYTE_PER_RGBA;	// 4 bytes per color
+		}
+		// padding between class bars
+		pos+=NgChm.SUM.rowClassPadding*NgChm.SUM.BYTE_PER_RGBA;
+		// go total width of the summary canvas and back up the width of a single class bar to return to starting point for next row 
+		pos+=(NgChm.SUM.totalWidth - height)*NgChm.SUM.BYTE_PER_RGBA; 
+	}
+	return pos;
+}
+
+NgChm.SUM.drawScatterBarPlotRowClassBar = function(dataBuffer, pos, height, classBarValues, classBarLength, colorMap, currentClassBar) {
+	var barFgColor = colorMap.getHexToRgba(currentClassBar.fg_color);
+	var barBgColor = colorMap.getHexToRgba(currentClassBar.bg_color); 
+	var barCutColor = colorMap.getHexToRgba("#FFFFFF");
+	var matrix = NgChm.SUM.buildScatterBarPlotMatrix(height, classBarValues, 0, classBarLength, currentClassBar, NgChm.heatMap.getTotalRows(), true);
+	for (var h = matrix[0].length-1; h >= 0 ; h--) { 
+		for (var i = 0; i < height;i++) {
+			var row = matrix[i];
+			var posVal = row[h];
+			if (posVal == 1) {
+				dataBuffer[pos] = barFgColor['r'];
+				dataBuffer[pos+1] = barFgColor['g'];
+				dataBuffer[pos+2] = barFgColor['b'];
+				dataBuffer[pos+3] = barFgColor['a'];
+			} else if (posVal == 2) {
+				dataBuffer[pos] = barCutColor['r'];
+				dataBuffer[pos+1] = barCutColor['g'];
+				dataBuffer[pos+2] = barCutColor['b'];
+				dataBuffer[pos+3] = barCutColor['a'];
+			} else {
+				if (currentClassBar.subBgColor !== "#FFFFFF") {
+					dataBuffer[pos] = barBgColor['r'];
+					dataBuffer[pos+1] = barBgColor['g'];
+					dataBuffer[pos+2] = barBgColor['b'];
+					dataBuffer[pos+3] = barBgColor['a'];
+				}
+			}
+			pos+=NgChm.SUM.BYTE_PER_RGBA;
+		}
+		// go total width of the summary canvas and back up the width of a single class bar to return to starting point for next row 
+		pos+=(NgChm.SUM.totalWidth - height)*NgChm.SUM.BYTE_PER_RGBA; 
+	}
+	return pos;
+}
+
+//THIS FUNCTION NOT CURRENTLY CALLED BUT MAY BE ADDED BACK IN IN THE FUTURE
+NgChm.SUM.drawRowClassBarLegends = function (isSummary) {
+	var classBarsConfig = NgChm.heatMap.getRowClassificationConfig(); 
+	var classBarConfigOrder = NgChm.heatMap.getRowClassificationOrder();
+	var classBarsData = NgChm.heatMap.getRowClassificationData(); 
+	var totalHeight = 0;
+	for (var i = 0; i < classBarConfigOrder.length; i++) {
+		var key = classBarConfigOrder[i];
+		var currentClassBar = classBarsConfig[key];
+		if (currentClassBar.show === 'Y') {
+			totalHeight += parseInt(currentClassBar.height);
+		}
+	}
+	var prevHeight = 0;
+	for (var i = 0; i < classBarConfigOrder.length; i++) {
+		var key = classBarConfigOrder[i];
+		var currentClassBar = classBarsConfig[key];
+		if (currentClassBar.show === 'Y') {
+			if (currentClassBar.bar_type !== 'color_plot') {
+				if (isSummary) {
+					NgChm.SUM.drawRowClassBarLegend(key,currentClassBar,prevHeight,totalHeight,i);
+				} else {
+					NgChm.DET.drawRowClassBarLegend(key,currentClassBar,prevHeight,totalHeight,i);
+				}
+			}
+			prevHeight += parseInt(currentClassBar.height);
+		}
+	}
+}
+
+NgChm.SUM.drawRowClassBarLegend = function(key,currentClassBar,prevHeight,totalHeight,i) {
+	var colCanvas = document.getElementById("summary_col_top_items_canvas");
+	var classHgt = colCanvas.offsetLeft - NgChm.SUM.canvas.offsetLeft;
+	var prevEndPct = prevHeight/totalHeight;
+	var currEndPct = (prevHeight+parseInt(currentClassBar.height))/totalHeight;
+	var beginClasses = NgChm.SUM.canvas.offsetLeft - 6;
+	var endClasses = beginClasses+classHgt-2;
+	var classesHeight = endClasses-beginClasses;
+	var beginPos =  beginClasses+(classesHeight*prevEndPct)+(NgChm.SUM.rowClassPadding*(i+1));
+	var endPos =  beginClasses+(classesHeight*currEndPct)-NgChm.SUM.rowClassPadding;
+	var midPos =  beginPos+((endPos-beginPos)/2);
+	var highVal = parseInt(currentClassBar.high_bound);
+	var lowVal = parseInt(currentClassBar.low_bound);
+	var midVal = Math.round((((highVal)-lowVal)/2)+lowVal);
+	//adjust display values for 0-to-1 ranges
+	if (highVal <= 1) {
+		highVal = parseFloat(currentClassBar.high_bound).toFixed(1);
+		lowVal = parseFloat(currentClassBar.low_bound).toFixed(1);
+		var midVal = ((parseFloat(currentClassBar.high_bound)-parseFloat(currentClassBar.low_bound))/2)+parseFloat(currentClassBar.low_bound);
+		var midVal = midVal.toFixed(1)
+	}
+	var rowCanvas = document.getElementById("summary_row_top_items_canvas");
+	var topPos = rowCanvas.offsetTop+rowCanvas.offsetHeight+5;
+	//Create div and place high legend value
+	NgChm.SUM.setLegendDivElement(key+"SumHigh","-"+lowVal,topPos,beginPos,true,true);
+	//Create div and place middle legend value
+	NgChm.SUM.setLegendDivElement(key+"SumMid","-"+midVal,topPos,midPos,true,true);
+	//Create div and place middle legend value
+	NgChm.SUM.setLegendDivElement(key+"SumLow","-"+highVal,topPos,endPos,true,true);
+}
+
+NgChm.SUM.setLegendDivElement = function (itemId,boundVal,topVal,leftVal,isRowVal,isSummary) {
+	//Create div and place high legend value
+	var itemElem = document.getElementById(itemId);
+	if (itemElem === null) {
+		itemElem = document.createElement("Div"); 
+		itemElem.id = itemId;
+		itemElem.innerHTML = boundVal;
+		if (isSummary) {
+			itemElem.className = "classLegend";
+			if (isRowVal) {
+				itemElem.style.transform = "rotate(90deg)";
+			}
+			document.getElementById("summary_chm").appendChild(itemElem);
+		} else {
+			itemElem.className = "DynamicLabel ClassBar";
+			if (isRowVal) {
+				itemElem.style.transform = 'rotate(90deg)';
+				itemElem.style.webkitTransform = "rotate(90deg)";
+				itemElem.setAttribute('axis','RowCovar');
+			} else {
+				itemElem.setAttribute('axis','ColumnCovar');
+			}
+			itemElem.style.position = "absolute";
+			itemElem.style.fontSize = '5pt';
+			itemElem.style.fontFamily = 'sans-serif';
+			itemElem.style.fontWeight = 'bold';
+			NgChm.DET.labelElement.appendChild(itemElem);
+		} 
+	}
+	itemElem.style.top = topVal;
+	itemElem.style.left = leftVal;
+}
+
+NgChm.SUM.buildScatterBarPlotMatrix = function(height, classBarValues, start, classBarLength, currentClassBar, barSize, isSummary) {
+	var matrix = new Array(height);
+	var isBarPlot = currentClassBar.bar_type === 'scatter_plot' ? false : true;
+	for (var j = 0; j < height; j++) {
+		matrix[j] = new Uint8Array(classBarLength);
+	}
+	var highVal = parseInt(currentClassBar.high_bound);
+	var lowVal = parseInt(currentClassBar.low_bound);
+	highVal += 1;
+	var scaleVal = highVal - lowVal;
+	var normalizedK = 0;
+	for (var k = start; k < start+classBarLength; k++) { 
+		var origVal = classBarValues[k];
+		if (origVal === "!CUT!") {
+			for (var l = 0; l < height; l++) {
+				matrix[l][normalizedK] = 2;
+			}
+		} else {
+			//For when the range is exclusive: Set for values out side range so that lower values register as the lowest value in the range
+			//and higher values register as the highest value in the range. (Per Bradley Broom)
+			if (origVal < lowVal) origVal = lowVal;
+			if (origVal >= highVal) origVal = highVal;
+			var adjVal = origVal-lowVal;
+			var valScale = adjVal/scaleVal;
+			var valHeight = Math.round(height*valScale) == height ? Math.round(height*valScale)-1 : Math.round(height*valScale);
+			if ((origVal >= lowVal) && (origVal <= highVal)) {
+				if (isBarPlot) {
+					//select from the lower bound UP TO the current position in the matrix
+					for (var l = 0; l <= valHeight; l++) {
+						matrix[l][normalizedK] = 1;
+					}
+				} else {
+					//select just the current position in the matrix
+					matrix[valHeight][normalizedK] = 1;
+					//if rows/cols large, select around the current position in the matrix
+	/*				if ((isSummary) && (barSize > 500)) {
+						matrix[valHeight][k+1] = 1;
+						if (typeof matrix[valHeight+1] != 'undefined') {
+							matrix[valHeight+1][k] = 1;
+							if (typeof matrix[valHeight+1][k+1] != 'undefined') {
+								matrix[valHeight+1][k+1] = 1;
+							}
+						} 
+					} */
+				}
+			} 		
+		}
+		normalizedK++;
+	} 
+	return matrix;
+}
+
+NgChm.SUM.calculateSummaryTotalClassBarHeight = function(axis,stopOn) {
 	var totalHeight = 0;
 	if (axis === "row") {
 		var classBars = NgChm.heatMap.getRowClassificationConfig();
@@ -859,6 +1168,9 @@ NgChm.SUM.calculateSummaryTotalClassBarHeight = function(axis) {
 		var classBars = NgChm.heatMap.getColClassificationConfig();
 	}
 	for (var key in classBars){
+		if ((typeof stopOn != 'undefined') && (key === stopOn)) {
+			break;
+		}
 		if (classBars[key].show === 'Y') {
 		   totalHeight += NgChm.SUM.getScaledHeight(parseInt(classBars[key].height), axis);
 		}
@@ -882,6 +1194,9 @@ NgChm.SUM.calculateSummaryTotalClassBarHeight = function(axis) {
 //Selection Label Functions *//
 //***************************//
 NgChm.SUM.summaryResize = function() {
+	console.log("summaryResize 1 offset: " + NgChm.SUM.canvas.offsetTop);
+	var startCanvas = NgChm.SUM.canvas.offsetTop;
+	console.log("summaryResize 2 startCanvas: " +startCanvas);
 	if(!NgChm.SEL.isSub){
 		NgChm.SUM.setSummarySize();
 		NgChm.SUM.colDendro.resize();
@@ -893,7 +1208,11 @@ NgChm.SUM.summaryResize = function() {
 		NgChm.SUM.setSelectionDivSize();
 		NgChm.SUM.drawRowSelectionMarks();
 		NgChm.SUM.drawColSelectionMarks();
+		NgChm.SUM.drawMissingRowClassBarsMark();
+		NgChm.SUM.drawMissingColClassBarsMark();
 		NgChm.SUM.drawTopItems();
+//		NgChm.SUM.drawColClassBarLegends(true); Removed for the time being
+//		NgChm.SUM.drawRowClassBarLegends(true);
 	}
 }
 
@@ -920,6 +1239,24 @@ NgChm.SUM.drawColSelectionMarks = function() {
 	var width = Math.max(1,colSel.width/300);
 	for (var i = 0; i < selectedCols.length; i++) {
 		colCtx.fillRect(selectedCols[i]-1,0,width,colSel.height);
+	}
+}
+
+NgChm.SUM.drawMissingRowClassBarsMark = function (){
+	if (document.getElementById("missingSumRowClassBars")){
+		document.getElementById("missingSumRowClassBars").remove();
+		var x = NgChm.SUM.canvas.offsetLeft;
+		var y = NgChm.SUM.canvas.offsetTop + NgChm.SUM.canvas.clientHeight + 2;
+		NgChm.DET.addLabelDiv(document.getElementById('sumlabelDiv'), "missingSumRowClassBars", "ClassBar MarkLabel", "...", "...", x, y, 10, "T", null,"Row");
+	}
+}
+
+NgChm.SUM.drawMissingColClassBarsMark = function (){
+	if (document.getElementById("missingSumColClassBars")){
+		document.getElementById("missingSumColClassBars").remove();
+		var x = NgChm.SUM.canvas.offsetLeft + NgChm.SUM.canvas.offsetWidth + 2;
+		var y = NgChm.SUM.canvas.offsetTop + NgChm.SUM.canvas.clientHeight/NgChm.SUM.totalHeight - 10;
+		NgChm.DET.addLabelDiv(document.getElementById('sumlabelDiv'), "missingSumColClassBars", "ClassBar MarkLabel", "...", "...", x, y, 10, "F", null,"Col");
 	}
 }
 
@@ -983,15 +1320,21 @@ NgChm.SUM.drawTopItems = function(){
 	if (NgChm.SUM.colTopItems){
 		for (var i = 0; i < NgChm.SUM.colTopItems.length; i++){ // find the indices for each item to draw them later.
 			var topItem = NgChm.SUM.colTopItems[i].trim();
+			if (topItem == ""){
+				continue;
+			}
 			for (var j = 0; j < colLabels.length; j++){
+				var foundLabel = false;
 				if (topItem == colLabels[j].split("|")[0] && colTopItemsIndex.length < 10){ // limit 10 items per axis
+					foundLabel = true;
 					colTopItemsIndex.push(j);
 				} else if (colTopItemsIndex.length >= 10){
 					break;
 				}
 			}
 		}
-		colTopItemsIndex = colTopItemsIndex.sort(sortNumber);
+		colTopItemsIndex = eliminateDuplicates(colTopItemsIndex.sort(sortNumber));
+		NgChm.SUM.colTopItemsIndex = colTopItemsIndex;
 		var colPositionArray = topItemPositions(colTopItemsIndex, matrixW, referenceItem.offsetHeight, colCanvas.width, colSumRatio);
 		if (colPositionArray){
 			var colTopItemsStart = Array(colTopItemsIndex.length);
@@ -1012,17 +1355,23 @@ NgChm.SUM.drawTopItems = function(){
 	// draw row top items
 	if (NgChm.SUM.rowTopItems){
 		for (var i = 0; i < NgChm.SUM.rowTopItems.length; i++){ // find indices
+			var foundLabel = false;
 			var topItem = NgChm.SUM.rowTopItems[i].trim();
+			if (topItem == ""){
+				continue;
+			}
 			for (var j = 0; j < rowLabels.length; j++){
 				if (topItem == rowLabels[j].split("|")[0] && rowTopItemsIndex.length < 10){ // limit 10 items per axis
 					rowTopItemsIndex.push(j);
+					foundLabel = true;
+					break;
 				} else if (rowTopItemsIndex.length >= 10){
 					break;
 				}
 			}
 		}
-		rowTopItemsIndex = rowTopItemsIndex.sort(sortNumber);
-		
+		rowTopItemsIndex = eliminateDuplicates(rowTopItemsIndex.sort(sortNumber));
+		NgChm.SUM.rowTopItemsIndex = rowTopItemsIndex;
 		var rowPositionArray = topItemPositions(rowTopItemsIndex, matrixH, referenceItem.offsetHeight, rowCanvas.height, rowSumRatio);
 		if (rowPositionArray){
 			var rowTopItemsStart = Array(rowTopItemsIndex.length);
@@ -1047,6 +1396,27 @@ NgChm.SUM.drawTopItems = function(){
 	
 	
 	// Helper functions for top items
+
+	function eliminateDuplicates(arr) {
+	  var i,
+	      len=arr.length,
+	      out=[],
+	      obj={},
+	      dupe=false;
+
+	  for (i=0;i<len;i++) {
+		  if (obj[arr[i]] == 0){
+			  dupe=true;
+		  }
+	    obj[arr[i]]=0;
+	  }
+	  for (i in obj) {
+	    out.push(i);
+	  }
+	  out.dupe=dupe;
+	  return out;
+	}
+
 	function sortNumber(a,b) { // helper function to sort the indices properly
 	    return a - b;
 	}
@@ -1063,7 +1433,10 @@ NgChm.SUM.drawTopItems = function(){
          
           //Loop through the index position of each of the top items.
           for (var i = 0; i < topItemsIndex.length; i++) {
-                var index = topItemsIndex[i];
+                var index = Number(topItemsIndex[i]);
+                if (isNaN(index)){ // if the top item wasn't found in the labels array, it comes back as null
+                	continue;  // so you can't draw it.
+                }
                 var bestPos = Math.min(Math.round(index * totalPositions / (summaryRatio * matrixSize)), posList.length-1);
                 if (posList[bestPos] == -1)
                       posList[bestPos] = index;
@@ -1125,6 +1498,9 @@ NgChm.SUM.drawTopItems = function(){
 		var labels = isRow ? rowLabels : colLabels;
 		var positionArray = isRow? rowPositionArray:colPositionArray;
 		var item = document.createElement("Div"); // place middle/topmost item
+		if (topItemIndex[index] == "null"){
+			return;
+		}
 		item.axis = axis;
 		item.index = topItemIndex[index];
 		item.className = "topItems";
@@ -1174,6 +1550,8 @@ NgChm.SUM.dividerMove = function(e) {
 	var detail = document.getElementById('detail_chm');
 	var detailX = detail.offsetWidth + Xmove;
 	detail.style.width=detailX+'px';
+	if(document.getElementById("missingSumRowClassBars")) document.getElementById("missingSumRowClassBars").remove();
+	if(document.getElementById("missingSumColClassBars")) document.getElementById("missingSumColClassBars").remove();
 	NgChm.DET.clearLabels();
 	NgChm.SUM.clearSelectionMarks();
 	NgChm.SUM.clearTopItems();
@@ -1200,6 +1578,8 @@ NgChm.SUM.dividerEnd = function(e) {
 	NgChm.SUM.drawRowSelectionMarks();
 	NgChm.SUM.drawColSelectionMarks();
 	NgChm.SUM.drawTopItems();
+//	NgChm.SUM.drawColClassBarLegends(true);  Removed for the time being
+//	NgChm.SUM.drawRowClassBarLegends(true);
 }
 
 NgChm.SUM.setBrowserMinFontSize = function () {

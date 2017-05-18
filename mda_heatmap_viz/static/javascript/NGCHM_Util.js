@@ -81,7 +81,7 @@ NgChm.UTIL.getLabelText = function(text,type) {
 		} else if (elPos === 'MIDDLE') {
 			text = text.substr(0,(size/2 - 1))+"..."+text.substr(text.length-(size/2 - 2),text.length);
 		} else {
-			text = "..."+text.substr(0,size - 3);
+			text = "..."+text.substr(size - 3,text.length);
 		}
 	}
 	return text;
@@ -198,6 +198,7 @@ NgChm.UTIL.startupChecks = function () {
     	msgButton.style.display = 'none'; 
     }
 }
+
 
 
 

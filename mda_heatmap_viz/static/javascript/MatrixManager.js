@@ -273,6 +273,26 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 		}
 	}
 	
+	this.setClassBarScatterPrefs = function(classname, type, barType, lowBound, highBound, fgColorVal, bgColorVal) {
+		if (type === "row") {
+			mapConfig.row_configuration.classifications[classname].bar_type = barType;
+			if (typeof lowBound !== 'undefined') {
+				mapConfig.row_configuration.classifications[classname].low_bound = lowBound;
+				mapConfig.row_configuration.classifications[classname].high_bound = highBound;
+				mapConfig.row_configuration.classifications[classname].fg_color = fgColorVal;
+				mapConfig.row_configuration.classifications[classname].bg_color = bgColorVal;
+			}
+		} else {
+			mapConfig.col_configuration.classifications[classname].bar_type = barType;
+			if (typeof lowBound !== 'undefined') {
+				mapConfig.col_configuration.classifications[classname].low_bound = lowBound;
+				mapConfig.col_configuration.classifications[classname].high_bound = highBound;
+				mapConfig.col_configuration.classifications[classname].fg_color = fgColorVal;
+				mapConfig.col_configuration.classifications[classname].bg_color = bgColorVal;
+			}
+		}
+	}
+	
 	this.setLayerGridPrefs = function(key, showVal, gridColorVal, selectionColorVal) {
 		mapConfig.data_configuration.map_information.data_layer[key].grid_show = showVal ? 'Y' : 'N';
 		mapConfig.data_configuration.map_information.data_layer[key].grid_color = gridColorVal;

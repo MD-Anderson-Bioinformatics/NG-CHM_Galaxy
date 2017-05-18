@@ -33,6 +33,12 @@ NgChm.PDF.openPdfPrefs = function(e) {
  **********************************************************************************/
 NgChm.PDF.getPDF = function() {
 
+	if (document.getElementById("pdfInputFont").value < 1 || document.getElementById("pdfInputFont").value > 36){
+		document.getElementById('pdfErrorMessage').style.display="inherit";
+		return;
+	} else {
+		document.getElementById('pdfErrorMessage').style.display="none";
+	}
 	// close the PDF menu when you download
 	NgChm.PDF.pdfCancelButton();	
 	var mapsToShow = isChecked("pdfInputSummaryMap") ? "S" : isChecked("pdfInputDetailMap") ? "D" : "B";
@@ -42,7 +48,7 @@ NgChm.PDF.getPDF = function() {
 	} else if (document.getElementById("pdfPaperSize").value == "A3") {
 		paperSize = [1224,792];
 	}
-	var doc = isChecked("pdfInputPortrait") ? new jsPDF("p","pt",paperSize) :new jsPDF("l","pt",paperSize); // landscape or portrait?  210 Ã— 297  2.83465  595x842
+	var doc = isChecked("pdfInputPortrait") ? new jsPDF("p","pt",paperSize) :new jsPDF("l","pt",paperSize); // landscape or portrait?  210 × 297  2.83465  595x842
 	var customFont = NgChm.PDF.customFont;
 	NgChm.PDF.customFont = false; // reset this variable once it has been referenced
 	var maxFontSize = Number(document.getElementById("pdfInputFont").value);
@@ -227,7 +233,7 @@ NgChm.PDF.getPDF = function() {
 		var selectedColor = colorMap.getHexToRgba(layer.selection_color);
 		var rowLabels = 0;
 
-		// Draw row selection boxes first (this way they will not overlap text)
+		// Draw selection boxes first (this way they will not overlap text)
 		for (var i = 0; i < allLabels.length; i++){
 			var label = allLabels[i];
 			if (label.getAttribute("axis") == "Row"){
@@ -239,38 +245,28 @@ NgChm.PDF.getPDF = function() {
 					doc.rect(label.offsetLeft/detClient2PdfWRatio+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop+1, longestRowLabelUnits+2, theFont+2,'F'); 
 				}
 				rowLabels++;
-			}
-		}
-		// Draw row labels 
-		for (var i = 0; i < allLabels.length; i++){
-			var label = allLabels[i];
-			if (label.getAttribute("axis") == "Row"){
-				doc.text(label.offsetLeft/detClient2PdfWRatio+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop+theFont*.75, label.innerHTML);
-
-			} else if (label.getAttribute("axis") == "ColumnCovar"){ // change font for class bars
-				doc.text(label.offsetLeft/detClient2PdfWRatio+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop+theFont*.75, label.innerHTML, null);
-			}
-		}
-		// Draw column selection boxes first
-		for (var i = 0; i < allLabels.length; i++){
-			var label = allLabels[i];
-			if (label.getAttribute("axis") == "Column"){
+			} else if (label.getAttribute("axis") == "Column") {
 				if (NgChm.DET.labelIndexInSearch(NgChm.SEL.currentCol+i-rowLabels,"Column")) {
 					doc.setFillColor(selectedColor.r, selectedColor.g, selectedColor.b);
 					doc.rect((label.offsetLeft/detClient2PdfWRatio)-2.5, label.offsetTop/detClient2PdfHRatio+paddingTop,  theFont+2.5, longestColLabelUnits+2,'F'); 
 				}
 			}
 		}
-		// Draw column labels
+		
+		// Draw labels 
 		for (var i = 0; i < allLabels.length; i++){
 			var label = allLabels[i];
-			if (label.getAttribute("axis") == "Column"){
-				doc.text(label.offsetLeft/detClient2PdfWRatio, label.offsetTop/detClient2PdfHRatio+paddingTop, label.innerHTML, null, 270);
-			} else if (label.getAttribute("axis") == "RowCovar"){
-				doc.text(label.offsetLeft/detClient2PdfWRatio, label.offsetTop/detClient2PdfHRatio+paddingTop, label.innerHTML, null, 270);
-			}
+			if ((label.getAttribute("axis") == "Row") || (label.getAttribute("axis") == "ColumnCovar")) {
+				doc.text(label.offsetLeft/detClient2PdfWRatio+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop+theFont*.75, label.innerHTML, null);
+			} else if ((label.getAttribute("axis") == "Column") || (label.getAttribute("axis") == "RowCovar")) {
+				if (label.id.indexOf("legendDet") > -1) {
+					doc.text((label.offsetLeft+(label.clientWidth*1.5))/detClient2PdfWRatio, label.offsetTop/detClient2PdfHRatio+paddingTop, label.innerHTML, null, 270);
+				} else {
+					doc.text(label.offsetLeft/detClient2PdfWRatio, label.offsetTop/detClient2PdfHRatio+paddingTop, label.innerHTML, null, 270);
+				}
+			} 
+ 
 		}
-	 
 	}
 	
 	// Setup for class bar legends
@@ -356,7 +352,7 @@ NgChm.PDF.getPDF = function() {
 			bars = threshCount; //Set bars to threshold count 
 		}
 		bars += isMissing; // Add a bar if missing values exist
-		var calcHeight = bars * classBarLegendTextSize; //number of bars multiplied by display height
+		var calcHeight = bars * (classBarLegendTextSize+3); //number of bars multiplied by display height
 		if (calcHeight > classBarFigureH) {
 			classBarFigureH = calcHeight;
 		}
@@ -440,18 +436,23 @@ NgChm.PDF.getPDF = function() {
 			var barHeight = classBarLegendTextSize + 3;
 			var counts = {}, maxCount = 0, maxLabelLength = doc.getStringUnitWidth("Missing Value")*classBarLegendTextSize;
 			// get the number N in each threshold
+			var cutValues = 0;
 			for(var i = 0; i< classBarData.values.length; i++) {
 			    var num = classBarData.values[i];
-			    counts[num] = counts[num] ? counts[num]+1 : 1;
+			    if (num !== '!CUT!') {
+			    	counts[num] = counts[num] ? counts[num]+1 : 1;
+			    } else {
+			    	cutValues++;
+			    }
 			}
 			for (var val in counts){
 				maxCount = Math.max(maxCount, counts[val]);
 				maxLabelLength = Math.max(maxLabelLength, doc.getStringUnitWidth(val.length)*classBarLegendTextSize);
 			}
 				
-			//Â NOTE: missingCount will contain all elements that are not accounted for in the thresholds
+			// NOTE: missingCount will contain all elements that are not accounted for in the thresholds
 			// ie: thresholds = [type1, type2, type3], typeX will get included in the missingCount
-			var missingCount = classBarData.values.length;
+			var missingCount = classBarData.values.length-cutValues;
 			// Get maximum length of threshhold title for use in separating counts from title
 			var threshMaxLen = getThreshMaxLength(thresholds,classBarLegendTextSize);
 			// Indent threshholds from class bar title
@@ -511,7 +512,11 @@ NgChm.PDF.getPDF = function() {
 		doc.setFontType("bold");
 		doc.text(leftOff, topOff, splitTitle);
 		doc.setFontType("normal");
-
+		var classBars = NgChm.heatMap.getColClassificationConfig();
+		if (type === 'row') {
+			classBars = NgChm.heatMap.getRowClassificationConfig();
+		}
+		var classBar = classBars[key];
 		//Adjustment for multi-line covariate headers
 		if(splitTitle.length > 1) {
 			classBarHeaderHeight = (classBarHeaderSize*splitTitle.length)+(4*splitTitle.length)+10;   
@@ -533,19 +538,24 @@ NgChm.PDF.getPDF = function() {
 		maxLabelLength = doc.getStringUnitWidth("Missing Value")*classBarLegendTextSize;
 
 		// get the continuous thresholds and find the counts for each bucket
+		var cutValues = 0;
 		for(var i = 0; i < classBarData.values.length; i++) {
 		    var num = classBarData.values[i];
-		    for (var k = 0; k < thresholds.length; k++){
-				var thresh = thresholds[k];
-				if (k == 0 && num < thresholds[k]){
-					counts[thresh] = counts[thresh] ? counts[thresh]+1 : 1;
-				} else if (k == thresholds.length-1 && num > thresholds[thresholds.length-1]){
-					counts[thresh] = counts[thresh] ? counts[thresh]+1 : 1;
-				} else if (num <= thresh){
-					counts[thresh] = counts[thresh] ? counts[thresh]+1 : 1;
-					break;
+		    if (num !== '!CUT!') {
+			    for (var k = 0; k < thresholds.length; k++){
+					var thresh = thresholds[k];
+					if (k == 0 && num < thresholds[k]){
+						counts[thresh] = counts[thresh] ? counts[thresh]+1 : 1;
+					} else if (k == thresholds.length-1 && num > thresholds[thresholds.length-1]){
+						counts[thresh] = counts[thresh] ? counts[thresh]+1 : 1;
+					} else if (num <= thresh){
+						counts[thresh] = counts[thresh] ? counts[thresh]+1 : 1;
+						break;
+					}
 				}
-			}
+		    } else {
+		    	cutValues++;
+		    }
 		}
 		
 		// find the longest label length
@@ -555,7 +565,7 @@ NgChm.PDF.getPDF = function() {
 		}
 		
 		var bartop = topOff+5 + (splitTitle.length-1)*classBarLegendTextSize*2;
-		var missingCount = classBarData.values.length; // start at total number of labels and work down
+		var missingCount = classBarData.values.length - cutValues; // start at total number of labels and work down
 		var value;
 		// Get maximum length of threshhold title for use in separating counts from title
 		var threshMaxLen = getThreshMaxLength(thresholds,classBarLegendTextSize);
@@ -563,6 +573,9 @@ NgChm.PDF.getPDF = function() {
 		leftOff += 10;
 		for (var j = 0; j < thresholds.length-1; j++){
 			var rgb = colorMap.getClassificationColor(thresholds[j]);
+			if (classBar.bar_type !== 'color_plot') {
+				rgb = colorMap.getClassificationColor(thresholds[thresholds.length-1]);
+			}
 			doc.setFillColor(rgb.r,rgb.g,rgb.b);
 			doc.setDrawColor(0,0,0);
 			value = counts[thresholds[j]];
@@ -736,6 +749,7 @@ NgChm.PDF.getPDF = function() {
  * the user presses the cancel button.
  **********************************************************************************/
 NgChm.PDF.pdfCancelButton = function() {
+	document.getElementById('pdfErrorMessage').style.display="none";
 	var prefspanel = document.getElementById('pdfPrefsPanel');
 	prefspanel.style.display = "none";
     NgChm.DET.canvas.focus();
