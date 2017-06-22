@@ -82,6 +82,9 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 	this.getDendroMatrix = function(){
 		return dendroMatrix;
 	}
+	this.getPointsPerLeaf = function(){
+		return pointsPerLeaf;
+	}
 
 	this.addSelectedBar = function(extremes, shift){
 		var left = extremes.left;
@@ -93,8 +96,8 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 			var bar = selectedBars[i];
 			if (bar.left >= selectedBar.left && bar.right <= selectedBar.right && bar.height <= selectedBar.height){
 				selectedBars.splice(i,1);
-				var selectLeft = Math.round((left+2)/3);
-				var selectRight =Math.round((right+2)/3);
+				var selectLeft = Math.round((left+pointsPerLeaf/2)/pointsPerLeaf);
+				var selectRight =Math.round((right+pointsPerLeaf/2)/pointsPerLeaf);
 				for (var j = selectLeft; j < selectRight+1;j++){
 					delete NgChm.SEL.searchItems["Column"][j];
 				}
@@ -107,8 +110,8 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 			}
 		}
 		
-		var selectLeft = Math.round((left+2)/3);
-		var selectRight = Math.round((right+2)/3);
+		var selectLeft = Math.round((left+pointsPerLeaf/2)/pointsPerLeaf);
+		var selectRight = Math.round((right+pointsPerLeaf/2)/pointsPerLeaf);
 		if (addBar){
 			if (shift){
 				for (var i = selectLeft; i < selectRight+1;i++){
@@ -231,6 +234,10 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 		bars = []; // clear out the bars array otherwise it will add more and more bars and slow everything down!
 		var numNodes = dendroData.length;
 		var matrixWidth = pointsPerLeaf*NgChm.heatMap.getNumColumns('d');
+		if (matrixWidth < NgChm.DDR.minDendroMatrixWidth){
+			pointsPerLeaf = Math.round(NgChm.DDR.minDendroMatrixWidth/NgChm.heatMap.getNumColumns('d'));
+			matrixWidth = pointsPerLeaf*NgChm.heatMap.getNumColumns('d');
+		} 
 		var matrix = new NgChm.DDR.DendroMatrix(normDendroMatrixHeight+1, matrixWidth,false);
 		
 		if (normDendroMatrixHeight >= NgChm.DDR.maxDendroMatrixHeight){ // if the dendro matrix height is already at the highest possible, just build it
@@ -294,7 +301,7 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 		function findLocationFromIndex(index){
 			if (index < 0){
 				index = 0-index; // make index a positive number to find the leaf
-				return pointsPerLeaf*index-2; // all leafs should occupy the middle space of the 3 points available
+				return Math.round(pointsPerLeaf*index-pointsPerLeaf/2);
 			} else {
 				index--;
 				return Math.round((bars[index].left + bars[index].right)/2); // gets the middle point of the bar
@@ -352,15 +359,15 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 			leftExtreme = NgChm.DDR.findLeftEnd(i,leftExtreme,dendroMatrix);
 			rightExtreme = NgChm.DDR.findRightEnd(i,rightExtreme,dendroMatrix); // L and R extreme values are in dendro matrix coords right now
 			NgChm.DDR.highlightAllBranchesInRange(i,leftExtreme,rightExtreme,dendroMatrix);
-			leftExtreme = NgChm.DDR.getTranslatedLocation(leftExtreme); // L and R extreme values gets converted to heatmap locations
-			rightExtreme = NgChm.DDR.getTranslatedLocation(rightExtreme);
+			leftExtreme = NgChm.DDR.getTranslatedLocation(leftExtreme,"Column"); // L and R extreme values gets converted to heatmap locations
+			rightExtreme = NgChm.DDR.getTranslatedLocation(rightExtreme,"Column");
 									
 			
 			// Set start and stop coordinates
 			var rhRatio = NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.RIBBON_HOR_LEVEL);
 			var summaryRatio = NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL);
-			NgChm.SEL.selectedStart = Math.round(leftExtreme*summaryRatio) +1;
-			NgChm.SEL.selectedStop = Math.round(rightExtreme*summaryRatio) +1;
+			NgChm.SEL.selectedStart = Math.round(leftExtreme*summaryRatio);// +1;
+			NgChm.SEL.selectedStop = Math.round(rightExtreme*summaryRatio);// +1;
 			NgChm.DET.clearSearchItems("Column");
 			NgChm.SUM.drawColSelectionMarks();
 			NgChm.SEL.changeMode('RIBBONH');
@@ -426,6 +433,9 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 	this.getDendroMatrix = function(){
 		return dendroMatrix;
 	}
+	this.getPointsPerLeaf = function(){
+		return pointsPerLeaf;
+	}
 	
 	this.addSelectedBar = function(extremes, shift){		
 		var left = extremes.left;
@@ -437,8 +447,8 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 			var bar = selectedBars[i];
 			if (bar.left >= selectedBar.left && bar.right <= selectedBar.right && bar.height <= selectedBar.height){
 				selectedBars.splice(i,1);
-				var selectLeft = Math.round((left+2)/3);
-				var selectRight =Math.round((right+2)/3);
+				var selectLeft = Math.round((left+pointsPerLeaf/2)/pointsPerLeaf);
+				var selectRight =Math.round((right+pointsPerLeaf/2)/pointsPerLeaf);
 				for (var j = selectLeft; j < selectRight+1;j++){
 					delete NgChm.SEL.searchItems["Row"][j];
 				}
@@ -451,8 +461,8 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 			}
 		}
 		
-		var selectLeft = Math.round((left+2)/3);
-		var selectRight = Math.round((right+2)/3);
+		var selectLeft = Math.round((left+pointsPerLeaf/2)/pointsPerLeaf);
+		var selectRight = Math.round((right+pointsPerLeaf/2)/pointsPerLeaf);
 		if (addBar){
 			if (shift){
 				for (var i = selectLeft; i < selectRight+1;i++){
@@ -577,6 +587,10 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 		var numNodes = dendroData.length;
 		var maxHeight = getMaxHeight(dendroData);
 		var matrixWidth = pointsPerLeaf*NgChm.heatMap.getNumRows('d');
+		if (matrixWidth < NgChm.DDR.minDendroMatrixWidth){
+			pointsPerLeaf = Math.round(NgChm.DDR.minDendroMatrixWidth/NgChm.heatMap.getNumRows('d'));
+			matrixWidth = pointsPerLeaf*NgChm.heatMap.getNumRows('d');
+		} 
 		var matrix = new NgChm.DDR.DendroMatrix(normDendroMatrixHeight+1, matrixWidth,true);
 		
 		if (normDendroMatrixHeight >= NgChm.DDR.maxDendroMatrixHeight){ // if the dendro matrix height is already at the highest possible, just build it
@@ -640,7 +654,7 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 		function findLocationFromIndex(index){
 			if (index < 0){
 				index = 0-index; // make index a positive number to find the leaf
-				return pointsPerLeaf*index-2; // all leafs should occupy the middle space of the 3 points available
+				return Math.round(pointsPerLeaf*index-pointsPerLeaf/2); // all leafs should occupy the middle space of the 3 points available
 			} else {
 				index--;
 				return Math.round((bars[index].left + bars[index].right)/2); // gets the middle point of the bar
@@ -699,14 +713,14 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 			rightExtreme = NgChm.DDR.findRightEnd(i,rightExtreme,dendroMatrix); // L and R extreme values are in dendro matrix coords right now
 			NgChm.DDR.highlightAllBranchesInRange(i,leftExtreme,rightExtreme,dendroMatrix);
 			
-			leftExtreme = NgChm.DDR.getTranslatedLocation(leftExtreme); // L and R extreme values gets converted to heatmap locations
-			rightExtreme = NgChm.DDR.getTranslatedLocation(rightExtreme);
+			leftExtreme = NgChm.DDR.getTranslatedLocation(leftExtreme,"Row"); // L and R extreme values gets converted to heatmap locations
+			rightExtreme = NgChm.DDR.getTranslatedLocation(rightExtreme,"Row");
 			
 			// Set start and stop coordinates
 			var rvRatio = NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.RIBBON_VERT_LEVEL);
 			var summaryRatio = NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL);
-			NgChm.SEL.selectedStart = Math.round(leftExtreme*summaryRatio) +1;
-			NgChm.SEL.selectedStop = Math.round(rightExtreme*summaryRatio) +1;
+			NgChm.SEL.selectedStart = Math.round(leftExtreme*summaryRatio);// +1;
+			NgChm.SEL.selectedStop = Math.round(rightExtreme*summaryRatio);// +1;
 			NgChm.DET.clearSearchItems("Row");
 			NgChm.SEL.changeMode('RIBBONV');
 			NgChm.SUM.drawRowSelectionMarks();
@@ -735,6 +749,7 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 *********************************************/
 NgChm.DDR.maxDendroMatrixHeight = 3000;
 NgChm.DDR.minDendroMatrixHeight = 500;
+NgChm.DDR.minDendroMatrixWidth = 500;
 NgChm.DDR.pointsPerLeaf = 3; // each leaf will get 3 points in the dendrogram array. This is to avoid lines being right next to each other
 
 NgChm.DDR.findExtremes = function(i,j,matrix) {
@@ -782,9 +797,10 @@ NgChm.DDR.findExtremes = function(i,j,matrix) {
 	return {"left":left,"right":right,"height":top};
 }
 
-NgChm.DDR.getTranslatedLocation = function(location) {
-	var summaryRatio = NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL);
-	return (location/summaryRatio)/NgChm.DDR.pointsPerLeaf;
+NgChm.DDR.getTranslatedLocation = function(location,axis) {
+	var PPL = axis == "Row" ? NgChm.SUM.rowDendro.getPointsPerLeaf() : NgChm.SUM.colDendro.getPointsPerLeaf(); 
+	var summaryRatio = NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL);//  This line doesn't look right, but it works this way. This method doesn't work: axis == "Row" ? NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL) :  NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL);;
+	return (location/summaryRatio)/PPL;
 }
 
 NgChm.DDR.exploreToEndOfBar = function(i,j, dendroMatrix) {
