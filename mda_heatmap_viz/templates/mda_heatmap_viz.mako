@@ -56,6 +56,7 @@
 			   NgChm.UTIL.startupChecks();
                var blob = new Blob([this.response], {type: 'compress/zip'});
                zip.useWebWorkers = false;
+		document.getElementById('loader').style.display = '';
                var matrixMgr = new NgChm.MMGR.MatrixManager(NgChm.MMGR.FILE_SOURCE);
                var name = this.getResponseHeader("Content-Disposition");
                if (name.indexOf('[') > -1) {
@@ -120,7 +121,7 @@
            </div>
         </div>
     </div>
-
+    <div id='loader' style='display: none;'>Loading...</div>
     <div id="container">
        <div id='summary_chm' style='position: relative;'>
        <img id='messageOpen_btn' style="position:absolute; display: none;" src='/plugins/visualizations/mda_heatmap_viz/static/images/messageButton.png' alt='Open Alert' onmouseout="NgChm.UHM.userHelpClose();" onmouseover='NgChm.UHM.detailDataToolHelp(this,"Display Startup Warnings",160)' onclick='NgChm.UHM.displayStartupWarnings();' align="top"   />
@@ -142,7 +143,10 @@
           <canvas id='detail_canvas' style='display: inline-block'></canvas>
           <canvas id='detail_box_canvas' ></canvas>
 	<!--		<div id='detSizer' style='position:absolute'  onmousedown="NgChm.DET.detSizerStart()" ontouchstart="NgChm.DET.detSizerStart()"></div> -->
-          <div id='labelDiv' style="display: inline-block"></div>
+          <div id='labelDiv' style="display: inline-block">
+				<div id='colLabelDiv' axis="Column" style="display: inline-block; position: absolute; right: 0px; " oncontextmenu="NgChm.DET.labelRightClick(event)"></div>
+				<div id='rowLabelDiv' axis ="Row" style="display: inline-block; position: absolute; bottom: 0px; " oncontextmenu="NgChm.DET.labelRightClick(event)"></div>
+			</div>
        </div>
    </div>
    <div id='insilico_footer' style="right:5px; bottom:5px;position:absolute">
@@ -234,7 +238,7 @@
          </table>
       </div>
       <div id="prefsPanel" style="display: none;">
-         <div id="prefsHeader">Heat Map Display Properties<img id="redX_btn" src="/plugins/visualizations/mda_heatmap_viz/static/images/redX.png" alt="Cancel changes" onclick="NgChm.UPM.prefsCancelButton();" align="right"></div>
+         <div id="prefsHeader"><img id='prefsMove_btn' src='/plugins/visualizations/mda_heatmap_viz/static/images/prefsLeft.png' alt='Move preferences' onmouseover='NgChm.UHM.detailDataToolHelp(this,"Move Preferences",120)' onclick='NgChm.UPM.prefsMoveButton();' align='left'>Heat Map Display Properties<img id="redX_btn" src="/plugins/visualizations/mda_heatmap_viz/static/images/redX.png" alt="Cancel changes" onclick="NgChm.UPM.prefsCancelButton();" align="right"></div>
          <div style="height: 20px;"></div>
          <div id="prefTabButtons">&nbsp;<img id="prefRowsCols_btn" src="/plugins/visualizations/mda_heatmap_viz/static/images/rowsColsOn.png" alt="Edit Rows &amp; Columns" onclick="NgChm.UPM.showRowsColsPrefs();" align="top">&nbsp;<img id="prefLayer_btn" src="/plugins/visualizations/mda_heatmap_viz/static/images/dataLayersOff.png" alt="Edit Data Layers" onclick="NgChm.UPM.showLayerPrefs();" 	align="top">&nbsp;<img id="prefClass_btn" src="/plugins/visualizations/mda_heatmap_viz/static/images/covariateBarsOff.png" alt="Edit Classifications" onclick="NgChm.UPM.showClassPrefs();" align="top"></div>
          <div id="prefPrefs" class="prefSubPanel" style="display: block; height: 70"></div>

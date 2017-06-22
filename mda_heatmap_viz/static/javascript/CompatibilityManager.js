@@ -3,16 +3,16 @@ NgChm.createNS('NgChm.CM');
  
 // This string contains the entire configuration.json file.  This was previously located in a JSON file stored with the application code
 // but has been placed here at the top of the CompatibilityManager class so that the configuration can be utilized in File Mode.
-NgChm.CM.jsonConfigStr = "{\"row_configuration\": {\"classifications\": {\"show\": \"Y\",\"height\": 15,\"bar_type\": \"color_plot\",\"fg_color\": \"#000000\",\"bg_color\": \"#FFFFFF\"},\"classifications_order\": 1,\"organization\": {\"agglomeration_method\": \"unknown\","+
+NgChm.CM.jsonConfigStr = "{\"row_configuration\": {\"classifications\": {\"show\": \"Y\",\"height\": 15,\"bar_type\": \"color_plot\",\"fg_color\": \"#000000\",\"bg_color\": \"#FFFFFF\",\"low_bound\": \"0\",\"high_bound\": \"100\"},\"classifications_order\": 1,\"organization\": {\"agglomeration_method\": \"unknown\","+
 			"\"order_method\": \"unknown\",\"distance_metric\": \"unknown\"},\"dendrogram\": {\"show\": \"ALL\",\"height\": \"100\"},\"label_display_length\": \"20\",\"label_display_method\": \"END\",\"top_items\": \"[]\"},"+
-			"\"col_configuration\": {\"classifications\": {\"show\": \"Y\",\"height\": 15,\"bar_type\": \"color_plot\",\"fg_color\": \"#000000\",\"bg_color\": \"#FFFFFF\"},\"classifications_order\": 1,"+ 
+			"\"col_configuration\": {\"classifications\": {\"show\": \"Y\",\"height\": 15,\"bar_type\": \"color_plot\",\"fg_color\": \"#000000\",\"bg_color\": \"#FFFFFF\",\"low_bound\": \"0\",\"high_bound\": \"100\"},\"classifications_order\": 1,"+ 
 		    "\"organization\": {\"agglomeration_method\": \"unknown\",\"order_method\": \"unknown\",\"distance_metric\": \"unknown\"},"+
 		    "\"dendrogram\": {\"show\": \"ALL\",\"height\": \"100\"},\"label_display_length\": \"20\",\"label_display_method\": \"END\",\"top_items\": \"[]\"},\"data_configuration\": {\"map_information\": {\"data_layer\": {"+
 		    "\"name\": \"Data Layer\",\"grid_show\": \"Y\",\"grid_color\": \"#FFFFFF\",\"selection_color\": \"#00FF38\"},\"name\": \"CHM Name\",\"description\": \""+
 		    "Full length description of this heatmap\",\"summary_width\": \"50\",\"summary_height\": \"100\",\"detail_width\": \"50\",\"detail_height\": \"100\",\"read_only\": \"N\",\"version_id\": \"1.0.0\",\"map_cut_rows\": \"0\",\"map_cut_cols\": \"0\"}}}";
 
 // CURRENT VERSION NUMBER
-NgChm.CM.version = "2.0.3";
+NgChm.CM.version = "2.0.5";
 NgChm.CM.webServerUrl = "http://projects.insilico.us.com:8081/NGCHM/";
 NgChm.CM.classOrderStr = ".classifications_order";
 
@@ -67,6 +67,11 @@ NgChm.CM.CompatibilityManager = function(mapConfig) {
 				var searchPath = searchItem.substring(1, searchItem.lastIndexOf("."));
 				var newItem = searchItem.substring(searchItem.lastIndexOf(".")+1, searchItem.length);
 				var parts = searchPath.split(".");
+				//Here we search any entries for classification bars to reconstruct bar labels that have been
+				//split apart due to the period character being contained in the label.
+				if (parts[1] === 'classifications') {
+					parts[2] = NgChm.CM.trimClassLabel(parts);
+				}
 				var obj = mapConfig;
 				for (i=0;i<parts.length;i++) {
 					obj = obj[parts[i]];
@@ -90,6 +95,26 @@ NgChm.CM.CompatibilityManager = function(mapConfig) {
 	if (foundUpdate === true) {
 		var success = NgChm.heatMap.autoSaveHeatMap();
 	}
+}
+
+/**********************************************************************************
+ * FUNCTION - trimClassLabel: The purpose of this function is to determine if the 
+ * classification label contains the period (.) character and combine the pieces, that
+ * have been previously split on that character, back into a single string.
+ * *******************************************************************************/
+NgChm.CM.trimClassLabel = function(parts) {
+	var classLabel = "";
+	if (parts.length > 3) {
+		var remItem = "";
+		for (var i = parts.length - 1; i >= 3; i--) {
+			remItem = "."+parts[i]+remItem;
+			parts.splice(i, 1);
+		}
+		classLabel = parts[2] + remItem;
+	} else {
+		classLabel = parts[2];
+	}
+	return classLabel;
 }
 
 /**********************************************************************************
