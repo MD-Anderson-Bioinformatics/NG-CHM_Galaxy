@@ -633,7 +633,7 @@ NgChm.SEL.flickChange = function(fromList) {
 	NgChm.SEL.flickInit();
 	
 	if (!NgChm.SEL.isSub) {
-		NgChm.SUM.summaryInit();
+		NgChm.SUM.buildSummaryTexture();
 	} else {
 		localStorage.removeItem('event');
 		localStorage.setItem('currentDl', NgChm.SEL.currentDl);
@@ -641,6 +641,7 @@ NgChm.SEL.flickChange = function(fromList) {
 	}
 	NgChm.DET.drawDetailHeatMap();
 }
+
 
 
 
