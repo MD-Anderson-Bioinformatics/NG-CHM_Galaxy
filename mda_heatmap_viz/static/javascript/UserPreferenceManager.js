@@ -61,6 +61,8 @@ NgChm.UPM.editPreferences = function(e,errorMsg) {
 		}
 	} 
 	var prefspanel = document.getElementById("prefsPanel");
+	prefspanel.style.right = 0;
+	prefspanel.style.left = "";
 	var prefprefs = document.getElementById("prefPrefs");
 
 	if (errorMsg !== null) {
@@ -217,6 +219,25 @@ NgChm.UPM.prefsCancelButton = function() {
 	//Hide the preferences panel
 	document.getElementById('prefsPanel').style.display= 'none';
 	NgChm.UPM.searchPerformed = false;
+}
+
+/**********************************************************************************
+ * FUNCTION - prefsMoveButton: The purpose of this function is to toggle the preferences
+ * editing panel from the left side of the screen to the right (or vice-versa).
+ **********************************************************************************/
+NgChm.UPM.prefsMoveButton = function() {
+	NgChm.UHM.userHelpClose();
+	var prefspanel = document.getElementById("prefsPanel");
+	var moveBtn = document.getElementById("prefsMove_btn");
+	if (moveBtn.src.indexOf("prefsLeft") > 0) {
+		moveBtn.setAttribute('src', NgChm.staticPath + 'images/prefsRight.png');
+		prefspanel.style.right = "";
+		prefspanel.style.left = 0;
+	} else {
+		moveBtn.setAttribute('src', NgChm.staticPath + 'images/prefsLeft.png');
+		prefspanel.style.right = 0;
+		prefspanel.style.left = "";
+	}
 }
 
 /**********************************************************************************
@@ -509,13 +530,13 @@ NgChm.UPM.prefsValidateBreakPoints = function(colorMapName,prefPanel) {
 	for (var i = 0; i < thresholds.length; i++) {
 		var breakElement = document.getElementById(colorMapName+"_breakPt"+i+"_breakPref");
 		//If current breakpoint is not numeric
-		if (isNaN(breakElement.value)) {
+		if ((isNaN(breakElement.value)) || (breakElement.value === "")) {
 			charBreak = true;
 			break;
 		}
 		
 		//If current breakpoint is not greater than previous, throw order error
-		if (parseInt(breakElement.value) < prevBreakValue) {
+		if (Number(breakElement.value) < prevBreakValue) {
 			breakOrder = true;
 			break;
 		}
@@ -584,6 +605,7 @@ NgChm.UPM.prefsValidateBreakColors = function(colorMapName,type, prefPanel) {
  * user entered changes to colors and breakpoints. 
  **********************************************************************************/
 NgChm.UPM.prefsApplyBreaks = function(colorMapName, type) {
+
 	var colorMap = NgChm.heatMap.getColorMapManager().getColorMap(type,colorMapName);
 	var thresholds = colorMap.getThresholds();
 	var colors = colorMap.getColors();
@@ -626,7 +648,15 @@ NgChm.UPM.getNewBreakColors = function(colorMapName, type, pos, action) {
 			if (action === "add") {
 				newColors.push(colorElement.value);
 				if (j === pos) {
-					newColors.push(colorElement.value);
+					//get next breakpoint color.  If none, use black
+					var nextColorElement = document.getElementById(key+"_color"+(j+1)+"_colorPref");
+					var nextColorVal = "#000000";
+					if (nextColorElement !== null) {
+						nextColorVal = nextColorElement.value;
+					}
+					//Blend last and next breakpoint colors to get new color.
+					var newColor =  NgChm.UTIL.blendTwoColors(colorElement.value, nextColorVal);   
+					newColors.push(newColor);
 				}
 			} else {
 				if (j !== pos) {
@@ -637,7 +667,20 @@ NgChm.UPM.getNewBreakColors = function(colorMapName, type, pos, action) {
 			newColors.push(colorElement.value);
 		}
 	}
-	
+	//If this color map is for a row/col class bar AND that bar is a scatter or
+	//bar plot (colormap will always be continuous), set the upper colormap color
+	//to the foreground color set by the user for the bar/scatter plot. This is
+	//default behavior that happens when a map is built but must be managed as
+	//users change preferences and bar types.
+	if (type !== "data") {
+		var classBar = NgChm.heatMap.getColClassificationConfig()[colorMapName];
+		if (type === "row") {
+			classBar = NgChm.heatMap.getRowClassificationConfig()[colorMapName];
+		}
+		if (classBar.bar_type != 'color_plot') {
+			newColors[1] = classBar.fg_color;
+		}
+	}
 	return newColors;
 }
 
@@ -660,7 +703,19 @@ NgChm.UPM.getNewBreakThresholds = function(colorMapName, pos, action) {
 			if (action === "add") {
 				newThresholds.push(breakElement.value);
 				if (j === pos) {
-					newThresholds.push(breakElement.value);
+					//get next breakpoint value.  If none, add 1 to current breakpoint
+					var nextBreakElement = document.getElementById(colorMapName+"_breakPt"+(j+1)+"_breakPref");
+					var nextBreakVal = 0;
+					if (nextBreakElement === null) {
+						nextBreakVal = Number(breakElement.value)+1;
+					} else {
+						nextBreakVal = Number(nextBreakElement.value);
+					}
+					//calculate the difference between last and next breakpoint values and divide by 2 to get the mid-point between.
+					var breakDiff = (Math.abs((Math.abs(nextBreakVal) - Math.abs(Number(breakElement.value))))/2);
+					//add mid-point to last breakpoint.
+					var calcdBreak = (Number(breakElement.value) + breakDiff).toFixed(4);
+					newThresholds.push(calcdBreak);
 				}
 			} else {
 				if (j !== pos) {
