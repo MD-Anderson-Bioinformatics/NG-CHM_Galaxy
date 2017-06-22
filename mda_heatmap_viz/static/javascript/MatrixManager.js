@@ -451,6 +451,9 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 	
 	//Is the heat map ready for business 
 	this.isInitialized = function() {
+		if (initialized === 1) {
+	 		document.getElementById('loader').style.display = 'none';
+		}
 		return initialized;
 	}
 
@@ -504,6 +507,9 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 				if (flickViewsDiv.style.display === 'none') {;
 					flickViewsOff.style.display='';
 				}
+			} else {
+				NgChm.SEL.currentDl = "dl1";
+				flicks.style.display='none';
 			}
 			flickInitialized = true;
 			var gearBtnPanel = document.getElementById("pdf_gear");
@@ -795,7 +801,7 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 	}
 	
 	//Call the users call back function to let them know the chm is initialized or updated.
-	function sendCallBack(event, level) {
+	function sendCallBack(event, level, tileDl) {
 		
 		//Initialize event
 		if ((event == NgChm.MMGR.Event_INITIALIZED) || (event == NgChm.MMGR.Event_JSON) ||
@@ -804,9 +810,10 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 			if ((mapData != null) &&
 				(mapConfig != null) &&
 				(Object.keys(datalevels).length > 0) &&
-				(tileCache[NgChm.SEL.currentDl+"."+NgChm.MMGR.THUMBNAIL_LEVEL+".1.1"] != null)) {
-				initialized = 1;
-				sendAllListeners(NgChm.MMGR.Event_INITIALIZED);
+				(tileCache[NgChm.SEL.currentDl+"."+NgChm.MMGR.THUMBNAIL_LEVEL+".1.1"] != null) &&
+				 (initialized == 0)) {
+					initialized = 1;
+					sendAllListeners(NgChm.MMGR.Event_INITIALIZED);
 			}
 			//Unlikely, but possible to get init finished after all the summary tiles.  
 			//As a back stop, if we already have the top left summary tile, send a data update event too.
@@ -815,7 +822,9 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 			}
 		} else	if ((event == NgChm.MMGR.Event_NEWDATA) && (initialized == 1)) {
 			//Got a new tile, notify drawing code via callback.
-			sendAllListeners(event, level);
+			 if (tileDl == NgChm.SEL.currentDl) {
+				sendAllListeners(event, level);
+			 }
 		}
 	}
 	
@@ -850,7 +859,8 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 					} else {
 						var arrayData = new Float32Array(req.response);
 						tileCache[tileCacheName] = arrayData;
-						sendCallBack(NgChm.MMGR.Event_NEWDATA, level);
+						var tileDl = tileCacheName.substring(0, tileCacheName.indexOf("."));
+						sendCallBack(NgChm.MMGR.Event_NEWDATA, level,tileDl);
 					}
 				}
 			};	
@@ -865,7 +875,8 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 			        var arrayBuffer = fr.result;
 			        var far32 = new Float32Array(arrayBuffer);
 			        tileCache[tileCacheName] = far32;
-					sendCallBack(NgChm.MMGR.Event_NEWDATA, level);
+					var tileDl = tileCacheName.substring(0, tileCacheName.indexOf("."));
+					sendCallBack(NgChm.MMGR.Event_NEWDATA, level,tileDl);
 			     }
 			    	  
 			     fr.readAsArrayBuffer(blob);		
