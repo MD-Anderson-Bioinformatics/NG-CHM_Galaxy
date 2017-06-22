@@ -93,6 +93,7 @@ NgChm.LNK.addMatrixLinkout = function(name, rowType, colType, selectType, callba
 //this function goes through searchItems and returns the proper label type for linkout functions to use
 NgChm.LNK.getLabelsByType = function(axis, linkout){
 	var searchLabels;
+	var labelDataMatrix;
 	var labels = axis == 'Row' ? NgChm.heatMap.getRowLabels()["labels"] : axis == "Column" ? NgChm.heatMap.getColLabels()['labels'] : 
 		axis == "ColumnCovar" ? Object.keys(NgChm.heatMap.getColClassificationConfig()) : axis == "RowCovar" ? Object.keys(NgChm.heatMap.getRowClassificationConfig()) : 
 			[NgChm.heatMap.getRowLabels()["labels"], NgChm.heatMap.getColLabels()['labels'] ];
@@ -121,12 +122,17 @@ NgChm.LNK.getLabelsByType = function(axis, linkout){
 				}
 			}
 		} else {
-			searchLabels = {"Row" : [], "Column" : []};
+			
+		   	searchLabels = {"Row" : [], "Column" : []};
 			for (var i in NgChm.SEL.searchItems["Row"]){
 				searchLabels["Row"].push( generateSearchLabel(labels[0][i-1],[formatIndex[0]]) );
 			}
 			for (var i in NgChm.SEL.searchItems["Column"]){
 				searchLabels["Column"].push( generateSearchLabel(labels[1][i-1],[formatIndex[0]]) );
+			}
+			if (linkout.title === 'Download selected matrix data to file') {
+				labelDataMatrix = NgChm.LNK.createMatrixData(searchLabels);
+				return labelDataMatrix;
 			}
 		}
 	} else { // if this linkout was added using addMatrixLinkout
@@ -150,7 +156,7 @@ NgChm.LNK.getLabelsByType = function(axis, linkout){
 		}
 		for (var i in NgChm.SEL.searchItems["Column"]){
 			searchLabels["Column"].push( generateSearchLabel(labels[1][i-1],formatIndex.col) );
-		}
+		} 
 		
 	}
 	return searchLabels;
@@ -166,6 +172,38 @@ NgChm.LNK.getLabelsByType = function(axis, linkout){
 		return searchLabel;
 	}
 }
+
+//This function creates a two dimensional array which contains all of the row and
+//column labels along with the data for a given selection
+NgChm.LNK.createMatrixData = function(searchLabels) {
+	var matrix = new Array();
+	for (var j = 0; j < searchLabels["Row"].length+1; j++) {
+		matrix[j] = new Array();
+		if (j == 0) {
+			matrix[j].push(" ");
+			for (var i = 0; i < searchLabels["Column"].length; i++) {
+				matrix[j].push(searchLabels["Column"][i])
+			}
+		}
+	}
+	var dataMatrix = new Array();
+	for (var x in NgChm.SEL.searchItems["Row"]){
+		for (var y in NgChm.SEL.searchItems["Column"]){
+	    	var matrixValue = NgChm.heatMap.getValue(NgChm.MMGR.DETAIL_LEVEL,x,y);
+	    	dataMatrix.push(matrixValue);
+		}
+	}
+	var dataIdx = 0;
+	for (var k = 1; k < matrix.length; k++) {
+		matrix[k].push(searchLabels["Row"][k-1]);
+		for (var i = 1; i < searchLabels["Column"].length+1; i++) {
+			matrix[k].push(dataMatrix[dataIdx])
+			dataIdx++;
+		}
+	}
+	return matrix;
+}
+
 
 NgChm.LNK.createLabelMenus = function(){
 	if (!document.getElementById("RowLabelMenu")){
@@ -393,26 +431,27 @@ NgChm.LNK.addMenuItemToTable = function(axis, table, linkout,clickable){
 }
 
 NgChm.LNK.selectionError = function(e){
-	var message = "Please select only one label in this axis to use the following linkout:\n\n" + e.currentTarget.innerHTML;
-	alert(message);
+	var message = "<br>Please select only one label in this axis to use the following linkout:<br><br><b>" + e.currentTarget.innerHTML+"</b>";
+	NgChm.UHM.linkoutError(message);
 }
 
 NgChm.LNK.getDefaultLinkouts = function(){
 	var colLabelType = NgChm.heatMap.getColLabels().label_type;
 	var rowLabelType = NgChm.heatMap.getRowLabels().label_type;
 //	NgChm.LNK.addLinkout("Copy " + (colLabelType[0].length < 20 ? colLabelType[0] : "Column Labels") +" to Clipboard", colLabelType[0], linkouts.MULTI_SELECT, NgChm.LNK.copyToClipBoard,null,0);
-	NgChm.LNK.addLinkout("Copy Column Labels to Clipboard", colLabelType[0], linkouts.MULTI_SELECT, NgChm.LNK.copyToClipBoard,null,0); // text changed from the full label type to just "Column/Row Label" to prevent misreading of this linkout
-	if (rowLabelType[0] !== colLabelType[0]){
+	NgChm.LNK.addLinkout("Copy column labels to clipboard", colLabelType[0], linkouts.MULTI_SELECT, NgChm.LNK.copyToClipBoard,null,0); // text changed from the full label type to just "Column/Row Label" to prevent misreading of this linkout
+	NgChm.LNK.addLinkout("Copy row labels to clipboard", rowLabelType[0], linkouts.MULTI_SELECT, NgChm.LNK.copyToClipBoard,null,0);
+//	if (rowLabelType[0] !== colLabelType[0]){
 //		NgChm.LNK.addLinkout("Copy " + (rowLabelType[0].length < 20 ? rowLabelType[0] : "Row Labels") + " to Clipboard", rowLabelType[0], linkouts.MULTI_SELECT, NgChm.LNK.copyToClipBoard,null,0);
-		NgChm.LNK.addLinkout("Copy Row Labels to Clipboard", rowLabelType[0], linkouts.MULTI_SELECT, NgChm.LNK.copyToClipBoard,null,0);
-	}
+//	}
 	
 	NgChm.LNK.addLinkout("Copy bar data for all labels", "ColumnCovar", null, NgChm.LNK.copyEntireClassBarToClipBoard,null,0);
 	NgChm.LNK.addLinkout("Copy bar data for selected labels", "ColumnCovar", linkouts.MULTI_SELECT,NgChm.LNK.copyPartialClassBarToClipBoard,null,1);
 	NgChm.LNK.addLinkout("Copy bar data for all labels", "RowCovar", null,NgChm.LNK.copyEntireClassBarToClipBoard,null,0);
 	NgChm.LNK.addLinkout("Copy bar data for selected labels", "RowCovar", linkouts.MULTI_SELECT,NgChm.LNK.copyPartialClassBarToClipBoard,null,1);
-	NgChm.LNK.addLinkout("Copy selected items to clipboard", "Matrix", linkouts.MULTI_SELECT,NgChm.LNK.copySelectionToClipboard,null,0);
-	NgChm.LNK.addLinkout("Set Selection as Detail View.", "Matrix", linkouts.MULTI_SELECT,NgChm.LNK.setDetailView,null,0);
+	NgChm.LNK.addLinkout("Copy selected labels to clipboard", "Matrix", linkouts.MULTI_SELECT,NgChm.LNK.copySelectionToClipboard,null,0);
+	NgChm.LNK.addLinkout("Download selected matrix data to file", "Matrix", linkouts.MULTI_SELECT,NgChm.LNK.copySelectedDataToClipboard,null,0);
+	NgChm.LNK.addLinkout("Set selection as detail view.", "Matrix", linkouts.MULTI_SELECT,NgChm.LNK.setDetailView,null,0);
 }
 
 
@@ -458,6 +497,28 @@ NgChm.LNK.copyPartialClassBarToClipBoard = function(labels,axis){
 NgChm.LNK.copySelectionToClipboard = function(labels,axis){
 	window.open("","",'width=335,height=330,resizable=1').document.write("Rows: " + labels["Row"].join(", ") + "<br><br> Columns: " + labels["Column"].join(", "));
 }
+
+NgChm.LNK.copySelectedDataToClipboard = function(matrixData,axis){
+	var dataStr = "";
+	for (var i = 0; i<matrixData.length;i++) {
+		var rowData = matrixData[i].join('\t');
+		dataStr += rowData+"\n";
+	}
+	var fileName = NgChm.heatMap.getMapInformation().name+" Matrix Data.tsv";
+	download(fileName,dataStr);
+	//window.open("","",'width=335,height=330,resizable=1').document.write(dataStr);
+}
+
+function download(filename, text) {
+	var element = document.createElement('a');
+	element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+	element.setAttribute('download', filename);
+	element.style.display = 'none';
+	document.body.appendChild(element);
+	element.click();
+	document.body.removeChild(element);
+}
+
 
 //This matrix function allows users to create a special sub-ribbon view that matches
 //the currently selected box in the detail panel.  It just uses the first
