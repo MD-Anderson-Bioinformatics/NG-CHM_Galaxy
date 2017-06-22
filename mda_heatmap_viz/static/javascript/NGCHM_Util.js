@@ -199,6 +199,42 @@ NgChm.UTIL.startupChecks = function () {
     }
 }
 
+/**********************************************************************************
+ * FUNCTION - blendTwoColors: The purpose of this function is to blend two 6-character
+ * hex color code values into a single value that is half way between.
+ **********************************************************************************/
+NgChm.UTIL.blendTwoColors = function(color1, color2) {
+    // check input
+    color1 = color1 || '#000000';
+    color2 = color2 || '#ffffff';
+    percentage = 0.5;
 
+    //convert colors to rgb
+    color1 = color1.substring(1);
+    color2 = color2.substring(1);   
+    color1 = [parseInt(color1[0] + color1[1], 16), parseInt(color1[2] + color1[3], 16), parseInt(color1[4] + color1[5], 16)];
+    color2 = [parseInt(color2[0] + color2[1], 16), parseInt(color2[2] + color2[3], 16), parseInt(color2[4] + color2[5], 16)];
 
+    //blend colors
+    var color3 = [ 
+        (1 - percentage) * color1[0] + percentage * color2[0], 
+        (1 - percentage) * color1[1] + percentage * color2[1], 
+        (1 - percentage) * color1[2] + percentage * color2[2]
+    ];
+    //Convert to hex
+    color3 = '#' + NgChm.UTIL.intToHex(color3[0]) + NgChm.UTIL.intToHex(color3[1]) + NgChm.UTIL.intToHex(color3[2]);
+    // return hex
+    return color3;
+}
+
+/**********************************************************************************
+ * FUNCTION - intToHex: The purpose of this function is to convert integer
+ * value into a hex value;
+ **********************************************************************************/
+NgChm.UTIL.intToHex = function(num) {
+    var hex = Math.round(num).toString(16);
+    if (hex.length == 1)
+        hex = '0' + hex;
+    return hex;
+}
 
