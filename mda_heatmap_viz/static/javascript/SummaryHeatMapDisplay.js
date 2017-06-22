@@ -388,11 +388,10 @@ NgChm.SUM.onMouseUpCanvas = function(evt) {
 			var sumCol = NgChm.SUM.canvasToMatrixCol(xPos);
 			var clickEndRow = Math.max(sumRow*NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL),1);
 			var clickEndCol = Math.max(sumCol*NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL),0);
-			var startRow = Math.min(NgChm.SUM.clickStartRow,clickEndRow);
-			var startCol = Math.min(NgChm.SUM.clickStartCol,clickEndCol)+1;
-			var endRow = Math.max(startRow,clickEndRow);
-			var endCol = Math.max(startCol,clickEndCol);
-			
+			var startRow = Math.max(Math.min(NgChm.SUM.clickStartRow,clickEndRow),1);
+			var startCol = Math.max(Math.min(NgChm.SUM.clickStartCol,clickEndCol)+1,1);
+			var endRow = Math.max(NgChm.SUM.clickStartRow,clickEndRow);
+			var endCol = Math.max(NgChm.SUM.clickStartCol,clickEndCol);
 			NgChm.SUM.setSubRibbonView(startRow, endRow, startCol, endCol);
 		} else {
 			var sumOffsetX = evt.touches ? evt.layerX : evt.offsetX;
@@ -477,6 +476,9 @@ NgChm.SUM.dragSelection = function(evt) {
 	var clickEndCol = Math.max(sumCol*NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL),0);
 	var startRow = Math.min(NgChm.SUM.clickStartRow,clickEndRow);
 	var startCol = Math.min(NgChm.SUM.clickStartCol,clickEndCol)+1;
+	if (startRow < 0 || startCol < 0){
+		return;
+	}
 	var endRow = Math.max(NgChm.SUM.clickStartRow,clickEndRow);
 	var endCol = Math.max(NgChm.SUM.clickStartCol,clickEndCol)+1;
 	NgChm.SUM.dragSelect = true;
@@ -1194,9 +1196,6 @@ NgChm.SUM.calculateSummaryTotalClassBarHeight = function(axis,stopOn) {
 //Selection Label Functions *//
 //***************************//
 NgChm.SUM.summaryResize = function() {
-	console.log("summaryResize 1 offset: " + NgChm.SUM.canvas.offsetTop);
-	var startCanvas = NgChm.SUM.canvas.offsetTop;
-	console.log("summaryResize 2 startCanvas: " +startCanvas);
 	if(!NgChm.SEL.isSub){
 		NgChm.SUM.setSummarySize();
 		NgChm.SUM.colDendro.resize();
