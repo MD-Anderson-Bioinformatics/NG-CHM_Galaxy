@@ -643,13 +643,39 @@ NgChm.PDF.getPDF = function() {
 			topSkip  = classBarFigureH + classBarHeaderHeight; 
 			topOff += topSkip; // ... and move the next figure to the line below
 			classBarHeaderHeight = classBarHeaderSize+10; //reset this value
-			if (topOff + classBarFigureH > pageHeight && !isLastClassBarToBeDrawn(key,type)){ // if the next class bar goes off the page vertically...
+			var nextClassBarFigureH = getNextLineClassBarFigureH(key,type);
+			if (topOff + nextClassBarFigureH > pageHeight && !isLastClassBarToBeDrawn(key,type)){ // if the next class bar goes off the page vertically...
 				doc.addPage(); // ... make a new page and reset topOff
 				createHeader(theFont, sectionHeader + " (continued)");
 				topOff = paddingTop + 15;
 			}
 			classBarFigureH = 0;   
 		}
+	}
+	
+	
+	/**********************************************************************************
+	 * FUNCTION - getNextLineClassBarFigureH: This function is used to determine the
+	 * height of the next few class bars when a new line of class bar legends needs to 
+	 * be drawn.
+	 **********************************************************************************/
+	function getNextLineClassBarFigureH(key,type){
+		var classBarsToDraw = type == "col" ? colBarsToDraw : rowBarsToDraw;
+		var classBars = type == "col" ? NgChm.heatMap.getColClassificationConfig(): NgChm.heatMap.getRowClassificationConfig();
+		var index = classBarsToDraw.indexOf(key);
+		var classW = classBarFigureW;
+		var maxThresh = 0;
+		var numFigures = 0;
+		while (numFigures*classBarFigureW < pageWidth){
+			var barName = classBarsToDraw[index];
+			if (!barName) break;
+			var thisBar = classBars[barName];
+			var threshCount = thisBar.color_map.thresholds.length+1; // +1 added to assume that missing values will be present
+			if (thisBar.color_map.type == "continuous"){threshCount = 10}
+			if (threshCount > maxThresh) maxThresh = threshCount;
+			index++,numFigures++;
+		}
+		return maxThresh*classBarLegendTextSize;
 	}
 	
 	/**********************************************************************************
