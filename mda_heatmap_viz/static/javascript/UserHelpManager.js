@@ -11,7 +11,7 @@ NgChm.createNS('NgChm.UHM');
  * generate help pop-up panels for the detail heat map and the detail heat map 
  * classification bars.  
  **********************************************************************************/
-NgChm.UHM.userHelpOpen = function(e) {
+NgChm.UHM.userHelpOpen = function() {
     NgChm.UHM.userHelpClose();
     clearTimeout(NgChm.DET.detailPoint);
 	var helpContents = document.createElement("TABLE");
@@ -30,12 +30,22 @@ NgChm.UHM.userHelpOpen = function(e) {
     var colClassHeightPx = NgChm.DET.getColClassPixelHeight();
     var rowDendroWidthPx =  NgChm.DET.getRowDendroPixelWidth();
     var colDendroHeightPx = NgChm.DET.getColDendroPixelHeight();
-	var coords = NgChm.DET.getCursorPosition(e);
-	var mapLocY = coords.y - colClassHeightPx - colDendroHeightPx;
-	var mapLocX = coords.x - rowClassWidthPx - rowDendroWidthPx;
-
-	
-    if (NgChm.DET.isOnObject(e,"map")) {
+	var mapLocY = NgChm.DET.offsetY - colClassHeightPx - colDendroHeightPx;
+	var mapLocX = NgChm.DET.offsetX - rowClassWidthPx - rowDendroWidthPx;
+	var objectType = "none";
+    if (NgChm.DET.offsetY > colClassHeightPx + colDendroHeightPx) { 
+    	if  (NgChm.DET.offsetX > rowClassWidthPx + rowDendroWidthPx) {
+    		objectType = "map";
+    	}
+    	if  (NgChm.DET.offsetX < rowClassWidthPx + rowDendroWidthPx && NgChm.DET.offsetX > rowDendroWidthPx) {
+    		objectType = "rowClass";
+    	}
+    } else if (NgChm.DET.offsetY > colDendroHeightPx) {
+    	if  (NgChm.DET.offsetX > rowClassWidthPx + rowDendroWidthPx) {
+    		objectType = "colClass";
+    	}
+    }
+    if (objectType === "map") {
     	helpContents.insertRow().innerHTML = NgChm.UHM.formatBlankRow();
     	var row = Math.floor(NgChm.SEL.currentRow + (mapLocY/colElementSize)*NgChm.DET.getSamplingRatio('row'));
     	var col = Math.floor(NgChm.SEL.currentCol + (mapLocX/rowElementSize)*NgChm.DET.getSamplingRatio('col'));
@@ -92,11 +102,11 @@ NgChm.UHM.userHelpOpen = function(e) {
        	}
         helptext.style.display="inherit";
     	helptext.appendChild(helpContents);
-    	NgChm.UHM.locateHelpBox(e, helptext);
-    } else if (NgChm.DET.isOnObject(e,"rowClass") || NgChm.DET.isOnObject(e,"colClass")) {
+    	NgChm.UHM.locateHelpBox(helptext);
+    } else if ((objectType === "rowClass") || (objectType === "colClass")) {
     	var pos, value, label;
     	var hoveredBar, hoveredBarColorScheme;                                                     //coveredWidth = 0, coveredHeight = 0;
-    	if (NgChm.DET.isOnObject(e,"colClass")) {
+    	if (objectType === "colClass") {
         	var col = Math.floor(NgChm.SEL.currentCol + (mapLocX/rowElementSize)*NgChm.DET.getSamplingRatio('col'));
         	var colLabels = NgChm.heatMap.getColLabels().labels;
         	label = colLabels[col-1];
@@ -109,7 +119,7 @@ NgChm.UHM.userHelpOpen = function(e) {
     			var currentBar = classBarsConfig[key];
     			if (currentBar.show === 'Y') {
 	        		coveredHeight += NgChm.DET.canvas.clientHeight*currentBar.height/NgChm.DET.canvas.height;
-	        		if (coveredHeight >= coords.y) {
+	        		if (coveredHeight >= NgChm.DET.offsetY) {
 	        			hoveredBar = key;
 	        			hoveredBarValues = NgChm.heatMap.getColClassificationData()[key].values;
 	        			break;
@@ -130,7 +140,7 @@ NgChm.UHM.userHelpOpen = function(e) {
 				var currentBar = classBarsConfig[key];
     			if (currentBar.show === 'Y') {
 	        		coveredWidth += NgChm.DET.canvas.clientWidth*currentBar.height/NgChm.DET.canvas.width;
-	        		if (coveredWidth >= coords.x){
+	        		if (coveredWidth >= NgChm.DET.offsetX){
 	        			hoveredBar = key;
 	        			hoveredBarValues = NgChm.heatMap.getRowClassificationData()[key].values;
 	        			break;
@@ -249,13 +259,13 @@ NgChm.UHM.userHelpOpen = function(e) {
     	}
 		helptext.style.display="inherit";
     	helptext.appendChild(helpContents);
-    	NgChm.UHM.locateHelpBox(e, helptext);
+    	NgChm.UHM.locateHelpBox(helptext);
     } else {  
     	// on the blank area in the top left corner
     }
 
 }
-	
+
 /**********************************************************************************
  * FUNCTION - pasteHelpContents: This function opens a browser window and pastes
  * the contents of the user help panel into the window.  
@@ -270,25 +280,24 @@ function pasteHelpContents() {
  * for the display of a pop-up help panel based upon the cursor location and the
  * size of the panel.
  **********************************************************************************/
-NgChm.UHM.locateHelpBox = function(e, helptext) {
+NgChm.UHM.locateHelpBox = function(helptext) {
     var rowClassWidthPx = NgChm.DET.getRowClassPixelWidth();
     var colClassHeightPx = NgChm.DET.getColClassPixelHeight();
-	var coords = NgChm.DET.getCursorPosition(e);
-	var mapLocY = coords.y - colClassHeightPx;
-	var mapLocX = coords.x - rowClassWidthPx;
-	var mapH = e.target.clientHeight - colClassHeightPx;
-	var mapW = e.target.clientWidth - rowClassWidthPx;
-	var boxLeft = e.pageX;
+	var mapLocY = NgChm.DET.offsetY - colClassHeightPx;
+	var mapLocX = NgChm.DET.offsetX - rowClassWidthPx;
+	var mapH = NgChm.DET.canvas.clientHeight - colClassHeightPx;
+	var mapW = NgChm.DET.canvas.clientWidth - rowClassWidthPx;
+	var boxLeft = NgChm.DET.pageX;
 	if (mapLocX > (mapW / 2)) {
-		boxLeft = e.pageX - helptext.clientWidth - 10;
+		boxLeft = NgChm.DET.pageX - helptext.clientWidth - 10;
 	}
 	helptext.style.left = boxLeft;
-	var boxTop = e.pageY;
-	if ((boxTop+helptext.clientHeight) > e.target.clientHeight + 90) {
-		if (helptext.clientHeight > e.pageY) {
-			boxTop = e.pageY - (helptext.clientHeight/2);
+	var boxTop = NgChm.DET.pageY;
+	if ((boxTop+helptext.clientHeight) > NgChm.DET.canvas.clientHeight + 90) {
+		if (helptext.clientHeight > NgChm.DET.pageY) {
+			boxTop = NgChm.DET.pageY - (helptext.clientHeight/2);
 		} else {
-			boxTop = e.pageY - helptext.clientHeight;
+			boxTop = NgChm.DET.pageY - helptext.clientHeight;
 		}
 	}
 	//Keep box from going off top of screen so data values always visible.
@@ -319,7 +328,9 @@ NgChm.UHM.detailDataToolHelp = function(e,text,width,align) {
 	    }
 	    helptext.style.position = "absolute";
 	    e.parentElement.appendChild(helptext);
-
+//	    helptext.style.display="inherit";
+	    
+//	    if (helptext.offsetParent == e.parentElement){ // in most cases, this will be true
 	    	if (2*width + e.getBoundingClientRect().right > document.body.offsetWidth-50){ // 2*width and -50 from window width to force elements close to right edge to move
 		    	if (e.offsetLeft === 0) {
 			    	helptext.style.left = e.offsetLeft - 40;
@@ -338,6 +349,9 @@ NgChm.UHM.detailDataToolHelp = function(e,text,width,align) {
 	    	} else {
 	    		helptext.style.top = e.offsetTop + 45;
 	    	}
+//	    } else { // in tables (td,tr or anything where e.parentElement does not have position: relative or absolute) the positioning logic above will fail, so we don't move it at all
+//	    
+//	    }
 	    helptext.style.width = width;
 		var htmlclose = "</font></b>";
 		helptext.innerHTML = "<b><font size='2' color='#0843c1'>"+text+"</font></b>";
@@ -602,6 +616,18 @@ NgChm.UHM.mapNotFound = function(heatMapName) {
 	NgChm.UHM.setMessageBoxButton(3, "images/prefCancel.png", "", "NgChm.UHM.messageBoxCancel");
 	document.getElementById('msgBox').style.display = '';
 }
+
+/**********************************************************************************
+ * FUNCTION - linkoutError: This function displays a linkout error message.
+ **********************************************************************************/
+NgChm.UHM.linkoutError = function(msgText) {
+	NgChm.UHM.initMessageBox();
+	NgChm.UHM.setMessageBoxHeader("Heat Map Linkout"); 
+	NgChm.UHM.setMessageBoxText(msgText);
+	NgChm.UHM.setMessageBoxButton(3, "images/prefCancel.png", "", "NgChm.UHM.messageBoxCancel");
+	document.getElementById('msgBox').style.display = '';
+}
+
 
 /**********************************************************************************
  * FUNCTION - invalidFileFormat: This function displays an error when the user selects
