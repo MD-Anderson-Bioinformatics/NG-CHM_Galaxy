@@ -406,8 +406,9 @@ th.breakpointContainer {
 	overflow: none;
 	position: fixed;
 	top: 0;
-	right: 0;
 	background-color: #CBDBF6; 
+	border-left: 1px solid black; 
+	border-right: 1px solid black; 
 }
 
 #prefTabButtons {
@@ -474,7 +475,6 @@ th.breakpointContainer {
 }
 
 .prefSubPanel{
-	width: inherit;
 	vertical-align: top;
 	height: 99%;
 	background-color: #CBDBF6; 
