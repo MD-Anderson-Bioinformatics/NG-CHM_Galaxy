@@ -211,13 +211,13 @@ def ValidateHMCorvarFile(covarLabel, covariateFilePath, row_col_cat_contin, inMa
             eachRow=  rawRow.split('\t')
             if countRow== 0: print "\nCovariance file info - label ",str(covarLabel)," row/col categorical or continous",row_col_cat_contin," first row ",str(eachrow)
     
-            if len(eachRow) < 2:
-                print("----ERROR Input Row "+str(countRow)+" covariance label and input matrix label mismatch "+ str(eachRow[0])+" not = "+ str(inMatrixColLabels[countRow-1]))
-                sys.stderr.write("----ERROR Input Row "+str(countRow)+" covariance label and input matrix label mismatch "+ str(eachRow[0])+" not = "+ str(inMatrixColLabels[countRow-1]))
+            if len(eachRow) < 2 and countRow > 1:
+                print("----ERROR Input Row "+str(countRow)+" does not have a label and/or value ")
+                sys.stderr.write("----ERROR Input Row "+str(countRow)+" does not have a label/or and value")
                 error= True
                 sys.err= 8
                 #return error
-            else:
+            elif len(eachRow) > 1:
                 tmp= re.search('[abcdefghijklmnopqrstuvwxyz]',eachRow[0].lower())
                 try:
                     if tmp.group(0) == '':  # if doesn't exist then error
@@ -226,19 +226,6 @@ def ValidateHMCorvarFile(covarLabel, covariateFilePath, row_col_cat_contin, inMa
                     print"\n-+-+- WARNING Covariate Label at row "+str(countRow)+" value appears to be non-alphanumeric --", eachRow[0],"--"
                     sys.stderr.write("\n--+-+- WARNING Row Headers at  row "+str(countRow)+" value appears to be non-alphanumeric --"+str(eachRow[0])+"--")
                     
-                if row_col_cat_contin[0:6] == 'column':
-                    if eachRow[0] != inMatrixColLabels[countRow-1]: 
-                        print("\n----ERROR Input COLUMN "+str(countRow)+" covariance column label and input matrix column label mismatch "+ str(eachRow[0])+" not = "+ str(inMatrixColLabels[countRow-1]))
-                        sys.stderr.write("\n----ERROR Input COLUMN "+str(countRow)+" covariance column label and input matrix column label mismatch "+ str(eachRow[0])+" not = "+ str(inMatrixColLabels[countRow-1]))
-                        error= True
-                        sys.err= 9
-                else: #row covar
-                    if eachRow[0] != inMatrixRowLabels[countRow-1]: 
-                        print ("\n----ERROR Input ROW "+str(countRow)+" covariance row label and input row matrix label mismatch "+ str(eachRow[0])+" not = "+str(inMatrixRowLabels[countRow-1]))
-                        sys.stderr.write("\n----ERROR Input ROW "+str(countRow)+" covariance row label and input row matrix label mismatch "+ str(eachRow[0])+" not = "+str(inMatrixRowLabels[countRow-1]))
-                        error= True
-                        sys.err= 10
-    
                 if not error:
                     if row_col_cat_contin[-4:] == 'uous':  # verify continuous is number-ish
                         tmp= re.search('[+-.0123456789eE]',eachRow[1])
