@@ -21,17 +21,17 @@ performDataOrdering<-function(dataFile, rowOrderMethod, rowDistanceMeasure, rowA
    rowOrder <-  createOrdering(dataMatrix, rowOrderMethod, "row", rowDistanceMeasure, rowAgglomerationMethod)  
    if (rowOrderMethod == "Hierarchical") {
       writeHCDataTSVs(rowOrder, rowDendroFile, rowOrderFile)
-      writeHCCut(rowOrder, rowCut, paste(rowOrderFile,".cut", sep=""))
-   } else {
-      writeOrderTSV(rowOrder, rownames(dataMatrix), rowOrderFile)
+	   if (rowCut != "None") {
+      		writeHCCut(rowOrder, rowCut, paste(rowOrderFile,".cut", sep=""))
+	   }
    }
 
    colOrder <-  createOrdering(dataMatrix, colOrderMethod, "col", colDistanceMeasure, colAgglomerationMethod)  
    if (colOrderMethod == "Hierarchical") {
       writeHCDataTSVs(colOrder, colDendroFile, colOrderFile)
-      writeHCCut(colOrder, colCut, paste(colOrderFile,".cut", sep=""))
-   } else {
-      writeOrderTSV(colOrder, colnames(dataMatrix), colOrderFile)
+	   if (colCut != "None") {
+       		writeHCCut(colOrder, colCut, paste(colOrderFile,".cut", sep=""))
+	   }
    }
 }
 
@@ -51,24 +51,9 @@ writeHCDataTSVs<-function(uDend, outputHCDataFileName, outputHCOrderFileName)
    write.table(data, file = outputHCOrderFileName, append = FALSE, quote = FALSE, sep = "\t", row.names=FALSE)
 }
 
-#creates order file for non-clustering methods
-writeOrderTSV<-function(newOrder, originalOrder, outputHCOrderFileName)
-{
-   data=matrix(,length(originalOrder),2);
-   for (i in 1:length(originalOrder)) {
-      data[i,1] = originalOrder[i];
-      data[i,2] = which(newOrder==originalOrder[i]);
-   }
-   colnames(data)<-c("Id", "Order")
-   write.table(data, file = outputHCOrderFileName, append = FALSE, quote = FALSE, sep = "\t", row.names=FALSE)
-}
-
 #creates a classification file based on user specified cut of dendrogram
 writeHCCut<-function(uDend, cutNum, outputCutFileName)
 {
-   if (cutNum < 2) {
-      return()
-   }
    print (paste("Writing cut file ", outputCutFileName))
    cut <- cutree(uDend, cutNum);
    id <- names(cut);

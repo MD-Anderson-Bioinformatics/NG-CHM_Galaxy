@@ -68,14 +68,14 @@
             </param>
         </when>
         <when value="Original">
-		    <param name="rowDistanceMeasure" type="text" size="0"     value="n/a"/>
-		    <param name="rowAgglomerationMethod" type="text" size="0"     value="n/a"/>
-		    <param name="rowDendroCut" size="0"   type="text" value="0"/>
+		    <param name="rowDistanceMeasure" type="text" size="0"   hidden="true"   value="n/a"/>
+		    <param name="rowAgglomerationMethod" type="text" size="0"  hidden="true"    value="n/a"/>
+  		    <param name="rowDendroCut" type="text" size="0" hidden="true"   value="0"/>
         </when>
         <when value="Random">
-		    <param name="rowDistanceMeasure" type="text" size="0"     value="n/a"/>
-		    <param name="rowAgglomerationMethod" type="text" size="0"     value="n/a"/>
-		    <param name="rowDendroCut" type="text" size="0"    value="0"/>
+		    <param name="rowDistanceMeasure" type="text" size="0"  hidden="true"    value="n/a"/>
+		    <param name="rowAgglomerationMethod" type="text" size="0"  hidden="true"    value="n/a"/>
+ 		    <param name="rowDendroCut" type="text" size="0" hidden="true"    value="0"/>
         </when>
     </conditional>
     <param name="rowDataType" type="select" label="Linkouts to row data type info" >
@@ -138,14 +138,14 @@
             </param>
         </when>
         <when value="Original">
-		    <param name="columnDistanceMeasure" type="text" size="0"     value="n/a"/>
-		    <param name="columnAgglomerationMethod" type="text" size="0"     value="n/a"/>
-		    <param name="colDendroCut" type="text" size="0"     value="0"/>
+		    <param name="columnDistanceMeasure" type="text" size="0" hidden="true"    value="n/a"/>
+		    <param name="columnAgglomerationMethod" type="text" size="0"   hidden="true"  value="n/a"/>
+		    <param name="colDendroCut" type="text" size="0"  hidden="true"   value="0"/>
         </when>
         <when value="Random">
-		    <param name="columnDistanceMeasure" type="text" size="0"     value="n/a"/>
-		    <param name="columnAgglomerationMethod" type="text" size="0"     value="n/a"/>
-		    <param name="colDendroCut" type="text" size="0"     value="0"/>
+		    <param name="columnDistanceMeasure" type="text" size="0"  hidden="true"   value="n/a"/>
+		    <param name="columnAgglomerationMethod" type="text" size="0"  hidden="true"   value="n/a"/>
+		    <param name="colDendroCut" type="text" size="0"  hidden="true"   value="0"/>
         </when>
     </conditional>
     <param name="colDataType" type="select" label="Linkouts to column data type info" >

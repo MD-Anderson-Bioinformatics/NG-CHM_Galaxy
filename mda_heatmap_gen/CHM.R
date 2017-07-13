@@ -22,16 +22,12 @@ performDataOrdering<-function(dataFile, rowOrderMethod, rowDistanceMeasure, rowA
    if (rowOrderMethod == "Hierarchical") {
       writeHCDataTSVs(rowOrder, rowDendroFile, rowOrderFile)
       writeHCCut(rowOrder, rowCut, paste(rowOrderFile,".cut", sep=""))
-   } else {
-      writeOrderTSV(rowOrder, rownames(dataMatrix), rowOrderFile)
    }
 
    colOrder <-  createOrdering(dataMatrix, colOrderMethod, "col", colDistanceMeasure, colAgglomerationMethod)  
    if (colOrderMethod == "Hierarchical") {
       writeHCDataTSVs(colOrder, colDendroFile, colOrderFile)
       writeHCCut(colOrder, colCut, paste(colOrderFile,".cut", sep=""))
-   } else {
-      writeOrderTSV(colOrder, colnames(dataMatrix), colOrderFile)
    }
 }
 
@@ -46,18 +42,6 @@ writeHCDataTSVs<-function(uDend, outputHCDataFileName, outputHCOrderFileName)
    for (i in 1:length(uDend$labels)) {
       data[i,1] = uDend$labels[i];
       data[i,2] = which(uDend$order==i);
-   }
-   colnames(data)<-c("Id", "Order")
-   write.table(data, file = outputHCOrderFileName, append = FALSE, quote = FALSE, sep = "\t", row.names=FALSE)
-}
-
-#creates order file for non-clustering methods
-writeOrderTSV<-function(newOrder, originalOrder, outputHCOrderFileName)
-{
-   data=matrix(,length(originalOrder),2);
-   for (i in 1:length(originalOrder)) {
-      data[i,1] = originalOrder[i];
-      data[i,2] = which(newOrder==originalOrder[i]);
    }
    colnames(data)<-c("Id", "Order")
    write.table(data, file = outputHCOrderFileName, append = FALSE, quote = FALSE, sep = "\t", row.names=FALSE)

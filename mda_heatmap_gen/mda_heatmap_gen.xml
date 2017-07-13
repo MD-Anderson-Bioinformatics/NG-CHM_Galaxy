@@ -29,34 +29,32 @@
 		<option value="Random">Random</option>	    
 	</param>
         <when value="Hierarchical">
-	<param name="rowDistanceMeasure" type="select"  label="Row Distance Metric" help="Euclidean, Binary, Manhattan, Maximum, Canberra, Minkowski, or Correlation">
-		<option value="euclidean">Euclidean</option>
-		<option value="binary">Binary</option>
-		<option value="manhattan">Manhattan</option>
-		<option value="maximum">Maximum</option>
-		<option value="canberra">Canberra</option>	    
-		<option value="minkowski">Minkowski</option>	    
-		<option value="correlation">Correlation</option>	    
-	</param>
-	<param name="rowAgglomerationMethod" type="select"  label="Row Clustering Method" help="Choices:  Average Linkage, Complete Linkage,  Single Linkage, 'Ward', 'Mcquitty', 'Median', or 'Centroid'.">
-		<option value="average">Average Linkage</option>
-		<option value="complete">Complete Linkage</option>
-		<option value="single">Single Linkage</option>
-		<option value="ward" selected="true">Ward</option>
-		<option value="mcquitty">Mcquitty</option>	    
-		<option value="median">Median</option>	    
-		<option value="centroid">Centroid</option>	    
-	</param>
+			<param name="rowDistanceMeasure" type="select"  label="Row Distance Metric" help="Euclidean, Binary, Manhattan, Maximum, Canberra, Minkowski, or Correlation">
+				<option value="euclidean">Euclidean</option>
+				<option value="binary">Binary</option>
+				<option value="manhattan">Manhattan</option>
+				<option value="maximum">Maximum</option>
+				<option value="canberra">Canberra</option>	    
+				<option value="minkowski">Minkowski</option>	    
+				<option value="correlation">Correlation</option>	    
+			</param>
+			<param name="rowAgglomerationMethod" type="select"  label="Row Clustering Method" help="Choices:  Average Linkage, Complete Linkage,  Single Linkage, 'Ward', 'Mcquitty', 'Median', or 'Centroid'.">
+				<option value="average">Average Linkage</option>
+				<option value="complete">Complete Linkage</option>
+				<option value="single">Single Linkage</option>
+				<option value="ward" selected="true">Ward</option>
+				<option value="mcquitty">Mcquitty</option>	    
+				<option value="median">Median</option>	    
+				<option value="centroid">Centroid</option>	    
+			</param>
         </when>
         <when value="Original">
-		    <param name="rowDistanceMeasure" type="text" size="0"     value="n/a"/>
-		    <param name="rowAgglomerationMethod" type="text" size="0"     value="n/a"/>
-		    <param name="rowDendroCut" size="0"   type="text" value="0"/>
+		    <param name="rowDistanceMeasure" type="text" size="0"   hidden="true"  value="n/a"/>
+		    <param name="rowAgglomerationMethod" type="text" size="0"  hidden="true"   value="n/a"/>
         </when>
         <when value="Random">
-		    <param name="rowDistanceMeasure" type="text" size="0"     value="n/a"/>
-		    <param name="rowAgglomerationMethod" type="text" size="0"     value="n/a"/>
-		    <param name="rowDendroCut" type="text" size="0"    value="0"/>
+		    <param name="rowDistanceMeasure" type="text" size="0" hidden="true"    value="n/a"/>
+		    <param name="rowAgglomerationMethod" type="text" size="0" hidden="true"    value="n/a"/>
         </when>
     </conditional>
 	<conditional name="d_cols">
@@ -66,34 +64,32 @@
 		<option value="Random">Random</option>	    
 	</param>
         <when value="Hierarchical">
-	<param name="columnDistanceMeasure" type="select"  label="Column Distance Metric" help="Euclidean, Binary, Manhattan, Maximum, Canberra, Minkowski, or Correlation">
-		<option value="euclidean">Euclidean</option>
-		<option value="binary">Binary</option>
-		<option value="manhattan">Manhattan</option>
-		<option value="maximum">Maximum</option>
-		<option value="canberra">Canberra</option>	    
-		<option value="minkowski">Minkowski</option>	    
-		<option value="correlation">Correlation</option>	    
-	</param>
-	<param name="columnAgglomerationMethod" type="select"  label="Column Clustering Method" help="Choices:  Average Linkage, Complete Linkage,  Single Linkage, 'Ward', 'Mcquitty', 'Median', or 'Centroid'.">
-		<option value="average">Average Linkage</option>
-		<option value="complete">Complete Linkage</option>
-		<option value="single">Single Linkage</option>
-		<option value="ward" selected="true">Ward</option>
-		<option value="mcquitty">Mcquitty</option>	    
-		<option value="median">Median</option>	    
-		<option value="centroid">Centroid</option>	    
-	</param>
+			<param name="columnDistanceMeasure" type="select"  label="Column Distance Metric" help="Euclidean, Binary, Manhattan, Maximum, Canberra, Minkowski, or Correlation">
+				<option value="euclidean">Euclidean</option>
+				<option value="binary">Binary</option>
+				<option value="manhattan">Manhattan</option>
+				<option value="maximum">Maximum</option>
+				<option value="canberra">Canberra</option>	    
+				<option value="minkowski">Minkowski</option>	    
+				<option value="correlation">Correlation</option>	    
+			</param>
+			<param name="columnAgglomerationMethod" type="select"  label="Column Clustering Method" help="Choices:  Average Linkage, Complete Linkage,  Single Linkage, 'Ward', 'Mcquitty', 'Median', or 'Centroid'.">
+				<option value="average">Average Linkage</option>
+				<option value="complete">Complete Linkage</option>
+				<option value="single">Single Linkage</option>
+				<option value="ward" selected="true">Ward</option>
+				<option value="mcquitty">Mcquitty</option>	    
+				<option value="median">Median</option>	    
+				<option value="centroid">Centroid</option>	    
+			</param>
         </when>
         <when value="Original">
-		    <param name="columnDistanceMeasure" type="text" size="0"     value="n/a"/>
-		    <param name="columnAgglomerationMethod" type="text" size="0"     value="n/a"/>
-		    <param name="colDendroCut" type="text" size="0"     value="0"/>
+		    <param name="columnDistanceMeasure" type="text" size="0" hidden="true"    value="n/a"/>
+		    <param name="columnAgglomerationMethod" type="text" size="0"   hidden="true"  value="n/a"/>
         </when>
         <when value="Random">
-		    <param name="columnDistanceMeasure" type="text" size="0"     value="n/a"/>
-		    <param name="columnAgglomerationMethod" type="text" size="0"     value="n/a"/>
-		    <param name="colDendroCut" type="text" size="0"     value="0"/>
+		    <param name="columnDistanceMeasure" type="text" size="0"  hidden="true"   value="n/a"/>
+		    <param name="columnAgglomerationMethod" type="text" size="0" hidden="true"    value="n/a"/>
         </when>
     </conditional>
     <repeat name="operations" title="Covariate Bars">
