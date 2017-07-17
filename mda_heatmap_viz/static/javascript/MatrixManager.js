@@ -790,6 +790,7 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 	
 	function addMapData(md) {
 		mapData = md;
+		NgChm.CM.mapDataCompatibility(mapData);
 		sendCallBack(NgChm.MMGR.Event_JSON);
 	}
 	
@@ -917,7 +918,7 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 		            console.log('Failed to get software version: ' + req.status);
 		        } else {
 		        	var latestVersion = req.response;
-		        	if (latestVersion !== NgChm.CM.version) {
+		        	if ((latestVersion !== NgChm.CM.version) && (NgChm.staticPath === "")) {
 		        		NgChm.UHM.viewerAppVersionExpiredNotification(NgChm.CM.version, latestVersion);   
 		        	}
 			    } 

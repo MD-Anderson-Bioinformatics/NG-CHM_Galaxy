@@ -238,3 +238,13 @@ NgChm.UTIL.intToHex = function(num) {
     return hex;
 }
 
+/**********************************************************************************
+ * FUNCTION - convertToArray: The purpose of this function is to convert a single
+ * var value into an array containing just that value.  It is used for compatibility
+ * management.
+ **********************************************************************************/
+NgChm.UTIL.convertToArray = function(value) {
+	var valArr = [];
+	valArr.push(value);
+	return valArr;
+}
