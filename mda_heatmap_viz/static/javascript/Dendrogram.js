@@ -43,6 +43,47 @@ NgChm.DDR.DendroMatrix = function(numRows, numCols,isRow){
 	this.getNumRows = function() {
 		return numRows;
 	};
+	
+	//For performance on large maps, it is faster to reduce the matrix and draw than it is to
+	//draw with scaling.  This function creates a reduced size representation of the matrix
+	this.scaleMatrix =  function(newRows, newCols) {
+		var newMatrix = new NgChm.DDR.DendroMatrix(newRows, newCols, isRow);
+		
+		var yRatio = newRows/numRows;
+		var xRatio = newCols/numCols;
+		var position = 0;
+		
+		for (var y=0; y<numRows; y++){
+			for (var x=0; x<numCols; x++){
+				val = matrixData[position];
+				if (val > 0){
+					newMatrix.setTrue(Math.floor(y*yRatio),Math.floor(x*xRatio),val==2)
+				}
+				position++;
+			}
+		}
+		
+		if (xRatio > 1) {
+			newMatrix.fillHoles();
+		} 
+			
+		return newMatrix;
+	};
+	
+	//When a matrix is scaled up, sometimes the horizontal lines get holes. This routine
+	//patches up the holes in the dendro matrix.
+	this.fillHoles = function() {
+		for (var y=numRows; y>0; y--){
+			for (var x=0; x<numCols; x++){
+				val = this.get(y, x);
+				if (val > 0 && y > 1){
+					below = this.get(y-1,x)
+					if (below == 0 && this.get(y, x+1) == 0)
+						this.setTrue(y, x+1, val==2);
+				}		
+			}
+		}	
+	}
 }
 
 /******************************
@@ -86,28 +127,46 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 		return pointsPerLeaf;
 	}
 
-	this.addSelectedBar = function(extremes, shift){
+	this.addSelectedBar = function(extremes, shift, ctrl){
 		var left = extremes.left;
 		var right = extremes.right;
 		var height = extremes.height;
+		var selectLeft = Math.round((left+pointsPerLeaf/2)/pointsPerLeaf);
+		var selectRight =Math.round((right+pointsPerLeaf/2)/pointsPerLeaf);
 		var addBar = true;
 		var selectedBar = extremes;
+		// is it a standard click?
+		if (!shift && !ctrl){
+			NgChm.DET.clearSearchItems("Column");
+			for (var i = selectLeft; i < selectRight+1;i++){
+				NgChm.SEL.searchItems["Column"][i] = 1;
+			}
+			
+			selectedBars = [selectedBar];
+			return;
+		}
+		var deleteBar = [];  // bars that need to be removed due to this new click
 		for (var i in selectedBars){
 			var bar = selectedBars[i];
-			if (bar.left >= selectedBar.left && bar.right <= selectedBar.right && bar.height <= selectedBar.height){
-				selectedBars.splice(i,1);
-				var selectLeft = Math.round((left+pointsPerLeaf/2)/pointsPerLeaf);
-				var selectRight =Math.round((right+pointsPerLeaf/2)/pointsPerLeaf);
-				for (var j = selectLeft; j < selectRight+1;j++){
+			if (bar.left <= left && bar.right >= right && bar.height > height){
+				addBar = false;
+			} 
+			if (bar.left >= left && bar.right <= right && bar.height-1 <= height){ // if the new selected bar is in the bounds of an older one... (-1 added to height since highlighted bars can cause issues without it)
+				deleteBar.push(i);
+				for (var j = selectLeft; j < selectRight+1;j++){ // remove all the search items that were selected by that old bar 
 					delete NgChm.SEL.searchItems["Column"][j];
 				}
 				NgChm.SUM.clearSelectionMarks();
 				NgChm.SUM.drawColSelectionMarks();
 				NgChm.SUM.drawRowSelectionMarks();
-				if (bar.left == selectedBar.left && bar.right == selectedBar.right && bar.height == selectedBar.height){
+				if (bar.left == left && bar.right == selectedBar.right && bar.height == selectedBar.height){ // a bar that's already selected has been selected so we remove it
 					addBar = false;
 				}
 			}
+		}
+		
+		for (var i =deleteBar.length-1; i > -1; i--){
+			selectedBars.splice(deleteBar[i],1); // remove that old bar
 		}
 		
 		var selectLeft = Math.round((left+pointsPerLeaf/2)/pointsPerLeaf);
@@ -117,15 +176,35 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 				for (var i = selectLeft; i < selectRight+1;i++){
 					NgChm.SEL.searchItems["Column"][i] = 1;
 				}
+				var numBars = selectedBars.length;
+				var startIndex = 0, endIndex = -1;
+				if (selectedBars[numBars-1]){
+					if (selectedBars[numBars-1].right < left){
+						startIndex = Math.round((selectedBars[numBars-1].right+pointsPerLeaf/2)/pointsPerLeaf);
+						endIndex = selectLeft;
+					} else if (right < selectedBars[numBars-1].left){
+						startIndex = selectRight;
+						endIndex = Math.round((selectedBars[numBars-1].left+pointsPerLeaf/2)/pointsPerLeaf);
+					}
+				} else if (NgChm.DET.labelLastClicked["Column"]){
+					if (NgChm.DET.labelLastClicked["Column"] < left){
+						startIndex = NgChm.DET.labelLastClicked["Column"];
+						endIndex = selectLeft;
+					} else if (right < NgChm.DET.labelLastClicked["Column"]){
+						startIndex = selectRight;
+						endIndex = NgChm.DET.labelLastClicked["Column"];
+					}
+				}
 				
+				for (var i = startIndex; i < endIndex; i++){
+					NgChm.SEL.searchItems["Column"][i] = 1;
+				}
 				selectedBars.push(selectedBar);
-			} else {
-				NgChm.DET.clearSearchItems("Column");
+			} else if (ctrl) {
 				for (var i = selectLeft; i < selectRight+1;i++){
 					NgChm.SEL.searchItems["Column"][i] = 1;
 				}
-				
-				selectedBars = [selectedBar];
+				selectedBars.push(selectedBar);
 			}
 		}
 	}
@@ -203,27 +282,19 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 	
 	function draw(){
 		if (typeof dendroMatrix !== 'undefined') {
-			var xRatio = dendroCanvas.width/dendroMatrix.getNumCols();
-			var yRatio = dendroCanvas.height/dendroMatrix.getNumRows();
+			//get a scaled version of the dendro matrix that matches the canvas size.
+			var scaledMatrix = dendroMatrix.scaleMatrix(dendroCanvas.height, dendroCanvas.width);
 			var colgl = dendroCanvas.getContext("2d");
+			var numRows = scaledMatrix.getNumRows()
 			colgl.fillStyle = "black";
-			for (var i=0; i<dendroMatrix.getDataLength(); i++){
-				// draw the non-highlighted regions
-				var val = dendroMatrix.getArrayVal(i);
-				if (val > 0){
-					// x,y,w,h
-					var x = Math.floor(dendroMatrix.getJ(i)*xRatio), y = Math.floor((dendroMatrix.getNumRows()-dendroMatrix.getI(i))*yRatio);
-					var w = 1;
-					if (val == 1){ // standard draw
-						colgl.fillRect(x,y,w,w);
-					} else if (val == 2){ // highlight draw
-						w = 2;
-						colgl.fillRect(x,y,w,w);
+
+			for (var y=0; y<scaledMatrix.getNumRows(); y++){
+				for (var x=0; x<scaledMatrix.getNumCols(); x++){
+					// draw the non-highlighted regions
+					var val = scaledMatrix.get(y, x);
+					if (val > 0){
+						colgl.fillRect(x,numRows-y,val,val);
 					} 
-					if (xRatio >= 1){
-						var fill = 1;
-						while(fill<xRatio){colgl.fillRect(x+fill,y,w,w),fill++;}
-					}
 				}
 			}
 		}
@@ -410,7 +481,7 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 		while(dendroMatrix == undefined){dendroMatrix = buildMatrix();}
 	}
 	var originalDendroMatrix = dendroMatrix;
-	var selectedBars;
+	var selectedBars = [];
 	var sumChm = document.getElementById("summary_chm");
 	
 	// event listeners
@@ -437,28 +508,47 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 		return pointsPerLeaf;
 	}
 	
-	this.addSelectedBar = function(extremes, shift){		
+	this.addSelectedBar = function(extremes, shift,ctrl){
 		var left = extremes.left;
 		var right = extremes.right;
 		var height = extremes.height;
+		var selectLeft = Math.round((left+pointsPerLeaf/2)/pointsPerLeaf);
+		var selectRight =Math.round((right+pointsPerLeaf/2)/pointsPerLeaf);
 		var addBar = true;
 		var selectedBar = extremes;
+		// is it a standard click?
+		if (!shift && !ctrl){
+			NgChm.DET.clearSearchItems("Row");
+			for (var i = selectLeft; i < selectRight+1;i++){
+				NgChm.SEL.searchItems["Row"][i] = 1;
+			}
+			
+			selectedBars = [selectedBar];
+			return;
+		}
+		
+		var deleteBar = []; // bars that need to be removed due to this new click
 		for (var i in selectedBars){
 			var bar = selectedBars[i];
-			if (bar.left >= selectedBar.left && bar.right <= selectedBar.right && bar.height <= selectedBar.height){
-				selectedBars.splice(i,1);
-				var selectLeft = Math.round((left+pointsPerLeaf/2)/pointsPerLeaf);
-				var selectRight =Math.round((right+pointsPerLeaf/2)/pointsPerLeaf);
-				for (var j = selectLeft; j < selectRight+1;j++){
+			if (bar.left <= left && bar.right >= right && bar.height > height){
+				addBar = false;
+			} 
+			if (bar.left >= left && bar.right <= right && bar.height-1 <= height){ // if the new selected bar is in the bounds of an older one... (-1 added to height since highlighted bars can cause issues without it)
+				deleteBar.push(i);
+				for (var j = selectLeft; j < selectRight+1;j++){ // remove all the search items that were selected by that old bar 
 					delete NgChm.SEL.searchItems["Row"][j];
 				}
 				NgChm.SUM.clearSelectionMarks();
 				NgChm.SUM.drawColSelectionMarks();
 				NgChm.SUM.drawRowSelectionMarks();
-				if (bar.left == selectedBar.left && bar.right == selectedBar.right && bar.height == selectedBar.height){
-					addBar = false;		
+				if (bar.left == left && bar.right == selectedBar.right && bar.height == selectedBar.height){ // a bar that's already selected has been selected so we remove it
+					addBar = false;
 				}
 			}
+		}
+		
+		for (var i =deleteBar.length-1; i > -1; i--){
+			selectedBars.splice(deleteBar[i],1); // remove that old bar
 		}
 		
 		var selectLeft = Math.round((left+pointsPerLeaf/2)/pointsPerLeaf);
@@ -468,15 +558,35 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 				for (var i = selectLeft; i < selectRight+1;i++){
 					NgChm.SEL.searchItems["Row"][i] = 1;
 				}
+				var numBars = selectedBars.length;
+				var startIndex = 0, endIndex = -1;
+				if (selectedBars[numBars-1]){
+					if (selectedBars[numBars-1].right < left){
+						startIndex = Math.round((selectedBars[numBars-1].right+pointsPerLeaf/2)/pointsPerLeaf);
+						endIndex = selectLeft;
+					} else if (right < selectedBars[numBars-1].left){
+						startIndex = selectRight;
+						endIndex = Math.round((selectedBars[numBars-1].left+pointsPerLeaf/2)/pointsPerLeaf);
+					}
+				} else if (NgChm.DET.labelLastClicked["Row"]){
+					if (NgChm.DET.labelLastClicked["Row"] < left){
+						startIndex = NgChm.DET.labelLastClicked["Row"];
+						endIndex = selectLeft;
+					} else if (right < NgChm.DET.labelLastClicked["Row"]){
+						startIndex = selectRight;
+						endIndex = NgChm.DET.labelLastClicked["Row"];
+					}
+				}
 				
+				for (var i = startIndex; i < endIndex; i++){
+					NgChm.SEL.searchItems["Row"][i] = 1;
+				}
 				selectedBars.push(selectedBar);
-			} else {
-				NgChm.DET.clearSearchItems("Row");
+			} else if (ctrl) {
 				for (var i = selectLeft; i < selectRight+1;i++){
 					NgChm.SEL.searchItems["Row"][i] = 1;
 				}
-				
-				selectedBars = [selectedBar];
+				selectedBars.push(selectedBar);
 			}
 		}
 	}
@@ -555,30 +665,23 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 	
 	function draw(){
 		if (typeof dendroMatrix !== 'undefined') {
-			var xRatio = dendroCanvas.width/dendroMatrix.getNumRows();
-			var yRatio = dendroCanvas.height/dendroMatrix.getNumCols();
+			//get a scaled version of the dendro matrix that matches the canvas size.
+			var scaledMatrix = dendroMatrix.scaleMatrix(dendroCanvas.width, dendroCanvas.height);
+
 			var rowgl = dendroCanvas.getContext("2d");
 			rowgl.fillStyle = "black";
-			var i = 0;
-			var index = 1;
-			for (var i= 0; i < dendroMatrix.getDataLength(); i++){
-				var val = dendroMatrix.getArrayVal(i);
-				if (val > 0){
-					// x,y,w,h
-					var x = Math.floor((dendroMatrix.getNumRows()-dendroMatrix.getI(i))*xRatio), y = Math.floor(dendroMatrix.getJ(i)*yRatio);
-					var w = 1;
-					if (val == 1){ // standard draw
-						rowgl.fillRect(x,y,w,w);
-					} else if (val == 2){ // highlight draw
-						w = 2;
-						rowgl.fillRect(x,y,w,w);
-					} 
-					if (yRatio >= 1){
-						var fill = 1;
-						while(fill<yRatio){rowgl.fillRect(x,y+fill,w,w),fill++;}
+			var numRows = scaledMatrix.getNumRows();
+			var numCols = scaledMatrix.getNumCols();
+
+			for (var x=0; x<scaledMatrix.getNumCols(); x++){
+				for (var y=0; y<scaledMatrix.getNumRows(); y++){
+					// draw the non-highlighted regions
+					var val = scaledMatrix.get(y, x);
+					if (val > 0){
+						rowgl.fillRect(numRows-y, x, val,val);
 					}
 				}
-			}
+			}	
 		}
 	}
 	
@@ -854,18 +957,20 @@ NgChm.DDR.highlightAllBranchesInRange = function(height,leftExtreme,rightExtreme
 }
 
 NgChm.DDR.clearDendroSelection = function() {
-	NgChm.SEL.selectedStart = 0;
-	NgChm.SEL.selectedStop = 0;
-	if (!NgChm.SEL.isSub) {
-		dendroBoxLeftTopArray = new Float32Array([0, 0]);
-		dendroBoxRightBottomArray = new Float32Array([0, 0]);
-		if (NgChm.heatMap.showRowDendrogram("summary")) {
-			NgChm.SUM.rowDendro.rebuildMatrix();
-			NgChm.SUM.rowDendro.draw();
-		}
-		if (NgChm.heatMap.showColDendrogram("summary")) {
-			NgChm.SUM.colDendro.rebuildMatrix();
-			NgChm.SUM.colDendro.draw();
+	if (NgChm.SEL.selectedStart != 0) {
+		NgChm.SEL.selectedStart = 0;
+		NgChm.SEL.selectedStop = 0;
+		if (!NgChm.SEL.isSub) {
+			dendroBoxLeftTopArray = new Float32Array([0, 0]);
+			dendroBoxRightBottomArray = new Float32Array([0, 0]);
+			if (NgChm.heatMap.showRowDendrogram("summary")) {
+				NgChm.SUM.rowDendro.rebuildMatrix();
+				NgChm.SUM.rowDendro.draw();
+			}
+			if (NgChm.heatMap.showColDendrogram("summary")) {
+				NgChm.SUM.colDendro.rebuildMatrix();
+				NgChm.SUM.colDendro.draw();
+			}
 		}
 	}
 }
