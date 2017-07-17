@@ -21,7 +21,7 @@ performDataOrdering<-function(dataFile, rowOrderMethod, rowDistanceMeasure, rowA
    rowOrder <-  createOrdering(dataMatrix, rowOrderMethod, "row", rowDistanceMeasure, rowAgglomerationMethod)  
    if (rowOrderMethod == "Hierarchical") {
       writeHCDataTSVs(rowOrder, rowDendroFile, rowOrderFile)
-	   if (rowCut != "None") {
+	   if (rowCut != 0) {
       		writeHCCut(rowOrder, rowCut, paste(rowOrderFile,".cut", sep=""))
 	   }
    }
@@ -29,7 +29,7 @@ performDataOrdering<-function(dataFile, rowOrderMethod, rowDistanceMeasure, rowA
    colOrder <-  createOrdering(dataMatrix, colOrderMethod, "col", colDistanceMeasure, colAgglomerationMethod)  
    if (colOrderMethod == "Hierarchical") {
       writeHCDataTSVs(colOrder, colDendroFile, colOrderFile)
-	   if (colCut != "None") {
+	   if (colCut != 0) {
        		writeHCCut(colOrder, colCut, paste(colOrderFile,".cut", sep=""))
 	   }
    }
