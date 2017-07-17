@@ -81,23 +81,16 @@
     <param name="rowDataType" type="select" label="Linkouts to row data type info" >
         <option value="labels" selected="true" >None</option>
         <option value="bio.probe.affymetrix" >Affymetrix Probe Id</option>
-        <option value="bio.feature.agilent" >Agilent Id</option>
-        <option value="bio.sample.cbioportal" >cBioPortal sample Id</option>
-        <option value="bio.transcript.ensemble" >Ensemble transcript Id</option>
+        <option value="bio.cbioportal.sampleid" >cBioPortal sample Id</option>
         <option value="bio.gene.entrez" >Gene Entrez Id</option>
         <option value="bio.gene.hugo" >Gene HUGO symbol</option>
         <option value="bio.go" >Gene Ontology (GO) Id</option>
         <option value="bio.geo.acc" >GEO Accession Id</option>
-        <option value="bio.probe.illumina" >Illumina Probe Id</option>
-        <option value="bio.probe.infinium" >Infinium Probe Id</option>
         <option value="bio.pathway.mdanderson" >MD Anderson pathway Id</option>
         <option value="bio.mirna" >miRNA Id</option>
-        <option value="bio.mirna.mimat" >miRNA MIMAT Id</option>
-        <option value="bio.pubmed" >Pubmed Id</option>
         <option value="bio.pubmed.search" >Pubmed Search Term</option>
         <option value="scholar" >Scholarly term</option>
-        <option value="bio.gene.unigene" >Unigene CId</option>
-        <option value="bio.protein.uniprot" >UniProt Id</option>
+        <option value="bio.protein.uniprotid" >UniProt Id</option>
     </param>    
 	<conditional name="d_cols">
 	<param name="columnOrderMethod" type="select" label="Column ordering method" help="Choices -- Hierarchical Clustering, Original Order, Random">
@@ -151,23 +144,16 @@
     <param name="colDataType" type="select" label="Linkouts to column data type info" >
         <option value="labels" selected="true" >None</option>
         <option value="bio.probe.affymetrix" >Affymetrix Probe Id</option>
-        <option value="bio.feature.agilent" >Agilent Id</option>
-        <option value="bio.sample.cbioportal" >cBioPortal sample Id</option>
-        <option value="bio.transcript.ensemble" >Ensemble transcript Id</option>
+        <option value="bio.cbioportal.sampleid" >cBioPortal sample Id</option>
         <option value="bio.gene.entrez" >Gene Entrez Id</option>
         <option value="bio.gene.hugo" >Gene HUGO symbol</option>
         <option value="bio.go" >Gene Ontology (GO) Id</option>
         <option value="bio.geo.acc" >GEO Accession Id</option>
-        <option value="bio.probe.illumina" >Illumina Probe Id</option>
-        <option value="bio.probe.infinium" >Infinium Probe Id</option>
         <option value="bio.pathway.mdanderson" >MD Anderson pathway Id</option>
         <option value="bio.mirna" >miRNA Id</option>
-        <option value="bio.mirna.mimat" >miRNA MIMAT Id</option>
-        <option value="bio.pubmed" >Pubmed Id</option>
         <option value="bio.pubmed.search" >Pubmed Search Term</option>
         <option value="scholar" >Scholarly term</option>
-        <option value="bio.gene.unigene" >Unigene CId</option>
-        <option value="bio.protein.uniprot" >UniProt Id</option>
+        <option value="bio.protein.uniprotid" >UniProt Id</option>
     </param>    
     <repeat name="operations" title="Covariate Bars">
         <param name="class_name" size="20" type="text" value="" label="Axis Covariate Name">
