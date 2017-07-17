@@ -48,6 +48,7 @@ NgChm.DET.mouseDown = false;
 NgChm.DET.dragOffsetX;
 NgChm.DET.dragOffsetY;
 NgChm.DET.detailPoint;
+NgChm.DET.initialized = false;
 
 NgChm.DET.rowLabelLen = 0;
 NgChm.DET.colLabelLen = 0;
@@ -89,7 +90,6 @@ NgChm.DET.initDetailDisplay = function () {
 	NgChm.DET.canvas.onmouseup = NgChm.DET.clickEnd;
 	NgChm.DET.canvas.onmousemove = NgChm.DET.handleMouseMove;
 	NgChm.DET.canvas.onmouseout = NgChm.DET.handleMouseOut;
-	NgChm.DET.canvas.onkeydown = NgChm.SEL.keyNavigate;
 	
 	NgChm.DET.canvas.onwheel = NgChm.DET.handleWheel;
 	
@@ -171,12 +171,12 @@ NgChm.DET.clickStart = function (e) {
 			var heightRatio = NgChm.DET.colZoomLevel*NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerRow;
 			var X = (NgChm.SEL.currentCol + (NgChm.SEL.dataPerRow*(clickX-rowDendroW-rowClassW)/mapW));
 			var Y = (colDendroH-clickY)/colDendroH/heightRatio;
-			var matrixX = Math.round(X*3-2);
+			var matrixX = Math.round(X*NgChm.SUM.colDendro.getPointsPerLeaf()-NgChm.SUM.colDendro.getPointsPerLeaf()/2);
 			var matrixY = Math.round(Y*NgChm.SUM.colDendro.getDendroMatrixHeight());
 			var extremes = NgChm.SUM.colDendro.findExtremes(matrixY,matrixX);
 			if (extremes){
 				NgChm.DET.colDendroMatrix = NgChm.DET.buildDetailDendroMatrix('col', NgChm.SEL.currentCol, NgChm.SEL.currentCol+NgChm.SEL.dataPerRow, NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerRow);	
-				NgChm.SUM.colDendro.addSelectedBar(extremes,e.shiftKey);
+				NgChm.SUM.colDendro.addSelectedBar(extremes,e.shiftKey, e.metaKey||e.ctrlKey);
 				NgChm.DET.detailDrawColDendrogram(NgChm.DET.texPixels);
 			}
 			NgChm.SUM.clearSelectionMarks();
@@ -188,12 +188,12 @@ NgChm.DET.clickStart = function (e) {
 			var heightRatio = NgChm.DET.rowZoomLevel*NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerCol;
 			var X = (NgChm.SEL.currentRow + (NgChm.SEL.dataPerCol*(clickY-colDendroH-colClassH)/mapH));
 			var Y = (rowDendroW-clickX)/rowDendroW/heightRatio; // this is a percentage of how high up on the entire dendro matrix (not just the detail view) the click occured
-			var matrixX = Math.round(X*3-2);
+			var matrixX = Math.round(X*NgChm.SUM.rowDendro.getPointsPerLeaf()-NgChm.SUM.rowDendro.getPointsPerLeaf()/2);
 			var matrixY = Math.round(Y*NgChm.SUM.rowDendro.getDendroMatrixHeight());
 			var extremes = NgChm.SUM.rowDendro.findExtremes(matrixY,matrixX);
 			if (extremes){
 				NgChm.DET.rowDendroMatrix = NgChm.DET.buildDetailDendroMatrix('row', NgChm.SEL.currentRow, NgChm.SEL.currentRow+NgChm.SEL.dataPerCol, NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerCol);
-				NgChm.SUM.rowDendro.addSelectedBar(extremes,e.shiftKey);
+				NgChm.SUM.rowDendro.addSelectedBar(extremes,e.shiftKey,e.metaKey||e.ctrlKey);
 				NgChm.DET.detailDrawRowDendrogram(NgChm.DET.texPixels);
 			}
 			NgChm.SUM.clearSelectionMarks();
@@ -253,19 +253,39 @@ NgChm.DET.dblClick = function(e) {
 
 	var clickRow = Math.floor(NgChm.SEL.currentRow + (mapLocY/colElementSize)*NgChm.DET.getSamplingRatio('row'));
 	var clickCol = Math.floor(NgChm.SEL.currentCol + (mapLocX/rowElementSize)*NgChm.DET.getSamplingRatio('col'));
-	NgChm.SEL.currentRow = clickRow - Math.floor(NgChm.SEL.getCurrentDetDataPerCol()/2)
-	NgChm.SEL.currentCol = clickCol - Math.floor(NgChm.SEL.getCurrentDetDataPerRow()/2)
 	
-	//Center the map on the cursor position
-	NgChm.SEL.checkRow();
-	NgChm.SEL.checkColumn();
-	NgChm.SEL.updateSelection();
-
-	//Zoom in or out
-	if (e.shiftKey) {
-		NgChm.DET.detailDataZoomOut();
-	} else {
-		NgChm.DET.detailDataZoomIn();
+	// set up panning animation 
+	var diffRow =  clickRow - Math.floor(NgChm.SEL.getCurrentDetDataPerCol()/2) - NgChm.SEL.currentRow;
+	var diffCol =  clickCol - Math.floor(NgChm.SEL.getCurrentDetDataPerRow()/2) - NgChm.SEL.currentCol;
+	var diffMax = Math.max(diffRow,diffCol);
+	var numSteps = 10;
+	var rowStep = diffRow/numSteps;
+	var colStep = diffCol/numSteps;
+	var steps = 1;
+	drawScene();
+	function drawScene(now){
+		NgChm.SEL.currentRow = clickRow - Math.floor(NgChm.SEL.getCurrentDetDataPerCol()/2 + (numSteps-steps)*rowStep);
+		NgChm.SEL.currentCol = clickCol - Math.floor(NgChm.SEL.getCurrentDetDataPerCol()/2 + (numSteps-steps)*colStep);
+		steps++;
+		if (steps < numSteps){ // if we have not finished the animation, continue redrawing
+			NgChm.SEL.checkRow();
+			NgChm.SEL.checkColumn();
+			NgChm.SEL.updateSelection();
+			requestAnimationFrame(drawScene); // requestAnimationFrame is a native JS function that calls drawScene after a short time delay
+		} else { // if we are done animating, zoom in
+			NgChm.SEL.currentRow = clickRow - Math.floor(NgChm.SEL.getCurrentDetDataPerCol()/2);
+			NgChm.SEL.currentCol = clickCol - Math.floor(NgChm.SEL.getCurrentDetDataPerRow()/2);
+			
+			if (e.shiftKey) {
+				NgChm.DET.detailDataZoomOut();
+			} else {
+				NgChm.DET.detailDataZoomIn();
+			}
+			//Center the map on the cursor position
+			NgChm.SEL.checkRow();
+			NgChm.SEL.checkColumn();
+			NgChm.SEL.updateSelection();
+		}
 	}
 }
 
@@ -1216,6 +1236,7 @@ NgChm.DET.detailInit = function () {
 		NgChm.SUM.drawColSelectionMarks();
 		NgChm.SUM.drawTopItems();
 	}
+	NgChm.DET.initialized = true;
 }
 
 NgChm.DET.showGridByScale = function () {
@@ -2428,6 +2449,7 @@ NgChm.DET.buildDetailDendroMatrix = function (axis, start, stop, heightRatio) {
 	}
 	var topLineArray = new Array(matrixWidth-1); // this array is made to keep track of which bars have vertical lines that extend outside the matrix
 	var maxHeight = Number(lastRow.split(",")[2])/(heightRatio); // this assumes the heightData is ordered from lowest height to highest
+	var branchCount = 0;
 	
 	// check the left and right endpoints of each bar, and see if they are within the bounds.
 	// then check if the bar is in the desired height. 
@@ -2477,6 +2499,7 @@ NgChm.DET.buildDetailDendroMatrix = function (axis, start, stop, heightRatio) {
 				topLineArray[loc] = 1; // mark that the area covered by this bar can no longer be drawn in  by another, higher level bar
 			}
 		} else { // this line is within the viewport height
+			branchCount++;
 			for (var j = leftEnd; j < rightEnd; j++){ // draw horizontal lines
 				matrix[normHeight][j] = value;
 			}
@@ -2492,6 +2515,19 @@ NgChm.DET.buildDetailDendroMatrix = function (axis, start, stop, heightRatio) {
 			}
 		}
 	}
+	
+	var numPoints = axis == 'row' ? NgChm.SEL.getCurrentDetDataPerCol() : NgChm.SEL.getCurrentDetDataPerRow();
+	if (branchCount < numPoints/2 && NgChm.DET.initialized == false){
+		if(axis == 'row'){
+			NgChm.DET.rowZoomLevel *=.5;
+			NgChm.DET.buildDetailDendroMatrix (axis, start, stop, NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerCol*NgChm.DET.rowZoomLevel);
+		} else {
+			NgChm.DET.colZoomLevel*=.5;
+			NgChm.DET.buildDetailDendroMatrix (axis, start, stop, NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerRow*NgChm.DET.colZoomLevel);
+		}
+//		return;
+	}
+	
 	
 	// fill in any missing leaves but only if the viewport is zoomed in far enough to tell.
 	if (stop - start < 100){
@@ -2899,17 +2935,16 @@ NgChm.DET.clearSearch = function (event) {
 	NgChm.DET.currentSearchItem = {};
 	NgChm.DET.labelLastClicked = {};
 	NgChm.SEL.createEmptySearchItems();
+	NgChm.SUM.rowDendro.clearSelectedBars();
+	NgChm.SUM.colDendro.clearSelectedBars();
 	if (NgChm.SEL.isSub){
 		localStorage.setItem('selected', JSON.stringify(NgChm.SEL.searchItems));
 		NgChm.SEL.updateSelection();
 	} else {
 		NgChm.SUM.clearSelectionMarks();
 	}
-	NgChm.SUM.colDendro.clearSelectedBars();
-	NgChm.SUM.rowDendro.clearSelectedBars();
 	NgChm.DET.clearSrchBtns(event);
-	NgChm.DET.detailResize();
-	//NgChm.DET.drawDetailHeatMap();  //DO WE NEED THIS???
+	NgChm.SEL.updateSelection();
 }
 
 NgChm.DET.clearSrchBtns = function (event) {
