@@ -2,7 +2,7 @@
 <tool id="mda_advanced_heatmap_gen" name="Advanced NG-CHM Generator" version="2.0.5">
   <description> Create Clustered Heat Maps</description>
 <!-- command interpreter="python" detect_errors="aggressive">$__tool_directory__/mad_advanced_heatmap_gen.py  'Heat_Map_$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__' ${d_rows.rowDendroCut} ${d_cols.colDendroCut} $rowDataType $colDataType  -->
-<command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap_advanced.sh  'Heat_Map_$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__' ${d_rows.rowDendroCut} ${d_cols.colDendroCut} $rowDataType $colDataType
+<command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap_advanced.sh  'advanced' 'Heat_Map_$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__' ${d_rows.rowDendroCut} ${d_cols.colDendroCut} $rowDataType $colDataType 'c_${d_rows.rcutrows.rowDendroTreeCut}' 'c_${d_cols.ccutrows.colDendroTreeCut}' 't_$rowTopItems' 't_$colTopItems' 
 
     "
     #for $attr in $hm_attribute
@@ -13,7 +13,8 @@
     #for $op in $operations
        ${op.class_name}
        ${op.repeatinput.file_name}
-       ${op.cat}
+       ${op.cattype.cat}
+       ${op.cattype.bartype}
       #end for
  	'$output' 
  </command>
@@ -30,93 +31,152 @@
 		<option value="mode">Mode</option>
     </param>
       <conditional name="d_rows">
-	<param name="rowOrderMethod" type="select" label="Row ordering method" help="Choices -- Hierarchical Clustering, Original Order, Random">
-		<option value="Hierarchical">Hierarchical Clustering</option>
-		<option value="Original">Original Order</option>	    
-		<option value="Random">Random</option>	    
-	</param>
-        <when value="Hierarchical">
-	<param name="rowDistanceMeasure" type="select"  label="Row Distance Metric" help="Euclidean, Binary, Manhattan, Maximum, Canberra, Minkowski, or Correlation">
-		<option value="euclidean">Euclidean</option>
-		<option value="binary">Binary</option>
-		<option value="manhattan">Manhattan</option>
-		<option value="maximum">Maximum</option>
-		<option value="canberra">Canberra</option>	    
-		<option value="minkowski">Minkowski</option>	    
-		<option value="correlation">Correlation</option>	    
-	</param>
-	<param name="rowAgglomerationMethod" type="select"  label="Row Clustering Method" help="Choices:  Average Linkage, Complete Linkage,  Single Linkage, 'Ward', 'Mcquitty', 'Median', or 'Centroid'.">
-		<option value="average">Average Linkage</option>
-		<option value="complete">Complete Linkage</option>
-		<option value="single">Single Linkage</option>
-		<option value="ward" selected="true">Ward</option>
-		<option value="mcquitty">Mcquitty</option>	    
-		<option value="median">Median</option>	    
-		<option value="centroid">Centroid</option>	    
-	</param>
-            <param name="rowDendroCut" type="select" label="Create row categorical covariate bar based on number of top-level dendrogram clusters" >
-        		<option value="0" selected="true" >None</option>
-        		<option value="2" >2</option>
-        		<option value="3" >3</option>
-        		<option value="4" >4</option>
-        		<option value="5" >5</option>
-        		<option value="6" >6</option>
-        		<option value="7" >7</option>
-        		<option value="8" >8</option>
-        		<option value="9" >9</option>
-        		<option value="10" >10</option>
-            </param>
-        </when>
-        <when value="Original">
-		    <param name="rowDistanceMeasure" type="text" size="0"   hidden="true"   value="n/a"/>
-		    <param name="rowAgglomerationMethod" type="text" size="0"  hidden="true"    value="n/a"/>
-  		    <param name="rowDendroCut" type="text" size="0" hidden="true"   value="0"/>
-        </when>
-        <when value="Random">
-		    <param name="rowDistanceMeasure" type="text" size="0"  hidden="true"    value="n/a"/>
-		    <param name="rowAgglomerationMethod" type="text" size="0"  hidden="true"    value="n/a"/>
- 		    <param name="rowDendroCut" type="text" size="0" hidden="true"    value="0"/>
-        </when>
+			<param name="rowOrderMethod" type="select" label="Row ordering method" help="Choices -- Hierarchical Clustering, Original Order, Random">
+				<option value="Hierarchical">Hierarchical Clustering</option>
+				<option value="Original">Original Order</option>	    
+				<option value="Random">Random</option>	    
+			</param>
+	        <when value="Hierarchical">
+				<param name="rowDistanceMeasure" type="select"  label="Row Distance Metric" help="Euclidean, Binary, Manhattan, Maximum, Canberra, Minkowski, or Correlation">
+					<option value="euclidean">Euclidean</option>
+					<option value="binary">Binary</option>
+					<option value="manhattan">Manhattan</option>
+					<option value="maximum">Maximum</option>
+					<option value="canberra">Canberra</option>	    
+					<option value="minkowski">Minkowski</option>	    
+					<option value="correlation">Correlation</option>	    
+				</param>
+				<param name="rowAgglomerationMethod" type="select"  label="Row Clustering Method" help="Choices:  Average Linkage, Complete Linkage,  Single Linkage, 'Ward', 'Mcquitty', 'Median', or 'Centroid'.">
+					<option value="average">Average Linkage</option>
+					<option value="complete">Complete Linkage</option>
+					<option value="single">Single Linkage</option>
+					<option value="ward" selected="true">Ward</option>
+					<option value="mcquitty">Mcquitty</option>	    
+					<option value="median">Median</option>	    
+					<option value="centroid">Centroid</option>	    
+				</param>
+	            <param name="rowDendroCut" type="select" label="Create row categorical covariate bar based on number of top-level dendrogram clusters" >
+	        		<option value="0" selected="true" >None</option>
+	        		<option value="2" >2</option>
+	        		<option value="3" >3</option>
+	        		<option value="4" >4</option>
+	        		<option value="5" >5</option>
+	        		<option value="6" >6</option>
+	        		<option value="7" >7</option>
+	        		<option value="8" >8</option>
+	        		<option value="9" >9</option>
+	        		<option value="10" >10</option>
+	            </param>
+     			<conditional name="rcutrows">
+					<param name="raddcuts" type="select" label="Add gaps to heat map display" help="Choices -- None, Dendrogram Tree Cuts, List of Column Locations">
+						<option value="none">None</option>
+						<option value="treecuts">Dendrogram Tree Cuts</option>	    
+						<option value="positional">List of Row Locations</option>	    
+					</param>
+		        	<when value="none">
+		  		    	<param name="rowDendroTreeCut" type="text" size="0" hidden="true"   value="0"/>
+		        	</when>
+		        	<when value="treecuts">
+			            <param name="rowDendroTreeCut" type="select" label="Separate heat map display based on number of top-level dendrogram clusters" >
+			        		<option value="0t" selected="true" >None</option>
+			        		<option value="2t" >2</option>
+			        		<option value="3t" >3</option>
+			        		<option value="4t" >4</option>
+			        		<option value="5t" >5</option>
+			        		<option value="6t" >6</option>
+			        		<option value="7t" >7</option>
+			        		<option value="8t" >8</option>
+			        		<option value="9t" >9</option>
+			        		<option value="10t" >10</option>
+			            </param>
+			        </when>
+		        	<when value="positional">
+		  		    	<param name="rowDendroTreeCut" type="text" size="100" value="None" label="Row gap locations (enter comma delimited string of integers)"/>
+					</when>
+			    </conditional>
+	        </when>
+	        <when value="Original">
+			    <param name="rowDistanceMeasure" type="text" size="0"   hidden="true"   value="n/a"/>
+			    <param name="rowAgglomerationMethod" type="text" size="0"  hidden="true"    value="n/a"/>
+	  		    <param name="rowDendroCut" type="text" size="0" hidden="true"   value="0"/>
+     			<conditional name="rcutrows">
+					<param name="raddcuts" type="select" label="Add gaps to heat map display" help="Choices -- None and List of row locations">
+						<option value="none">None</option>
+						<option value="positional">List of Row Locations</option>	    
+					</param>
+		        	<when value="none">
+  		    			<param name="rowDendroTreeCut" type="text" size="100" value="None"  hidden="true"/>
+		        	</when>
+		        	<when value="positional">
+  		    			<param name="rowDendroTreeCut" type="text" size="100" value="None" label="Row gap locations (enter comma delimited string of integers)"/>
+		        	</when>
+		        </conditional>
+	        </when>
+	        <when value="Random">
+			    <param name="rowDistanceMeasure" type="text" size="0"  hidden="true"    value="n/a"/>
+			    <param name="rowAgglomerationMethod" type="text" size="0"  hidden="true"    value="n/a"/>
+	 		    <param name="rowDendroCut" type="text" size="0" hidden="true"    value="0"/>
+     			<conditional name="rcutrows">
+					<param name="raddcuts" type="select" label="Add gaps to heat map display" help="Choices -- None and list of row locations">
+						<option value="none">None</option>
+						<option value="positional">List of Row Locations</option>	    
+					</param>
+		        	<when value="none">
+  		    			<param name="rowDendroTreeCut" type="text" size="100" value="None"  hidden="true"/>
+		        	</when>
+		        	<when value="positional">
+  		    			<param name="rowDendroTreeCut" type="text" size="100" value="None" label="Row gap locations (enter comma delimited string of integers)"/>
+		        	</when>
+		        </conditional>
+	        </when>
     </conditional>
+	<param name="rowTopItems" size="100" type="text" value="None" label="Top Row Items (enter comma delimited string)"/>
     <param name="rowDataType" type="select" label="Linkouts to row data type info" >
         <option value="labels" selected="true" >None</option>
         <option value="bio.probe.affymetrix" >Affymetrix Probe Id</option>
-        <option value="bio.cbioportal.sampleid" >cBioPortal sample Id</option>
+        <option value="bio.feature.agilent" >Agilent Id</option>
+        <option value="bio.sample.cbioportal" >cBioPortal sample Id</option>
+        <option value="bio.transcript.ensemble" >Ensemble transcript Id</option>
         <option value="bio.gene.entrez" >Gene Entrez Id</option>
         <option value="bio.gene.hugo" >Gene HUGO symbol</option>
         <option value="bio.go" >Gene Ontology (GO) Id</option>
         <option value="bio.geo.acc" >GEO Accession Id</option>
+        <option value="bio.probe.illumina" >Illumina Probe Id</option>
+        <option value="bio.probe.infinium" >Infinium Probe Id</option>
         <option value="bio.pathway.mdanderson" >MD Anderson pathway Id</option>
         <option value="bio.mirna" >miRNA Id</option>
+        <option value="bio.mirna.mimat" >miRNA MIMAT Id</option>
+        <option value="bio.pubmed" >Pubmed Id</option>
         <option value="bio.pubmed.search" >Pubmed Search Term</option>
         <option value="scholar" >Scholarly term</option>
-        <option value="bio.protein.uniprotid" >UniProt Id</option>
+        <option value="bio.gene.unigene" >Unigene CId</option>
+        <option value="bio.protein.uniprot" >UniProt Id</option>
     </param>    
 	<conditional name="d_cols">
-	<param name="columnOrderMethod" type="select" label="Column ordering method" help="Choices -- Hierarchical Clustering, Original Order, Random">
-		<option value="Hierarchical">Hierarchical Clustering</option>
-		<option value="Original">Original Order</option>	    
-		<option value="Random">Random</option>	    
-	</param>
+		<param name="columnOrderMethod" type="select" label="Column ordering method" help="Choices -- Hierarchical Clustering, Original Order, Random">
+			<option value="Hierarchical">Hierarchical Clustering</option>
+			<option value="Original">Original Order</option>	    
+			<option value="Random">Random</option>	    
+		</param>
         <when value="Hierarchical">
-	<param name="columnDistanceMeasure" type="select"  label="Column Distance Metric" help="Euclidean, Binary, Manhattan, Maximum, Canberra, Minkowski, or Correlation">
-		<option value="euclidean">Euclidean</option>
-		<option value="binary">Binary</option>
-		<option value="manhattan">Manhattan</option>
-		<option value="maximum">Maximum</option>
-		<option value="canberra">Canberra</option>	    
-		<option value="minkowski">Minkowski</option>	    
-		<option value="correlation">Correlation</option>	    
-	</param>
-	<param name="columnAgglomerationMethod" type="select"  label="Column Clustering Method" help="Choices:  Average Linkage, Complete Linkage,  Single Linkage, 'Ward', 'Mcquitty', 'Median', or 'Centroid'.">
-		<option value="average">Average Linkage</option>
-		<option value="complete">Complete Linkage</option>
-		<option value="single">Single Linkage</option>
-		<option value="ward" selected="true">Ward</option>
-		<option value="mcquitty">Mcquitty</option>	    
-		<option value="median">Median</option>	    
-		<option value="centroid">Centroid</option>	    
-	</param>
+			<param name="columnDistanceMeasure" type="select"  label="Column Distance Metric" help="Euclidean, Binary, Manhattan, Maximum, Canberra, Minkowski, or Correlation">
+				<option value="euclidean">Euclidean</option>
+				<option value="binary">Binary</option>
+				<option value="manhattan">Manhattan</option>
+				<option value="maximum">Maximum</option>
+				<option value="canberra">Canberra</option>	    
+				<option value="minkowski">Minkowski</option>	    
+				<option value="correlation">Correlation</option>	    
+			</param>
+			<param name="columnAgglomerationMethod" type="select"  label="Column Clustering Method" help="Choices:  Average Linkage, Complete Linkage,  Single Linkage, 'Ward', 'Mcquitty', 'Median', or 'Centroid'.">
+				<option value="average">Average Linkage</option>
+				<option value="complete">Complete Linkage</option>
+				<option value="single">Single Linkage</option>
+				<option value="ward" selected="true">Ward</option>
+				<option value="mcquitty">Mcquitty</option>	    
+				<option value="median">Median</option>	    
+				<option value="centroid">Centroid</option>	    
+			</param>
             <param name="colDendroCut" type="select" label="Create column categorical covariate bar based on number of top-level dendrogram clusters" >
         		<option value="0" selected="true" >None</option>
         		<option value="2" >2</option>
@@ -129,31 +189,90 @@
         		<option value="9" >9</option>
         		<option value="10" >10</option>
             </param>
+   			<conditional name="ccutrows">
+				<param name="caddcuts" type="select" label="Add gaps to heat map display" help="Choices -- None, Dendrogram Tree Cuts, List of Column Locations">
+					<option value="none">None</option>
+					<option value="treecuts">Dendrogram Tree Cuts</option>	    
+					<option value="positional">List of Column Locations</option>	    
+				</param>
+	        	<when value="none">
+	  		    	<param name="colDendroTreeCut" type="text" size="0" hidden="true"   value="0"/>
+	        	</when>
+	        	<when value="treecuts">
+		            <param name="colDendroTreeCut" type="select" label="Separate heat map display based on number of top-level dendrogram clusters" >
+		        		<option value="0t" selected="true" >None</option>
+		        		<option value="2t" >2</option>
+		        		<option value="3t" >3</option>
+		        		<option value="4t" >4</option>
+		        		<option value="5t" >5</option>
+		        		<option value="6t" >6</option>
+		        		<option value="7t" >7</option>
+		        		<option value="8t" >8</option>
+		        		<option value="9t" >9</option>
+		        		<option value="10t" >10</option>
+		            </param>
+		        </when>
+	        	<when value="positional">
+	  		    	<param name="colDendroTreeCut" type="text" size="100" value="None" label="Row gap locations (enter comma delimited string of integers)"/>
+		        </when>
+		    </conditional>
         </when>
         <when value="Original">
 		    <param name="columnDistanceMeasure" type="text" size="0" hidden="true"    value="n/a"/>
 		    <param name="columnAgglomerationMethod" type="text" size="0"   hidden="true"  value="n/a"/>
 		    <param name="colDendroCut" type="text" size="0"  hidden="true"   value="0"/>
-        </when>
+   			<conditional name="ccutrows">
+				<param name="caddcuts" type="select" label="Add gaps to heat map display" help="Choices -- None and list of column locations">
+					<option value="none">None</option>
+					<option value="positional">List of Column Locations</option>	    
+				</param>
+	        	<when value="none">
+ 		    			<param name="colDendroTreeCut" type="text" size="100" value="None"  hidden="true"/>
+	        	</when>
+	        	<when value="positional">
+ 		    			<param name="colDendroTreeCut" type="text" size="100" value="None" label="Column gap locations (enter comma delimited string of integers)"/>
+	        	</when>
+	        </conditional>
+         </when>
         <when value="Random">
 		    <param name="columnDistanceMeasure" type="text" size="0"  hidden="true"   value="n/a"/>
 		    <param name="columnAgglomerationMethod" type="text" size="0"  hidden="true"   value="n/a"/>
 		    <param name="colDendroCut" type="text" size="0"  hidden="true"   value="0"/>
+   			<conditional name="ccutrows">
+				<param name="caddcuts" type="select" label="Add gaps to heat map display" help="Choices -- None and list of column locations">
+					<option value="none">None</option>
+					<option value="positional">List of Column Locations</option>	    
+				</param>
+	        	<when value="none">
+ 		    			<param name="colDendroTreeCut" type="text" size="100" value="None"  hidden="true"/>
+	        	</when>
+	        	<when value="positional">
+ 		    			<param name="colDendroTreeCut" type="text" size="100" value="None" label="Column gap locations (enter comma delimited string of integers)"/>
+	        	</when>
+	        </conditional>
         </when>
     </conditional>
+	<param name="colTopItems" size="100" type="text" value="None" label="Top Column Items (enter comma delimited string)"/>
     <param name="colDataType" type="select" label="Linkouts to column data type info" >
         <option value="labels" selected="true" >None</option>
         <option value="bio.probe.affymetrix" >Affymetrix Probe Id</option>
-        <option value="bio.cbioportal.sampleid" >cBioPortal sample Id</option>
+        <option value="bio.feature.agilent" >Agilent Id</option>
+        <option value="bio.sample.cbioportal" >cBioPortal sample Id</option>
+        <option value="bio.transcript.ensemble" >Ensemble transcript Id</option>
         <option value="bio.gene.entrez" >Gene Entrez Id</option>
         <option value="bio.gene.hugo" >Gene HUGO symbol</option>
         <option value="bio.go" >Gene Ontology (GO) Id</option>
         <option value="bio.geo.acc" >GEO Accession Id</option>
+        <option value="bio.probe.illumina" >Illumina Probe Id</option>
+        <option value="bio.probe.infinium" >Infinium Probe Id</option>
         <option value="bio.pathway.mdanderson" >MD Anderson pathway Id</option>
         <option value="bio.mirna" >miRNA Id</option>
+        <option value="bio.mirna.mimat" >miRNA MIMAT Id</option>
+        <option value="bio.pubmed" >Pubmed Id</option>
         <option value="bio.pubmed.search" >Pubmed Search Term</option>
         <option value="scholar" >Scholarly term</option>
-        <option value="bio.protein.uniprotid" >UniProt Id</option>
+        <option value="bio.gene.unigene" >Unigene CId</option>
+        <option value="bio.protein.uniprot" >UniProt Id</option>
     </param>    
     <repeat name="operations" title="Covariate Bars">
         <param name="class_name" size="20" type="text" value="" label="Axis Covariate Name">
@@ -167,13 +286,35 @@
            </sanitizer>
         </param>
         <param name="repeatinput" type="data" format="text" label="Axis Covariate File"/>
-	<param name="cat" type="select" label="Axis Covariate Type">
-	  <option value="row_categorical" >Row Categorical</option>
-	  <option value="row_continuous" >Row Continuous</option>
-	  <option value="column_categorical" >Column Categorical</option>
-	  <option value="column_continuous" >Column Continuous</option>
-	</param>
-    </repeat>       
+        <conditional name="cattype">
+			<param name="cat" type="select" label="Axis Covariate Type">
+			  <option value="row_categorical" >Row Categorical</option>
+			  <option value="row_continuous" >Row Continuous</option>
+			  <option value="column_categorical" >Column Categorical</option>
+			  <option value="column_continuous" >Column Continuous</option>
+			</param>
+	        <when value="row_continuous">
+		 		<param name="bartype" type="select" label="Bar Display Type">
+				  <option value="color_plot" >Color Plot</option>
+				  <option value="bar_plot" >Bar Plot</option>
+				  <option value="scatter_plot" >Scatter Plot</option>
+				</param>
+	        </when>
+	        <when value="column_continuous">
+		 		<param name="bartype" type="select" label="Bar Display Type">
+				  <option value="color_plot" >Color Plot</option>
+				  <option value="bar_plot" >Bar Plot</option>
+				  <option value="scatter_plot" >Scatter Plot</option>
+				</param>
+	        </when>
+	        <when value="column_categorical">
+	 	 		<param name="bartype" type="text"  hidden="true" value="color_plot"/>
+	        </when>
+	        <when value="row_categorical">
+	 	 		<param name="bartype" type="text"  hidden="true" value="color_plot"/>
+	        </when>
+	 	</conditional>
+     </repeat>       
      <repeat name="hm_attribute" title="Heat Map Attributes">
         <param name="attrbute_key" size="50" type="text" value="" label="Heat Map Attributes json pair-- key ">
            <sanitizer invalid_char="_">
