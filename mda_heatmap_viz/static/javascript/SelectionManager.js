@@ -87,6 +87,8 @@ NgChm.SEL.getLevelFromMode = function(lvl) {
 		return NgChm.MMGR.RIBBON_VERT_LEVEL;
 	} else if (NgChm.SEL.mode == 'RIBBONH') {
 		return NgChm.MMGR.RIBBON_HOR_LEVEL;
+	} else if (NgChm.SEL.mode == 'FULL_MAP') {
+		return NgChm.MMGR.SUMMARY_LEVEL;
 	} else {
 		return lvl;
 	} 
@@ -107,7 +109,7 @@ NgChm.SEL.handleScroll = function(evt) {
 			}
 		} else if ((evt.wheelDelta > 30 || evt.deltaY < 0 || evt.scale > 1)){ // Zoom in
 			if (!NgChm.SEL.hasSub)
-				NgChm.DET.detailDataZoomIn();
+				NgChm.DET.zoomAnimation();
 			else {
 				localStorage.removeItem('event');
 				localStorage.setItem('event', 'zoomIn' )
@@ -167,7 +169,7 @@ NgChm.SEL.keyNavigate = function(e) {
 					}
 					NgChm.SEL.changeMode(newMode);
 				} else {
-					NgChm.DET.detailDataZoomIn();
+					NgChm.DET.zoomAnimation();
 				}
 				break;
 			case 34: // page down 
@@ -187,8 +189,8 @@ NgChm.SEL.keyNavigate = function(e) {
 				break;
 			case 113: // F2 key 
 				if (NgChm.SEL.flickIsOn()) {
-					var flickBtnSrc = document.getElementById("flick_btn").src;
-					if (flickBtnSrc.indexOf("Up") >= 0) {
+					var flickBtn = document.getElementById("flick_btn");
+					if (flickBtn.name === 'flickUp') {
 						NgChm.SEL.flickChange("toggle2");
 					} else {
 						NgChm.SEL.flickChange("toggle1");
@@ -271,7 +273,7 @@ NgChm.SEL.handleLocalStorageEvent = function(evt) {
 			NgChm.SEL.callDetailDrawFunction(NgChm.SEL.mode);
 		} 
 	} else if (type == 'zoomIn'){
-		NgChm.DET.detailDataZoomIn();
+		NgChm.DET.zoomAnimation();
 	} else if (type == 'zoomOut') {
 		NgChm.DET.detailDataZoomOut();
 	} else if ((type == 'changeMode') && (NgChm.SEL.isSub))	{
@@ -301,7 +303,7 @@ NgChm.SEL.initFromLocalStorage = function() {
 	}
 	NgChm.heatMap.configureFlick();
 	var nameDiv = document.getElementById("mapName");
-	nameDiv.innerHTML = "<b>Map Name:</b>&nbsp;&nbsp;"+NgChm.heatMap.getMapInformation().name;
+	nameDiv.innerHTML = "<b>NG-CHM Heat Map:</b>&nbsp;&nbsp;"+NgChm.heatMap.getMapInformation().name;
 	NgChm.SEL.callDetailDrawFunction(NgChm.SEL.mode);
 }
 
@@ -462,9 +464,9 @@ NgChm.SEL.getCurrentDetCol = function() {
 NgChm.SEL.getCurrentDetDataPerRow = function() {
 	// make sure dataPerCol is the correct value. split screen can cause issues with values updating properly.
 	var	detDataPerRow = NgChm.SEL.dataPerRow;
-	if (NgChm.SEL.mode == 'RIBBONH') {
+	if ((NgChm.SEL.mode == 'RIBBONH') || (NgChm.SEL.mode == 'FULL_MAP')) {
 		var rate = NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.RIBBON_HOR_LEVEL);
-		detDataPerRow = Math.round(detDataPerRow/rate);
+		detDataPerRow = Math.ceil(detDataPerRow/rate);
 	} 
 	return detDataPerRow;
 }
@@ -472,9 +474,9 @@ NgChm.SEL.getCurrentDetDataPerRow = function() {
 NgChm.SEL.getCurrentDetDataPerCol = function() {
 	// make sure dataPerCol is the correct value. split screen can cause issues with values updating properly.
 	var	detDataPerCol = NgChm.SEL.dataPerCol;
-	if (NgChm.SEL.mode == 'RIBBONV') {
+	if ((NgChm.SEL.mode == 'RIBBONV') || (NgChm.SEL.mode == 'FULL_MAP')) {
 		var rate = NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.RIBBON_VERT_LEVEL);
-		detDataPerCol = Math.round(detDataPerCol/rate);
+		detDataPerCol = Math.ceil(detDataPerCol/rate);
 	} 
 	return detDataPerCol;
 }
@@ -485,7 +487,7 @@ NgChm.SEL.getCurrentDetDataPerCol = function() {
  **********************************************************************************/
 NgChm.SEL.setDataPerRowFromDet = function(detDataPerRow) {
 	NgChm.SEL.dataPerRow = detDataPerRow;
-	if (NgChm.SEL.mode == 'RIBBONH') {
+	if ((NgChm.SEL.mode == 'RIBBONH') || (NgChm.SEL.mode == 'FULL_MAP')) {
 		if (NgChm.SEL.selectedStart==0) {
 			NgChm.SEL.dataPerRow = NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL);
 		} else {
@@ -497,7 +499,7 @@ NgChm.SEL.setDataPerRowFromDet = function(detDataPerRow) {
 // Follow similar methodology for Column as is used in above row based function
 NgChm.SEL.setDataPerColFromDet = function(detDataPerCol) {
 	NgChm.SEL.dataPerCol = detDataPerCol;
-	if (NgChm.SEL.mode == 'RIBBONV') {
+	if ((NgChm.SEL.mode == 'RIBBONV') || (NgChm.SEL.mode == 'FULL_MAP')) {
 		if (NgChm.SEL.selectedStart==0) {
 			NgChm.SEL.dataPerCol = NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL);
 		} else {
@@ -581,10 +583,9 @@ NgChm.SEL.flickToggleOff = function() {
 
 NgChm.SEL.flickInit = function() {
 	var flickBtn = document.getElementById("flick_btn");
-	var flickBtnSrc = flickBtn.src;
 	var flickDrop1 = document.getElementById("flick1");
 	var flickDrop2 = document.getElementById("flick2");
-	if (flickBtnSrc.indexOf("Up") >= 0) {
+	if ((flickBtn.name === 'flickUp')) {
 		flickDrop1.style.backgroundColor="yellow";
 		flickDrop2.style.backgroundColor="white";
 	} else {
@@ -605,26 +606,28 @@ NgChm.SEL.flickChange = function(fromList) {
 	var flickBtn = document.getElementById("flick_btn");
 	var flickDrop1 = document.getElementById("flick1");
 	var flickDrop2 = document.getElementById("flick2");
-	var flickBtnSrc = flickBtn.src;
 	if (typeof fromList === 'undefined') {
-		if (flickBtnSrc.indexOf("Up") >= 0) {
+		if (flickBtn.name === 'flickUp') {
 			flickBtn.setAttribute('src', NgChm.staticPath + 'images/toggleDown.png');
+			flickBtn.name = 'flickDown';
 			NgChm.SEL.currentDl = flickDrop2.value;
 		} else {
 			flickBtn.setAttribute('src', NgChm.staticPath + 'images/toggleUp.png');
+			flickBtn.name = 'flickUp';
 			NgChm.SEL.currentDl = flickDrop1.value;
-			flickDrop1.style.backgroundColor="yellow";
 		}
 	} else {
-		if ((fromList === "flick1") && (flickBtnSrc.indexOf("Up") >= 0)) {
+		if ((fromList === "flick1") && (flickBtn.name === 'flickUp')) {
 			NgChm.SEL.currentDl = document.getElementById(fromList).value;
-		} else if ((fromList === "flick2") && (flickBtnSrc.indexOf("Down") >= 0)) {
+		} else if ((fromList === "flick2") && (flickBtn.name === 'flickDown')) {
 			NgChm.SEL.currentDl = document.getElementById(fromList).value;
-		} else if ((fromList === "toggle1") && (flickBtnSrc.indexOf("Down") >= 0)) {
+		} else if ((fromList === "toggle1") && (flickBtn.name === 'flickDown')) {
 			flickBtn.setAttribute('src', NgChm.staticPath + 'images/toggleUp.png');
+			flickBtn.name = 'flickUp';
 			NgChm.SEL.currentDl = flickDrop1.value;
-		} else if ((fromList === "toggle2") && (flickBtnSrc.indexOf("Up") >= 0)) {
+		} else if ((fromList === "toggle2") && (flickBtn.name === 'flickUp')) {
 			flickBtn.setAttribute('src', NgChm.staticPath + 'images/toggleDown.png');
+			flickBtn.name = 'flickDown';
 			NgChm.SEL.currentDl = flickDrop2.value;
 		} else {
 			return;

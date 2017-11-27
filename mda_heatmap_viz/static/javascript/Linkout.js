@@ -31,10 +31,40 @@ linkouts.getMapFileName = function(){
 	return NgChm.UTIL.getURLParameter("map");
 }
 
-//adds linkout objects to the linkouts global variable
+// returns type of object we're linking from.
+linkouts.getSourceObjectType = function() {
+	return "chm"; // CHM of course.
+}
+
+// returns a 'unique' identifier for the current source object.
+linkouts.getSourceObjectUniqueId = function() {
+	return NgChm.UTIL.getURLParameter("map");
+}
+
+//adds axis linkout objects to the linkouts global variable
 linkouts.addLinkout = function(name, labelType, selectType, callback, reqAttributes, index){
 	NgChm.LNK.addLinkout(name, labelType, selectType, callback, reqAttributes, index);
 }
+
+//adds matrix linkout objects to the linkouts global variable
+linkouts.addMatrixLinkout = function (name, rowType, colType, selectType, callback, reqAttributes, index) {
+	NgChm.LNK.addMatrixLinkout (name, rowType, colType, selectType, callback, reqAttributes, index);
+}
+
+// Linkout to the specified url in a suitable 'window'.
+// name identifies the linkout group (subsequent linkouts in the same group should display in the same window).
+// options fine tunes the window display.
+linkouts.openUrl = function (url, name, options) {
+        window.open (url, name, options);
+};
+
+linkouts.simplifyLabels = function (labels) {
+        if (!Array.isArray(labels)) {
+	        labels = labels.Row.concat(labels.Column);
+        }
+        // Remove duplicates.
+        return labels.sort().filter(function(el,i,a){return i===a.indexOf(el);});
+};
 
 /*******************************************
  * END EXTERNAL INTERFACE
@@ -67,26 +97,28 @@ NgChm.LNK.matrixLinkout = function(title, rowType, colType, selectType, reqAttri
 // labelType will decide which menu to place the linkout in.
 // selectType decides when the linkout is executable. (passing in null or undefined, or false will allow the function to be executable for all selection types)
 NgChm.LNK.addLinkout = function(name, labelType, selectType, callback, reqAttributes, index){ 
+        var linkout = new NgChm.LNK.linkout(name, labelType, selectType,reqAttributes, callback);
 	if (!linkouts[labelType]){
-		linkouts[labelType] = [new NgChm.LNK.linkout(name, labelType, selectType,reqAttributes, callback)];
+		linkouts[labelType] = [linkout];
 	} else {
 		if (index !== undefined){
-			linkouts[labelType].splice(index, 0, new NgChm.LNK.linkout(name,labelType, selectType, reqAttributes, callback)); 
+			linkouts[labelType].splice(index, 0, linkout); 
 		}else {
-			linkouts[labelType].push(new NgChm.LNK.linkout(name,labelType,selectType, reqAttributes, callback));
+			linkouts[labelType].push(linkout);
 		}
 	}
 }
 
 
 NgChm.LNK.addMatrixLinkout = function(name, rowType, colType, selectType, callback, reqAttributes, index){ // this function is used to add linkouts to the matrix menu when the linkout needs a specific criteria for the row and column (ie: same attribute)
+        var linkout = new NgChm.LNK.matrixLinkout(name, rowType, colType, selectType,reqAttributes, callback);
 	if (!linkouts["Matrix"]){
-		linkouts["Matrix"] = [new NgChm.LNK.matrixLinkout(name, rowType, colType, selectType,reqAttributes, callback)];
+		linkouts["Matrix"] = [linkout];
 	} else {
 		if (index !== undefined){
-			linkouts["Matrix"].splice(index, 0, new NgChm.LNK.matrixLinkout(name, rowType, colType, selectType,reqAttributes, callback));
+			linkouts["Matrix"].splice(index, 0, linkout );
 		}else {
-			linkouts["Matrix"].push(new NgChm.LNK.matrixLinkout(name, rowType, colType, selectType,reqAttributes, callback));
+			linkouts["Matrix"].push(linkout);
 		}
 	}
 	
@@ -372,7 +404,8 @@ NgChm.LNK.populateLabelMenu = function(axis, axisLabelsLength){
 			}
 			if (linkouts[type] && add){ // and for every linkout that the label type has, we add the linkout to the menu
 				for (var j = 0; j < linkouts[type].length; j++){
-					if (linkouts[type][j].selectType == linkouts.SINGLE_SELECT) {
+                                        var linkout = linkouts[type][j];
+					if (linkout.selectType == linkouts.SINGLE_SELECT) {
 						indLinkouts.push({"linkout":linkout});
 					} else {
 						grpLinkouts.push({"linkout":linkout})
@@ -431,7 +464,7 @@ NgChm.LNK.populateLabelMenu = function(axis, axisLabelsLength){
 				return;
 			}
 		}
-		grpLinkouts.push(linkout);
+		grpLinkouts.push({"linkout": linkout});
 	}
 }
 
@@ -458,7 +491,7 @@ NgChm.LNK.addMenuItemToTable = function(axis, table, linkout,addedHeader){
 	};
 	//Add indentation to linkout title if the link does not contain the word "clipboard" and it is not a Matrix linkout
 	var linkTitle = linkout.title.indexOf("clipboard") > 0 && axis !== "Matrix"? linkout.title : "&nbsp;&nbsp"+linkout.title;
-	if (linkout.reqAttributes == null){
+	if (linkout.reqAttributes == null || (linkout.reqAttributes.constructor === Array && linkout.reqAttributes.length === 0)){
 		if (addedHeader === false) {
 			//If sub-sectional header has not been added to the popup (before single/multi links) AND a link is being added...put in the header
 			if (linkout.selectType === 'multiSelection') {
@@ -471,7 +504,7 @@ NgChm.LNK.addMenuItemToTable = function(axis, table, linkout,addedHeader){
 			}
 			addedHeader = true;
 		}
-		if ((!NgChm.LNK.hasSelection(axis)) && (linkout.selectType === 'multiSelection')) {
+		if ((!NgChm.LNK.hasSelection(axis)) && (linkout.selectType === 'multiSelection') && (axis !== 'Matrix')) {
 			return addedHeader;
 		} else {
 			var row = body.insertRow();

@@ -53,12 +53,15 @@ NgChm.MMGR.RIBBON_HOR_LEVEL = 'rh';
 NgChm.MMGR.DETAIL_LEVEL = 'd';
 
 NgChm.MMGR.WEB_SOURCE = 'W';
+NgChm.MMGR.LOCAL_SOURCE = 'L';
 NgChm.MMGR.FILE_SOURCE = 'F';
 
 NgChm.MMGR.Event_INITIALIZED = 'Init';
 NgChm.MMGR.Event_JSON = 'Json';
 NgChm.MMGR.Event_NEWDATA = 'NewData';
 NgChm.MMGR.source= null;
+NgChm.MMGR.embeddedMapName= null;
+NgChm.MMGR.localRepository= '/NGCHM';
 
 
 //Create a MatrixManager to retrieve heat maps. 
@@ -92,7 +95,7 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 	NgChm.MMGR.source= fileSrc;
 	
 	this.isFileMode = function () {
-		if (NgChm.MMGR.source=== "F") 
+		if (NgChm.MMGR.source=== NgChm.MMGR.FILE_SOURCE) 
 			return true;
 		else
 			return false;
@@ -396,7 +399,7 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 	this.saveHeatMapToNgchm = function () {
 		var success = true;
 		NgChm.UHM.initMessageBox();
-		if (fileSrc !== "F") {
+		if (fileSrc === NgChm.MMGR.WEB_SOURCE) {
 			success = zipMapProperties(JSON.stringify(mapConfig)); 
 			NgChm.UHM.zipSaveNotification(false);
 		} else {
@@ -412,7 +415,7 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 		this.setRowClassificationOrder();
 		this.setColClassificationOrder();
 		var success = true;
-		if (fileSrc !== "F") {
+		if (fileSrc !== NgChm.MMGR.FILE_SOURCE) {
 			success = webSaveMapProperties(JSON.stringify(mapConfig)); 
 		} else {
 			if (NgChm.staticPath === "") {
@@ -460,7 +463,7 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 	//If collectionHome param exists on URL, add "back" button to screen.
 	this.configureButtonBar = function(){
 		var splitButton = document.getElementById("split_btn");
-		if ((splitButton != null) && (fileSrc === "F")) {
+		if ((splitButton != null) && (fileSrc === NgChm.MMGR.FILE_SOURCE)) {
 			splitButton.style.display = 'none';
 		}
 		var backButton = document.getElementById("back_btn");
@@ -536,7 +539,7 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 	//Add the original update call back to the event listeners list.
 	eventListeners.push(updateCallback);
 	
-	if (fileSrc == NgChm.MMGR.WEB_SOURCE){
+	if (fileSrc !== NgChm.MMGR.FILE_SOURCE){
 		//fileSrc is web so get JSON files from server
 		//Retrieve  all map configuration data.
 		webFetchJson('mapConfig', addMapConfig);
@@ -677,7 +680,11 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 
 	function zipAppFileMode() {
 		var success = "";
-		var name = NgChm.CM.webServerUrl+"ZipAppDownload"; 
+		var name = "";
+		if (fileSrc === NgChm.MMGR.FILE_SOURCE){
+			name += NgChm.CM.webServerUrl;
+		}
+		name += "ZipAppDownload"; 
 		callServlet("POST", name, false);
 		return true;
 	}
@@ -848,10 +855,15 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
   	//ToDo: need to limit the number of tiles retrieved.
   	//ToDo: need to remove items from the cache if it is maxed out. - don't get rid of thumb nail or summary.
 
-		if (fileSrc == NgChm.MMGR.WEB_SOURCE) {
-			var name = "GetTile?map=" + heatMapName + "&datalayer=" + layer + "&level=" + level + "&tile=" + tileName;
+		if ((fileSrc == NgChm.MMGR.WEB_SOURCE) || (fileSrc == NgChm.MMGR.LOCAL_SOURCE)) {
 			var req = new XMLHttpRequest();
-			req.open("GET", name, true);
+			var name = "GetTile?map=" + heatMapName + "&datalayer=" + layer + "&level=" + level + "&tile=" + tileName;
+			if (fileSrc == NgChm.MMGR.WEB_SOURCE) {
+				req.open("GET", "GetTile?map=" + heatMapName + "&datalayer=" + layer + "&level=" + level + "&tile=" + tileName, true);
+			} else {
+				req.open("GET", NgChm.MMGR.localRepository+"/"+NgChm.MMGR.embeddedMapName+"/"+layer+"/"+level+"/"+tileName+".bin");
+				
+			}
 			req.responseType = "arraybuffer";
 			req.onreadystatechange = function () {
 				if (req.readyState == req.DONE) {
@@ -891,7 +903,11 @@ NgChm.MMGR.HeatMap = function(heatMapName, updateCallback, fileSrc, chmFile) {
 	//Specify which file to get and what funciton to call when it arrives.
 	function webFetchJson(jsonFile, setterFunction) {
 		var req = new XMLHttpRequest();
-		req.open("GET", "GetDescriptor?map=" + heatMapName + "&type=" + jsonFile, true);
+		if (fileSrc !== NgChm.MMGR.WEB_SOURCE) {
+			req.open("GET", NgChm.MMGR.localRepository+"/"+NgChm.MMGR.embeddedMapName+"/"+jsonFile+".json");
+		} else {
+			req.open("GET", "GetDescriptor?map=" + heatMapName + "&type=" + jsonFile, true);
+		}
 		req.onreadystatechange = function () {
 			if (req.readyState == req.DONE) {
 		        if (req.status != 200) {

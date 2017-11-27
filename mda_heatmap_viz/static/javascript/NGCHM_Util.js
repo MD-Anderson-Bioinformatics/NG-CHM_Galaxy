@@ -248,3 +248,128 @@ NgChm.UTIL.convertToArray = function(value) {
 	valArr.push(value);
 	return valArr;
 }
+
+/**********************************************************************************
+ * FUNCTION - embedCHM: This function is a special pre-processing function for the
+ * widgetized version of the NG-CHM Viewer.  It will take the map name provided 
+ * by the user (embedded in an unaffiliated web page) and pass that on to the 
+ * on load processing for the viewer.  repository (default .) is the path to the
+ * directory containing the specified map.
+ **********************************************************************************/
+NgChm.UTIL.embedCHM = function (map, repository) {
+	NgChm.MMGR.embeddedMapName = map;
+	NgChm.MMGR.localRepository = repository || ".";
+	//Reset dendros for local/widget load
+	NgChm.SUM.colDendro = null;
+	NgChm.SUM.rowDendro = null;
+	NgChm.DET.colDendro = null;
+	NgChm.DET.rowDendro = null;
+	NgChm.UTIL.onLoadCHM();
+}
+
+/**********************************************************************************
+ * FUNCTION - onLoadCHM: This function performs "on load" processing for the NG_CHM
+ * Viewer.  It will load either the file mode viewer, standard viewer, or widgetized
+ * viewer.  
+ **********************************************************************************/
+NgChm.UTIL.onLoadCHM = function () {
+	//Call functions that enable viewing in IE.
+	NgChm.UTIL.iESupport();
+	NgChm.UTIL.setBrowserMinFontSize();
+	//Run startup checks that enable startup warnings button.
+	NgChm.UTIL.startupChecks();
+	// See if we are running in file mode AND not from "widgetized" code - launcHed locally rather than from a web server (
+	if ((NgChm.UTIL.getURLParameter('map') === "") && (NgChm.MMGR.embeddedMapName === null)) {
+		//In local mode, need user to select the zip file with data (required by browser security)
+		var chmFileItem  = document.getElementById('fileButton');
+		document.getElementById('fileOpen_btn').style.display = '';
+		chmFileItem.style.display = '';
+		chmFileItem.addEventListener('change', NgChm.UTIL.loadFileModeCHM, false);
+	} else {
+		document.getElementById('loader').style.display = '';
+		//Run from a web server.
+		var mapName = NgChm.UTIL.getURLParameter('map');
+		var dataSource = NgChm.MMGR.WEB_SOURCE;
+		if (NgChm.MMGR.embeddedMapName !== null) { 
+			mapName = NgChm.MMGR.embeddedMapName;
+			dataSource = NgChm.MMGR.LOCAL_SOURCE;
+		}
+		var matrixMgr = new NgChm.MMGR.MatrixManager(dataSource);
+		if (!NgChm.SEL.isSub) {
+			NgChm.heatMap = matrixMgr.getHeatMap(mapName, NgChm.SUM.processSummaryMapUpdate);
+			NgChm.heatMap.addEventListener(NgChm.DET.processDetailMapUpdate);
+			NgChm.SUM.initSummaryDisplay();
+		} else {  // separated detail browser 
+			NgChm.heatMap = matrixMgr.getHeatMap(mapName, NgChm.DET.processDetailMapUpdate);
+		}
+		NgChm.DET.initDetailDisplay();
+		}
+	NgChm.SEL.setupLocalStorage();
+	document.getElementById("container").addEventListener('wheel', NgChm.SEL.handleScroll, false);	
+	document.getElementById("detail_canvas").focus();
+
+}
+
+/**********************************************************************************
+ * FUNCTION - loadFileModeCHM: This function is called when running in local file mode and 
+ * user selects the chm data .zip file.
+ **********************************************************************************/
+NgChm.UTIL.loadFileModeCHM = function (evt) {
+	document.getElementById('loader').style.display = '';
+	zip.useWebWorkers = false;
+	var matrixMgr = new NgChm.MMGR.MatrixManager(NgChm.MMGR.FILE_SOURCE);
+	var chmFile  = document.getElementById('chmFile').files[0];
+	var split = chmFile.name.split("."); 
+	NgChm.UTIL.resetCHM();
+	if (split[split.length-1].toLowerCase() !== "ngchm"){ // check if the file is a .ngchm file
+		NgChm.UHM.invalidFileFormat();
+	} else {
+		if (!NgChm.SEL.isSub) {
+			NgChm.heatMap = matrixMgr.getHeatMap("",  NgChm.SUM.processSummaryMapUpdate, chmFile);
+			NgChm.heatMap.addEventListener(NgChm.DET.processDetailMapUpdate);
+			NgChm.SUM.initSummaryDisplay();
+		} else { // separated detail browser
+			NgChm.heatMap = matrixMgr.getHeatMap("",  NgChm.DET.processDetailMapUpdate, chmFile);			
+		}	
+		NgChm.DET.initDetailDisplay();
+		NgChm.SEL.openFileToggle();
+	}
+}
+
+/**********************************************************************************
+ * FUNCTION - chmResize: This function handles the resizing of the NG-CHM Viewer.  
+ **********************************************************************************/
+NgChm.UTIL.chmResize = function () {
+ 		NgChm.SUM.summaryResize();
+ 		NgChm.DET.detailResize();
+ 		NgChm.UPM.prefsResize();
+	//   	NgChm.DET.clearLabels();
+ 	//	NgChm.DET.drawRowAndColLabels();
+ 		NgChm.DET.detailResize();
+}
+
+/**********************************************************************************
+ * FUNCTION - resetCHM: This function will reload CHM SelectionManager parameters 
+ * when loading a file mode heatmap.  Specifically for handling the case where switching 
+ * from one file-mode heatmap to another
+ **********************************************************************************/
+NgChm.UTIL.resetCHM = function () {
+		NgChm.SEL.mode = 'NORMAL';      
+		NgChm.SEL.currentDl = "dl1"; 
+		NgChm.SEL.currentRow=null; 
+		NgChm.SEL.currentCol=null; 
+		NgChm.SEL.dataPerRow=null; 
+		NgChm.SEL.dataPerCol=null; 
+		NgChm.SEL.selectedStart=0; 
+		NgChm.SEL.selectedStop=0; 
+		NgChm.SEL.searchItems={};
+		NgChm.SEL.isSub = false; 
+		NgChm.SEL.hasSub = false;  
+		NgChm.SEL.scrollTime = null; 
+	NgChm.SUM.colDendro = null;
+	NgChm.SUM.rowDendro = null;
+}
+
+
+
+

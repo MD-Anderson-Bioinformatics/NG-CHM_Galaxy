@@ -15,8 +15,9 @@
       <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/UserPreferenceManager.js"></script>
       <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/PdfGenerator.js"></script>
       <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/Linkout.js"></script>
+      <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/Customization.js"></script>
       <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/CompatibilityManager.js"></script>
-
+ 
       <script src="/plugins/visualizations/mda_heatmap_viz/static/javascript/lib/jspdf.debug.js"></script>
  
       <meta id='viewport' name ="viewport" content="">
@@ -37,11 +38,11 @@
     <script>
        NgChm.heatMap = null;  //global - heatmap object.
        NgChm.staticPath = "/plugins/visualizations/mda_heatmap_viz/static/"; //path for static web content - changes in galaxy.
-       	//Call functions that enable viewing in IE.
- 		NgChm.UTIL.iESupport();
- 	    NgChm.UTIL.setBrowserMinFontSize();
- 		//Run startup checks that enable startup warnings button.
- 		//NgChm.UTIL.startupChecks();
+       //Call functions that enable viewing in IE.
+       NgChm.UTIL.iESupport();
+       NgChm.UTIL.setBrowserMinFontSize();
+       //Run startup checks that enable startup warnings button.
+       //NgChm.UTIL.startupChecks();
        var url_dict = ${ h.dumps( url_dict ) };
        var hdaId   = '${trans.security.encode_id( hda.id )}';
        var hdaExt  = '${hda.ext}';
@@ -52,11 +53,11 @@
        xmlhttp.responseType = 'blob';
        xmlhttp.onload = function(e) {
            if (this.status == 200) {
-            //Run startup checks that enable startup warnings button.
-			   NgChm.UTIL.startupChecks();
+               //Run startup checks that enable startup warnings button.
+               NgChm.UTIL.startupChecks();
                var blob = new Blob([this.response], {type: 'compress/zip'});
                zip.useWebWorkers = false;
-		document.getElementById('loader').style.display = '';
+               document.getElementById('loader').style.display = '';
                var matrixMgr = new NgChm.MMGR.MatrixManager(NgChm.MMGR.FILE_SOURCE);
                var name = this.getResponseHeader("Content-Disposition");
                if (name.indexOf('[') > -1) {
@@ -130,9 +131,9 @@
           <canvas id='summary_canvas'></canvas>
           <canvas id='summary_box_canvas' ></canvas>
           <canvas id='summary_col_select_canvas' class='selection_canvas'></canvas>
-			<canvas id='summary_row_select_canvas' class='selection_canvas' ></canvas>
-			<canvas id=summary_col_top_items_canvas class='selection_canvas'></canvas>
-			<canvas id='summary_row_top_items_canvas' class='selection_canvas' ></canvas>
+          <canvas id='summary_row_select_canvas' class='selection_canvas' ></canvas>
+          <canvas id=summary_col_top_items_canvas class='selection_canvas'></canvas>
+          <canvas id='summary_row_top_items_canvas' class='selection_canvas' ></canvas>
 	  <div id='sumlabelDiv' style="display: inline-block"></div>
        </div>
 
@@ -140,13 +141,15 @@
        </div>
 
        <div id='detail_chm' style='position: relative;'>
+          <canvas id='detail_column_dendro_canvas' width='1200' height='500' style="position: absolute;"></canvas>
+          <canvas id='detail_row_dendro_canvas' width='1200' height='500' style="position: absolute;"></canvas>
           <canvas id='detail_canvas' style='display: inline-block'></canvas>
           <canvas id='detail_box_canvas' ></canvas>
-	<!--		<div id='detSizer' style='position:absolute'  onmousedown="NgChm.DET.detSizerStart()" ontouchstart="NgChm.DET.detSizerStart()"></div> -->
+	  <!--		<div id='detSizer' style='position:absolute'  onmousedown="NgChm.DET.detSizerStart()" ontouchstart="NgChm.DET.detSizerStart()"></div> -->
           <div id='labelDiv' style="display: inline-block">
-				<div id='colLabelDiv' axis="Column" style="display: inline-block; position: absolute; right: 0px; " oncontextmenu="NgChm.DET.labelRightClick(event)"></div>
-				<div id='rowLabelDiv' axis ="Row" style="display: inline-block; position: absolute; bottom: 0px; " oncontextmenu="NgChm.DET.labelRightClick(event)"></div>
-			</div>
+              <div id='colLabelDiv' axis="Column" style="display: inline-block; position: absolute; right: 0px; " oncontextmenu="NgChm.DET.labelRightClick(event)"></div>
+              <div id='rowLabelDiv' axis ="Row" style="display: inline-block; position: absolute; bottom: 0px; " oncontextmenu="NgChm.DET.labelRightClick(event)"></div>
+          </div>
        </div>
    </div>
    <div id='insilico_footer' style="right:5px; bottom:5px;position:absolute">

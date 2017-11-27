@@ -62,7 +62,6 @@ NgChm.DDR.DendroMatrix = function(numRows, numCols,isRow){
 				position++;
 			}
 		}
-		
 		if (xRatio > 1) {
 			newMatrix.fillHoles();
 		} 
@@ -77,9 +76,14 @@ NgChm.DDR.DendroMatrix = function(numRows, numCols,isRow){
 			for (var x=0; x<numCols; x++){
 				val = this.get(y, x);
 				if (val > 0 && y > 1){
-					below = this.get(y-1,x)
-					if (below == 0 && this.get(y, x+1) == 0)
+					below = this.get(y-1,x);
+					above = this.get(y+1,x);
+					left = this.get(y,x-1);
+					if (below == 0 && this.get(y, x+1) == 0 && this.getNumCols()%(x+1) !==0){ // check to see if this is a gap in a cross bar
 						this.setTrue(y, x+1, val==2);
+					} else if (below > 0 && above == 0 && left ==0 && this.get(y,x+1)==0){ // check to see if this is a gap in a left branch
+						this.setTrue(y, x+1, val==2);
+					}
 				}		
 			}
 		}	
@@ -231,7 +235,7 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 
 	this.draw = function(){
 		resize();
-		dendroCanvas.width = NgChm.SUM.canvas.clientWidth*NgChm.SUM.matrixWidth/NgChm.SUM.totalWidth;
+		dendroCanvas.width = NgChm.SUM.canvas.clientWidth*NgChm.SUM.matrixWidth*NgChm.SUM.widthScale/NgChm.SUM.totalWidth;
 		dendroCanvas.height = parseInt(dendroConfig.height)/dendroDisplaySize * sumChm.clientHeight*NgChm.SUM.heightPct;
 		draw();
 	}
@@ -271,8 +275,8 @@ NgChm.DDR.SummaryColumnDendrogram = function() {
 		}
 	}
 	function resize(){
-		dendroCanvas.style.width = NgChm.SUM.canvas.clientWidth*NgChm.SUM.matrixWidth/NgChm.SUM.totalWidth;
-		dendroCanvas.style.left = NgChm.SUM.canvas.offsetLeft + (1-NgChm.SUM.matrixWidth/NgChm.SUM.totalWidth)*NgChm.SUM.canvas.offsetWidth;
+		dendroCanvas.style.width = NgChm.SUM.canvas.clientWidth*NgChm.SUM.matrixWidth*NgChm.SUM.widthScale/NgChm.SUM.totalWidth;
+		dendroCanvas.style.left = NgChm.SUM.canvas.offsetLeft + (1-NgChm.SUM.matrixWidth*NgChm.SUM.widthScale/NgChm.SUM.totalWidth)*NgChm.SUM.canvas.offsetWidth;
 		if (dendroConfig.show !== "NONE"){
 			dendroCanvas.style.height = parseInt(dendroConfig.height)/dendroDisplaySize*sumChm.clientHeight*NgChm.SUM.heightPct; // the dendro should take 1/5 of the height at 100% dendro height
 		}else{
@@ -612,7 +616,7 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 	
 	this.draw = function(){
 		resize();
-		dendroCanvas.height = NgChm.SUM.canvas.clientHeight*NgChm.SUM.matrixHeight/NgChm.SUM.totalHeight;
+		dendroCanvas.height = NgChm.SUM.canvas.clientHeight*NgChm.SUM.matrixHeight*NgChm.SUM.heightScale/NgChm.SUM.totalHeight;
 		dendroCanvas.width = dendroConfig.height/dendroDisplaySize*sumChm.clientWidth*NgChm.SUM.widthPct;
 		draw();
 	}
@@ -629,7 +633,6 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 	function subDendroClick(event){
 		var clickX = event.offsetX, clickY = event.offsetY;
 		var matrixX = Math.round(clickY/(this.height/dendroMatrix.getNumCols())), matrixY = Math.round((this.width-clickX)/(this.width/dendroMatrix.getNumRows()));
-//		var matrixX = Math.round(clickX/(this.width/dendroMatrix.getNumCols())), matrixY = Math.round(clickY/(this.height/dendroMatrix.getNumRows()));
 		NgChm.SUM.clearRowSelectionMarks();
 		NgChm.SUM.colDendro.clearSelection();
 		NgChm.SUM.rowDendro.clearSelection();
@@ -654,8 +657,8 @@ NgChm.DDR.SummaryRowDendrogram = function() {
 	}
 	
 	function resize(){
-		dendroCanvas.style.height = NgChm.SUM.canvas.clientHeight*NgChm.SUM.matrixHeight/NgChm.SUM.totalHeight;
-		dendroCanvas.style.top = NgChm.SUM.canvas.offsetTop + (NgChm.SUM.totalHeight - NgChm.SUM.matrixHeight)/NgChm.SUM.totalHeight*NgChm.SUM.canvas.offsetHeight;
+		dendroCanvas.style.height = NgChm.SUM.canvas.clientHeight*NgChm.SUM.matrixHeight/NgChm.SUM.totalHeight*NgChm.SUM.heightScale;
+		dendroCanvas.style.top = NgChm.SUM.canvas.offsetTop + (NgChm.SUM.totalHeight - NgChm.SUM.matrixHeight*NgChm.SUM.heightScale)/NgChm.SUM.totalHeight*NgChm.SUM.canvas.offsetHeight;
 		if (dendroConfig.show !== "NONE"){
 			dendroCanvas.style.width = dendroConfig.height/dendroDisplaySize*sumChm.clientWidth*NgChm.SUM.widthPct;
 		} else {
@@ -855,11 +858,11 @@ NgChm.DDR.minDendroMatrixHeight = 500;
 NgChm.DDR.minDendroMatrixWidth = 500;
 NgChm.DDR.pointsPerLeaf = 3; // each leaf will get 3 points in the dendrogram array. This is to avoid lines being right next to each other
 
-NgChm.DDR.findExtremes = function(i,j,matrix) {
-	var searchRadiusMaxX = matrix.isRow() ? Math.round(NgChm.SEL.dataPerCol/NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL)/10) : 
-											Math.round(NgChm.SEL.dataPerRow/NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL)/10);
-	var searchRadiusMaxY = matrix.isRow() ? Math.round((matrix.getNumRows()*NgChm.SEL.dataPerCol/NgChm.SUM.matrixHeight)/NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL)/10) : 
-											Math.round((matrix.getNumRows()*NgChm.SEL.dataPerRow/NgChm.SUM.matrixWidth)/NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL)/10);
+NgChm.DDR.findExtremes = function(i,j,matrix) { // uses summary dendro matrix (even for detail clicks) to find the selected bar and ends of the selected it
+	var searchRadiusMaxX = matrix.isRow() ? Math.ceil(NgChm.SEL.dataPerCol/NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL)/10) : 
+											Math.ceil(NgChm.SEL.dataPerRow/NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL)/10);
+	var searchRadiusMaxY = matrix.isRow() ? Math.ceil((matrix.getNumRows()*NgChm.SEL.dataPerCol/NgChm.SUM.matrixHeight)/NgChm.heatMap.getRowSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL)/10) : 
+											Math.ceil((matrix.getNumRows()*NgChm.SEL.dataPerRow/NgChm.SUM.matrixWidth)/NgChm.heatMap.getColSummaryRatio(NgChm.MMGR.SUMMARY_LEVEL)/10);
 	var ip = i, id = i, jr = j, jl = j, searchRadius = 0,searchRadiusX = 0,searchRadiusY = 0;
 	while (matrix.getNumRows() > ip && id > 0 && matrix.get(id,j)==0 && matrix.get(ip,j)==0 && searchRadiusY < searchRadiusMaxY){
 		id--,ip++,searchRadiusY++;
@@ -990,4 +993,571 @@ NgChm.DDR.matrixToAsciiPrint = function(matrix) { // this is just a debug functi
 		line += "\n";
 	}
 	console.log(line);
+}
+NgChm.DDR.dendroMatrixToAsciiPrint = function(matrix) { // this is just a debug function to see if the dendrogram looks correct. paste "line" into a text editor and decrease the font. input is the dendrogram matrix.
+	var line = "";
+	for (var y=matrix.getNumRows(); y>-1; y--){
+		for (var x=0; x<matrix.getNumCols(); x++){
+			// draw the non-highlighted regions
+			var val = matrix.get(y, x);
+			if (val > 0){
+				line += "=";
+			} else {
+				line += "."
+			}
+		}
+		line += "\n";
+	}	
+	console.log(line);
+}
+
+/**************************
+ *  DETAIL ROW DENDROGRAM *
+ **************************/
+NgChm.DDR.DetailRowDendrogram = function() {
+	
+	// internal variables
+	var dendroDisplaySize = NgChm.DDR.minDendroMatrixHeight; // this is a static number used to determine how big the dendro canvas will be in conjunction with the dendroConfig.heigh property
+	var pointsPerLeaf = 3; // each leaf will get 3 points in the dendrogram array. This is to avoid lines being right next to each other
+	var bars = [];
+	var chosenBar = {};
+	var detailCanvas = document.getElementById('detail_canvas');
+	var dendroCanvas = document.getElementById('detail_row_dendro_canvas');
+	var dendroConfig = NgChm.heatMap.getRowDendroConfig();
+	var hasData = dendroConfig.show === 'NA' ? false : true;
+	var dendroData = NgChm.heatMap.getRowDendroData();
+	var normDendroMatrixHeight = Math.min(Math.max(NgChm.DDR.minDendroMatrixHeight,dendroData.length),NgChm.DDR.maxDendroMatrixHeight); // this is the height of the dendro matrices created in buildDendroMatrix
+	var maxHeight = dendroData.length > 0 ? Number(dendroData[dendroData.length-1].split(",")[2]) : 0; // this assumes the heightData is ordered from lowest height to highest
+	var dendroMatrix;
+	var zoomLevel = 1;
+	
+	dendroCanvas.onwheel = scroll;
+	dendroCanvas.onclick = click;
+	
+	this.getDivWidth = function(){
+		return dendroCanvas.clientWidth;
+	}
+	this.getDivHeight = function(){
+		return dendroCanvas.clientHeight;
+	}
+	this.resize = function(){
+		resize();
+	}
+	this.draw = function(){
+		draw();
+	}
+	this.resizeAndDraw = function(){
+		resize();
+		draw();
+	}
+	
+	function scroll(e){
+		e.preventDefault();
+		e.stopPropagation();
+		zoomLevel -= e.deltaY/400;
+		if (zoomLevel < 0.1) zoomLevel = .1;
+		if (zoomLevel > 100) zoomLevel = 100;
+		draw();
+	}
+	
+	function click(e){
+		var offsetX = e.offsetX;
+		var offsetY = e.offsetY;
+		NgChm.DET.mouseDown = true;		
+		var heightRatio = zoomLevel*NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerCol;
+		var X = NgChm.SEL.currentRow + (NgChm.SEL.dataPerCol*(offsetY/dendroCanvas.height));
+		var Y = (dendroCanvas.clientWidth-offsetX)/dendroCanvas.clientWidth/heightRatio;
+		var matrixX = Math.round(X*NgChm.SUM.rowDendro.getPointsPerLeaf()-NgChm.SUM.rowDendro.getPointsPerLeaf()/2);
+		var matrixY = Math.round(Y*NgChm.SUM.rowDendro.getDendroMatrixHeight());
+		var extremes = NgChm.SUM.rowDendro.findExtremes(matrixY,matrixX);
+		if (extremes){
+			NgChm.SUM.rowDendro.addSelectedBar(extremes,e.shiftKey,e.metaKey||e.ctrlKey);
+			draw();
+		}
+		NgChm.SUM.clearSelectionMarks();
+		NgChm.SEL.updateSelection();
+		NgChm.SUM.drawColSelectionMarks();
+		NgChm.SUM.drawRowSelectionMarks();
+		NgChm.SUM.drawTopItems();
+	}
+	
+	
+	function draw(){
+		var dendroConfig = NgChm.heatMap.getRowDendroConfig();
+		var hasData = dendroConfig.show === 'NA' ? false : true;
+		if (hasData) {
+			dendroMatrix = buildMatrix(NgChm.SEL.currentRow, NgChm.SEL.currentRow+NgChm.SEL.dataPerCol, NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerCol*zoomLevel);
+			if (typeof dendroMatrix !== 'undefined') {
+				//get a scaled version of the dendro matrix that matches the canvas size.
+				var scaledMatrix = dendroMatrix.scaleMatrix(dendroCanvas.width, dendroCanvas.height);
+				var rowgl = dendroCanvas.getContext("2d");
+				rowgl.clearRect(0, 0, dendroCanvas.width, dendroCanvas.height);
+				rowgl.fillStyle = "black";
+				var numRows = scaledMatrix.getNumRows();
+				var numCols = scaledMatrix.getNumCols();
+	
+				for (var x=0; x<scaledMatrix.getNumCols(); x++){
+					for (var y=0; y<scaledMatrix.getNumRows(); y++){
+						// draw the non-highlighted regions
+						var val = scaledMatrix.get(y, x);
+						if (val > 0){
+							rowgl.fillRect(numRows-y, x, val,val);
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	function resize(){
+		var width = dendroConfig.height/dendroDisplaySize*document.getElementById('detail_chm').clientWidth+ NgChm.SUM.paddingHeight;
+		var top = NgChm.DET.colDendro.getDivHeight() + NgChm.SUM.paddingHeight;
+		dendroCanvas.style.top = top + NgChm.DET.canvas.clientHeight * (1-NgChm.DET.dataViewHeight/NgChm.DET.canvas.height);
+		if (dendroConfig.show == "ALL"){
+			dendroCanvas.style.width = width;
+			dendroCanvas.style.height = NgChm.DET.canvas.clientHeight * (NgChm.DET.dataViewHeight/NgChm.DET.canvas.height)-2;
+			dendroCanvas.width = Math.round(width);
+			dendroCanvas.height = Math.round(NgChm.DET.canvas.clientHeight * (NgChm.DET.dataViewHeight/NgChm.DET.canvas.height));
+		} else {
+			dendroCanvas.style.width = 0;
+		}
+	}
+	
+	function buildMatrix(start, stop, heightRatio) {
+		var start3NIndex = convertMapIndexTo3NSpace(start);
+		var stop3NIndex = convertMapIndexTo3NSpace(stop);
+		var boxLength, currentIndex, matrixWidth, dendroBars, dendroInfo, PPL;
+		
+		var selectedBars;
+		
+		dendroInfo = NgChm.heatMap.getRowDendroData(); // dendro JSON object
+		boxLength = NgChm.DET.dataBoxHeight;
+		matrixWidth = NgChm.DET.dataViewHeight;
+		dendroBars = NgChm.SUM.rowDendro.getBars();
+		selectedBars = NgChm.SUM.rowDendro.getSelectedBars();
+		PPL = NgChm.SUM.rowDendro.getPointsPerLeaf();
+		var numNodes = dendroInfo.length;
+		var lastRow = dendroInfo[numNodes-1];
+		var matrix = new NgChm.DDR.DendroMatrix(normDendroMatrixHeight+1, matrixWidth-1,true);
+		var topLineArray = new Array(matrixWidth-1); // this array is made to keep track of which bars have vertical lines that extend outside the matrix
+		var maxHeight = Number(lastRow.split(",")[2])/(heightRatio); // this assumes the heightData is ordered from lowest height to highest
+		var branchCount = 0;
+		
+		// check the left and right endpoints of each bar, and see if they are within the bounds.
+		// then check if the bar is in the desired height. 
+		// if it is, draw it in its entirety, otherwise, see if the bar has a vertical connection with any of the bars in view
+		for (var i = 0; i < numNodes; i++){
+			var bar = dendroInfo[i];
+			var tokes = bar.split(",");
+			var leftJsonIndex = Number(tokes[0]);
+			var rightJsonIndex = Number(tokes[1]);
+			var height = Number(tokes[2]);
+			var left3NIndex = convertJsonIndexTo3NSpace(leftJsonIndex); // location in dendroBars space
+			var right3NIndex = convertJsonIndexTo3NSpace(rightJsonIndex);
+			if (right3NIndex < start3NIndex || stop3NIndex < left3NIndex){continue} //if the bar exists outside of the viewport, skip it
+			
+			var leftLoc = convertJsonIndexToDataViewSpace(leftJsonIndex); // Loc is the location in the dendro matrix
+			var rightLoc = convertJsonIndexToDataViewSpace(rightJsonIndex);
+			var normHeight = height < 0.0001*matrix.getNumCols() ? 1 : Math.round(normDendroMatrixHeight*height/maxHeight); // height in matrix (if height is roughly 0, treat as such)
+			var leftEnd = Math.max(leftLoc, 1);
+			var rightEnd = Math.min(rightLoc, matrixWidth-1);
+			
+			//  determine if the bar is within selection??
+			var bold = false;
+			if (selectedBars){
+				for (var k = 0; k < selectedBars.length; k++){
+					var selectedBar = selectedBars[k];
+					if ((selectedBar.left <= left3NIndex && right3NIndex <= selectedBar.right) && Math.round(500*height/(maxHeight*heightRatio)) <= selectedBar.height){
+						bold = true;
+					}
+				}
+			}
+			
+			if (height > maxHeight){ // if this line is beyond the viewport max height
+				if (start3NIndex > 1 && start3NIndex <= right3NIndex &&  right3NIndex < stop3NIndex -PPL/2 && topLineArray[rightLoc] != 1){ // check to see if it will be connecting vertically to a line in the matrix 
+					var drawHeight = normDendroMatrixHeight;
+					while (drawHeight > 0 && !matrix.get(drawHeight,rightLoc)){ // these are the lines that will be connected to the highest level dendro leaves
+						matrix.setTrue(drawHeight,rightLoc, bold);
+						drawHeight--;
+					}
+				}
+				if (start3NIndex > 1 && start3NIndex <= left3NIndex &&  left3NIndex < stop3NIndex-PPL/2 && topLineArray[leftLoc] != 1){// these are the lines that will be connected to the highest level dendro leaves (stop3NIndex-1 to prevent extra line on far right)
+					var drawHeight = normDendroMatrixHeight;
+					while (drawHeight > 0 && !matrix.get(drawHeight,leftLoc)){
+						matrix.setTrue(drawHeight,leftLoc, bold);
+						drawHeight--;
+					}
+				}
+				for (var loc = leftEnd; loc < rightEnd; loc++){
+					topLineArray[loc] = 1; // mark that the area covered by this bar can no longer be drawn in  by another, higher level bar
+				}
+			} else { // this line is within the viewport height
+				branchCount++;
+				for (var j = leftEnd; j < rightEnd; j++){ // draw horizontal lines
+					matrix.setTrue(normHeight,j,bold);
+				}
+				var drawHeight = normHeight-1;
+				while (drawHeight > 0 && !matrix.get(drawHeight,leftLoc) && Math.floor(boxLength/2-1) <= leftLoc  && leftLoc <= matrixWidth-Math.floor(boxLength/2)){	// draw left vertical line
+					matrix.setTrue(drawHeight,leftLoc,bold);
+					drawHeight--;
+				}
+				drawHeight = normHeight;
+				while (!matrix.get(drawHeight,rightLoc) && drawHeight > 0 && Math.floor(boxLength/2-1) <= rightLoc && rightLoc <= matrixWidth-Math.floor(boxLength/2)){ // draw right vertical line
+					matrix.setTrue(drawHeight,rightLoc,bold);
+					drawHeight--;
+				}
+			}
+		}
+		
+		var numPoints = NgChm.SEL.getCurrentDetDataPerCol();
+		if (branchCount < numPoints/2 && NgChm.DET.initialized == false){
+			zoomLevel *=.5;
+			buildMatrix (start, stop, NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerCol*zoomLevel);
+//			return;
+		}
+		
+		// fill in any missing leaves but only if the viewport is zoomed in far enough to tell.
+		if (stop - start < 100){
+			var numLeafsDrawn = 0;
+			var numLeafsToShow = 0;
+			for (var j in matrix[1]){
+				if (j < NgChm.DET.SIZE_NORMAL_MODE)numLeafsDrawn++; // tally up the number of leaves drawn
+			}
+			for (var j = 0; j < stop-start; j++){ // this counts the number of spots that are not heatmap breaks. if we don't do this, we get the weird "comb"
+				if (NgChm.heatMap.getValue(NgChm.MMGR.DETAIL_LEVEL,start+i,1) > NgChm.SUM.minValues){
+					numLeafsToShow++;
+				}else if (NgChm.heatMap.getValue(NgChm.MMGR.DETAIL_LEVEL,1,start+i) > NgChm.SUM.minValues){
+					numLeafsToShow++;
+				}
+			}
+			
+			var pos = Math.round(boxLength/2);
+			if (numLeafsDrawn < numLeafsToShow){ // have enough lines been drawn?
+				for (var i = 0; i < stop-start; i++){
+			    	var matrixValue = NgChm.heatMap.getValue(NgChm.MMGR.DETAIL_LEVEL,start+i,1);
+					var height = 1;
+					if ((matrix.get(height,pos) != 1 && (matrix.get(height,pos) != 2))&& (matrixValue > NgChm.SUM.minValues)) {
+						while (height < NgChm.DET.normDendroMatrixHeight+1){
+							matrix.setTrue(height,pos);
+							height++;
+						}
+					}
+					pos += boxLength;
+				}
+			}
+		}
+
+		return matrix;
+		
+		// HELPER FUNCTIONS
+		function convertMapIndexTo3NSpace(index){
+			var PPL = NgChm.SUM.rowDendro.getPointsPerLeaf(); 
+			return Math.round(index*PPL - PPL/2);
+		}
+		function convertJsonIndexTo3NSpace(index){
+			if (index < 0){
+				index = 0-index; // make index a positive number to find the leaf
+				var PPL = NgChm.SUM.rowDendro.getPointsPerLeaf(); 
+				return Math.round(index*PPL - PPL/2);
+			} else {
+				index--; // dendroBars is stored in 3N, so we convert back
+				return Math.round((dendroBars[index].left + dendroBars[index].right)/2); // gets the middle point of the bar
+			}
+		}
+		function convertJsonIndexToDataViewSpace(index){
+			var PPL = NgChm.SUM.rowDendro.getPointsPerLeaf(); 
+			if (index < 0){
+				index = 0-index; // make index a positive number to find the leaf
+				return (index - start)*boxLength+ Math.round(boxLength/2)
+			} else {
+				index--; // dendroBars is stored in 3N, so we convert back
+				var normDistance = ( (dendroBars[index].left+ dendroBars[index].right)/2-start3NIndex + PPL/2)/ (stop3NIndex-start3NIndex); // gets the middle point of the bar
+				return Math.round(normDistance*matrixWidth);
+			}
+		}
+	}
+	
+	//Find the maximum dendro height.
+	function getMaxHeight(dendroData) {
+		var max = 0;
+		for (var i = 0; i < dendroData.length; i++){
+			var height = Number(dendroData[i].split(",")[2]);
+			if (height > max)
+				max = height;
+		}
+		return max;
+	}
+}
+
+
+
+/**************************
+ *  DETAIL COL DENDROGRAM *
+ **************************/
+NgChm.DDR.DetailColumnDendrogram = function() {
+	// internal variables
+	var dendroDisplaySize = NgChm.DDR.minDendroMatrixHeight; // this is a static number used to determine how big the dendro canvas will be in conjunction with the dendroConfig.heigh property
+	var pointsPerLeaf = 3; // each leaf will get 3 points in the dendrogram array. This is to avoid lines being right next to each other
+	var bars = [];
+	var chosenBar = {};
+	var detailCanvas = document.getElementById('detail_canvas');
+	var dendroCanvas = document.getElementById('detail_column_dendro_canvas');
+	var dendroConfig = NgChm.heatMap.getColDendroConfig();
+	var hasData = dendroConfig.show === 'NA' ? false : true;
+	var dendroData = NgChm.heatMap.getRowDendroData();
+	var normDendroMatrixHeight = Math.min(Math.max(NgChm.DDR.minDendroMatrixHeight,dendroData.length),NgChm.DDR.maxDendroMatrixHeight); // this is the height of the dendro matrices created in buildDendroMatrix
+	var maxHeight = dendroData.length > 0 ? Number(dendroData[dendroData.length-1].split(",")[2]) : 0; // this assumes the heightData is ordered from lowest height to highest
+	var zoomLevel = 1;
+	var dendroMatrix;
+	
+	// event listeners
+	dendroCanvas.onwheel = scroll;
+	dendroCanvas.onclick = click;
+	
+	this.getDivHeight = function(){
+		return dendroCanvas.clientWidth;
+	}
+	this.getDivHeight = function(){
+		return dendroCanvas.clientHeight;
+	}
+	this.resize = function(){
+		resize();
+	}
+	this.draw = function(){
+		draw();
+	}
+	this.resizeAndDraw = function(){
+		resize();
+		draw();
+	}
+	
+	function scroll(e){
+		e.preventDefault();
+		e.stopPropagation();
+		zoomLevel -= e.deltaY/400;
+		if (zoomLevel < 0.1) zoomLevel = .1;
+		if (zoomLevel > 100) zoomLevel = 100;
+		draw();
+	}
+	
+	function click(e){
+		var offsetX = e.offsetX;
+		var offsetY = e.offsetY;
+		NgChm.DET.mouseDown = true;
+		var heightRatio = zoomLevel*NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerRow;
+		var X = NgChm.SEL.currentCol + (NgChm.SEL.dataPerRow*(offsetX/dendroCanvas.width));
+		var Y = (dendroCanvas.clientHeight-offsetY)/dendroCanvas.clientHeight/heightRatio;
+		var matrixX = Math.round(X*NgChm.SUM.colDendro.getPointsPerLeaf()-NgChm.SUM.colDendro.getPointsPerLeaf()/2);
+		var matrixY = Math.round(Y*NgChm.SUM.colDendro.getDendroMatrixHeight());
+		var extremes = NgChm.SUM.colDendro.findExtremes(matrixY,matrixX);
+		if (extremes){
+			NgChm.SUM.colDendro.addSelectedBar(extremes,e.shiftKey,e.metaKey||e.ctrlKey);
+			draw();
+		}
+		NgChm.SUM.clearSelectionMarks();
+		NgChm.SEL.updateSelection();
+		NgChm.SUM.drawColSelectionMarks();
+		NgChm.SUM.drawRowSelectionMarks();
+		NgChm.SUM.drawTopItems();
+	}
+	
+	function resize(){		
+		var left = NgChm.DET.canvas.offsetLeft;
+		var height = dendroConfig.height/dendroDisplaySize*document.getElementById('detail_chm').clientHeight + NgChm.SUM.paddingHeight;
+		dendroCanvas.style.left = left + NgChm.DET.canvas.clientWidth * (1-NgChm.DET.dataViewWidth/NgChm.DET.canvas.width);
+		if (dendroConfig.show == "ALL"){
+			dendroCanvas.style.height = height;
+			dendroCanvas.style.width = NgChm.DET.canvas.clientWidth * (NgChm.DET.dataViewWidth/NgChm.DET.canvas.width);
+			dendroCanvas.height = Math.round(height);
+			dendroCanvas.width = Math.round(NgChm.DET.canvas.clientWidth * (NgChm.DET.dataViewWidth/NgChm.DET.canvas.width));
+		} else {
+			dendroCanvas.style.height = 0;
+		}
+	}
+
+	function draw(){
+		var dendroConfig = NgChm.heatMap.getColDendroConfig();
+		var hasData = dendroConfig.show === 'NA' ? false : true;
+		if (hasData) {
+			dendroMatrix = buildMatrix(NgChm.SEL.currentCol, NgChm.SEL.currentCol+NgChm.SEL.dataPerRow, NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerRow*zoomLevel);
+			if (typeof dendroMatrix !== 'undefined') {
+				//get a scaled version of the dendro matrix that matches the canvas size.
+				var scaledMatrix = dendroMatrix.scaleMatrix(dendroCanvas.height, dendroCanvas.clientWidth);
+				var colgl = dendroCanvas.getContext("2d");
+				colgl.clearRect(0, 0, dendroCanvas.width, dendroCanvas.height);
+				var numRows = scaledMatrix.getNumRows();
+				colgl.fillStyle = "black";
+	
+				for (var y=0; y<scaledMatrix.getNumRows(); y++){
+					for (var x=0; x<scaledMatrix.getNumCols(); x++){
+						// draw the non-highlighted regions
+						var val = scaledMatrix.get(y, x);
+						if (val > 0){
+							colgl.fillRect(x,numRows-y,val,val);
+						} 
+					}
+				}
+			}
+		}
+	}
+	
+	function buildMatrix (start, stop, heightRatio) {
+		var start3NIndex = convertMapIndexTo3NSpace(start);
+		var stop3NIndex = convertMapIndexTo3NSpace(stop);
+		var boxLength, currentIndex, matrixWidth, dendroBars, dendroInfo, PPL;
+		var selectedBars;
+		dendroInfo = NgChm.heatMap.getColDendroData(); // dendro JSON object
+		boxLength = NgChm.DET.dataBoxWidth;
+		matrixWidth = NgChm.DET.dataViewWidth;
+		dendroBars = NgChm.SUM.colDendro.getBars(); // array of the dendro bars
+		selectedBars = NgChm.SUM.colDendro.getSelectedBars(); 
+		PPL = NgChm.SUM.colDendro.getPointsPerLeaf();
+		var numNodes = dendroInfo.length;
+		var lastRow = dendroInfo[numNodes-1];
+		var matrix = new NgChm.DDR.DendroMatrix(normDendroMatrixHeight+1, matrixWidth-1,false);
+		var topLineArray = new Array(matrixWidth-1); // this array is made to keep track of which bars have vertical lines that extend outside the matrix
+		var maxHeight = Number(lastRow.split(",")[2])/(heightRatio); // this assumes the heightData is ordered from lowest height to highest
+		var branchCount = 0;
+		
+		// check the left and right endpoints of each bar, and see if they are within the bounds.
+		// then check if the bar is in the desired height. 
+		// if it is, draw it in its entirety, otherwise, see if the bar has a vertical connection with any of the bars in view
+		for (var i = 0; i < numNodes; i++){
+			var bar = dendroInfo[i];
+			var tokes = bar.split(",");
+			var leftJsonIndex = Number(tokes[0]);
+			var rightJsonIndex = Number(tokes[1]);
+			var height = Number(tokes[2]);
+			var left3NIndex = convertJsonIndexTo3NSpace(leftJsonIndex); // location in dendroBars space
+			var right3NIndex = convertJsonIndexTo3NSpace(rightJsonIndex);
+			if (right3NIndex < start3NIndex || stop3NIndex < left3NIndex){continue} //if the bar exists outside of the viewport, skip it
+			
+			var leftLoc = convertJsonIndexToDataViewSpace(leftJsonIndex); // Loc is the location in the dendro matrix
+			var rightLoc = convertJsonIndexToDataViewSpace(rightJsonIndex);
+			var normHeight = height < 0.0001*matrix.getNumRows() ? 1 : Math.round(normDendroMatrixHeight*height/maxHeight); // height in matrix (if height is roughly 0, treat as such)
+			var leftEnd = Math.max(leftLoc, Math.round(PPL/2));
+			var rightEnd = Math.min(rightLoc, Math.round(matrixWidth-PPL/2));
+			
+			//  determine if the bar is within selection??
+			var bold = false;
+			if (selectedBars){
+				for (var k = 0; k < selectedBars.length; k++){
+					var selectedBar = selectedBars[k];
+					if ((selectedBar.left <= left3NIndex && right3NIndex <= selectedBar.right) && Math.round(500*height/(maxHeight*heightRatio)) <= selectedBar.height)
+					bold = true;
+				}
+			}
+			
+			if (height > maxHeight){ // if this line is beyond the viewport max height
+				if ( start3NIndex > 1 && start3NIndex <= right3NIndex &&  right3NIndex < stop3NIndex -PPL/2 && topLineArray[rightLoc] != 1){ // check to see if it will be connecting vertically to a line in the matrix 
+					var drawHeight = normDendroMatrixHeight;
+					while (drawHeight > 0 && !matrix.get(drawHeight,rightLoc)){ // these are the lines that will be connected to the highest level dendro leaves
+						matrix.setTrue(drawHeight,rightLoc,bold);
+						drawHeight--;
+					}
+				}
+				if (start3NIndex > 1 && start3NIndex  <= left3NIndex &&  left3NIndex < stop3NIndex-PPL/2 && topLineArray[leftLoc] != 1){// these are the lines that will be connected to the highest level dendro leaves (stop3NIndex-1 to prevent extra line on far right)
+					var drawHeight = normDendroMatrixHeight;
+					while (drawHeight > 0 && !matrix.get(drawHeight,leftLoc)){
+						matrix.setTrue(drawHeight,leftLoc,bold);
+						drawHeight--;
+					}
+				}
+				for (var loc = leftEnd; loc < rightEnd; loc++){
+					topLineArray[loc] = 1; // mark that the area covered by this bar can no longer be drawn in  by another, higher level bar
+				}
+			} else { // this line is within the viewport height
+				branchCount++;
+				for (var j = leftEnd; j < rightEnd; j++){ // draw horizontal lines
+					matrix.setTrue(normHeight,j,bold);
+				}
+				var drawHeight = normHeight-1;
+				while (drawHeight > 0 && !matrix.get(drawHeight,leftLoc) && Math.floor(boxLength/2-1) <= leftLoc  && leftLoc <= matrixWidth-Math.floor(boxLength/2)){	// draw left vertical line
+					matrix.setTrue(drawHeight,leftLoc,bold);
+					drawHeight--;
+				}
+				drawHeight = normHeight;
+				while (!matrix.get(drawHeight,rightLoc) && drawHeight > 0 && Math.floor(boxLength/2-1) <= rightLoc && rightLoc <= matrixWidth-Math.floor(boxLength/2)){ // draw right vertical line
+					matrix.setTrue(drawHeight,rightLoc,bold);
+					drawHeight--;
+				}
+			}
+		}
+		
+		var numPoints = NgChm.SEL.getCurrentDetDataPerRow();
+		if (branchCount < numPoints/2 && NgChm.DET.initialized == false){
+			zoomLevel*=.5;
+			buildMatrix (start, stop, NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL)/NgChm.SEL.dataPerRow*zoomLevel);
+//			return;
+		}
+		
+		// fill in any missing leaves but only if the viewport is zoomed in far enough to tell.
+		if (stop - start < 100){
+			var numLeafsDrawn = 0;
+			var numLeafsToShow = 0;
+			for (var j in matrix[1]){
+				if (j < NgChm.DET.SIZE_NORMAL_MODE)numLeafsDrawn++; // tally up the number of leaves drawn
+			}
+			for (var j = 0; j < stop-start; j++){ // this counts the number of spots that are not heatmap breaks. if we don't do this, we get the weird "comb"
+				if (NgChm.heatMap.getValue(NgChm.MMGR.DETAIL_LEVEL,1,start+i) > NgChm.SUM.minValues){
+					numLeafsToShow++;
+				}
+			}
+			
+			var pos = Math.round(boxLength/2);
+			if (numLeafsDrawn < numLeafsToShow){ // have enough lines been drawn?
+				for (var i = 0; i < stop-start; i++){
+			    	var matrixValue = NgChm.heatMap.getValue(NgChm.MMGR.DETAIL_LEVEL,1,start+i);
+					var height = 1;
+					if (((matrix.get(height,pos) != 1) && (matrix.get(height,pos) != 2))&& (matrixValue > NgChm.SUM.minValues)) {
+						while (height < NgChm.DET.normDendroMatrixHeight+1){
+							matrix.setTrue(height,pos);
+							height++;
+						}
+					}
+					pos += boxLength;
+				}
+			}
+		}
+
+		return matrix;
+		
+		// HELPER FUNCTIONS
+		function convertMapIndexTo3NSpace(index){
+			var PPL = NgChm.SUM.colDendro.getPointsPerLeaf(); 
+			return Math.round(index*PPL - PPL/2);
+		}
+		function convertJsonIndexTo3NSpace(index){
+			if (index < 0){
+				index = 0-index; // make index a positive number to find the leaf
+				var PPL = NgChm.SUM.colDendro.getPointsPerLeaf(); 
+				return Math.round(index*PPL - PPL/2);
+			} else {
+				index--; // dendroBars is stored in 3N, so we convert back
+				return Math.round((dendroBars[index].left + dendroBars[index].right)/2); // gets the middle point of the bar
+			}
+		}
+		function convertJsonIndexToDataViewSpace(index){
+			var PPL = NgChm.SUM.colDendro.getPointsPerLeaf(); 
+			if (index < 0){
+				index = 0-index; // make index a positive number to find the leaf
+				return (index - start)*boxLength+ Math.round(boxLength/2)
+			} else {
+				index--; // dendroBars is stored in 3N, so we convert back
+				var normDistance = ( (dendroBars[index].left+ dendroBars[index].right)/2-start3NIndex + PPL/2)/ (stop3NIndex-start3NIndex); // gets the middle point of the bar
+				return Math.round(normDistance*matrixWidth);
+			}
+		}
+	}
+	
+	//Find the maximum dendro height.
+	function getMaxHeight(dendroData) {
+		var max = 0;
+		for (var i = 0; i < dendroData.length; i++){
+			var height = Number(dendroData[i].split(",")[2]);
+			if (height > max)
+				max = height;
+		}
+		return max;
+	}
 }

@@ -18,8 +18,9 @@ NgChm.PDF.openPdfPrefs = function(e) {
 	maxRows = 0;
 	NgChm.UHM.userHelpClose();
 	var prefspanel = document.getElementById('pdfPrefsPanel');
+	var headerpanel = document.getElementById('mdaServiceHeader');
 	//Add prefspanel table to the main preferences DIV and set position and display
-	prefspanel.style.top = e.offsetTop + 15;
+	prefspanel.style.top = headerpanel.offsetTop + 15;
 	prefspanel.style.display="inherit";
 	prefspanel.style.left = e.getBoundingClientRect().left - prefspanel.clientWidth;
 	document.getElementById("pdfInputFont"). value = parseInt(document.getElementsByClassName("DynamicLabel")[0].style["font-size"]);
@@ -72,8 +73,8 @@ NgChm.PDF.getPDF = function() {
 			longestColLabelUnits = Math.max(doc.getStringUnitWidth(label.innerHTML),longestColLabelUnits);
 		}
 	} 
-	longestColLabelUnits *= maxFontSize; //Set initially to maximum font sizing for rough page sizing
-	longestRowLabelUnits *= maxFontSize;
+	longestColLabelUnits += longestColLabelUnits*maxFontSize+30; //Set initially to maximum font sizing for rough page sizing
+	longestRowLabelUnits += longestRowLabelUnits*maxFontSize+30;
 	
 	var rowTopItems = NgChm.SUM.rowTopItems;
 	var colTopItems = NgChm.SUM.colTopItems;
@@ -97,7 +98,7 @@ NgChm.PDF.getPDF = function() {
 	// These are the variables that we will be using repeatedly to place items
 	var paddingLeft = 10;
 	var paddingTop = headerHeight+15; 
-	var detImgH = pageHeight - paddingTop - longestColLabelUnits - paddingLeft;
+	var detImgH = pageHeight - paddingTop - longestColLabelUnits - 2*paddingLeft;
 	var detImgW = pageWidth - longestRowLabelUnits - 2*paddingLeft;
 	var sumImgW = pageWidth - 2*paddingLeft  //width of available space for heatmap, class bars, and dendro
 	var sumImgH = pageHeight - paddingTop - paddingLeft; //height of available space for heatmap, class bars, and dendro
@@ -110,8 +111,13 @@ NgChm.PDF.getPDF = function() {
 	var topItemsHeight = 10;
 	var sumMapH = sumImgH*colDendroPctg - longestColTopItems - topItemsHeight; //width of summary heatmap (and class bars)
 	var sumMapW = sumImgW*rowDendroPctg - longestRowTopItems - topItemsWidth; //height of summary heatmap (and class bars)
-	var colClassHeight = sumMapH*(NgChm.SUM.totalHeight-NgChm.SUM.matrixHeight)/NgChm.SUM.totalHeight;
-	var rowClassWidth = sumMapW*(NgChm.SUM.totalWidth-NgChm.SUM.matrixWidth)/NgChm.SUM.totalWidth;
+	var colClassHeight = sumMapH*(NgChm.SUM.calculateSummaryTotalClassBarHeight("col")/NgChm.SUM.canvas.height);
+	var rowClassWidth = sumMapW*(NgChm.SUM.calculateSummaryTotalClassBarHeight("row")/NgChm.SUM.canvas.width);
+	
+	var detMapH = detImgH*colDendroPctg;
+	var detMapW = detImgW*rowDendroPctg;
+	var detColClassHeight = detMapH*(NgChm.SUM.calculateSummaryTotalClassBarHeight("col")/NgChm.DET.canvas.height);
+	var detRowClassWidth = detMapW*(NgChm.SUM.calculateSummaryTotalClassBarHeight("row")/NgChm.DET.canvas.width);
 
 	// Create and set the fontSize using the minimum of the calculated sizes for row and column labels
 	// Calculate the font size for rows and columns. Take the lowest of the two.  If the result is greater than 11 set the font to 11.  If the result is less than 6 set the font to 6.
@@ -148,6 +154,8 @@ NgChm.PDF.getPDF = function() {
 	var sumColDendroData = document.getElementById("column_dendro_canvas").toDataURL('image/png');
 	var sumRowTopItemsData = document.getElementById("summary_row_top_items_canvas").toDataURL('image/png');
 	var sumColTopItemsData = document.getElementById("summary_col_top_items_canvas").toDataURL('image/png');
+	var detRowDendroData = document.getElementById("detail_row_dendro_canvas").toDataURL('image/png');
+	var detColDendroData = document.getElementById("detail_column_dendro_canvas").toDataURL('image/png');
 	var detImgData = NgChm.DET.canvas.toDataURL('image/png');
 	var sumBoxImgData = NgChm.SUM.boxCanvas.toDataURL('image/png');
 	var detBoxImgData = NgChm.DET.boxCanvas.toDataURL('image/png');
@@ -166,21 +174,45 @@ NgChm.PDF.getPDF = function() {
 			var top = paddingTop+colDendroHeight+sumMapH+topItemsHeight;
 			var leftOffset = item.offsetLeft + item.offsetWidth/2 - colTICanvas.offsetLeft;
 			var leftPercentage = leftOffset/colTICanvas.width;
-			doc.text(paddingLeft + rowDendroWidth + rowClassWidth + leftPercentage*colTICanvas.width, top, item.innerHTML, null, 270);
+			doc.text(paddingLeft + rowDendroWidth + rowClassWidth + leftPercentage*colTICanvas.width-2, top, item.innerHTML, null, 270);
 		}
 	}
 
 	//Put the canvases back the way we found them.
 	restoreCanvas();
-	NgChm.SEL.updateSelection();
 
 	// Create first page header
 	createHeader(theFont);
 	
 	// Draw the heat map images (based upon user parameter selections)
 	if (mapsToShow == "D") {
-		doc.addImage(detImgData, 'PNG', paddingLeft, paddingTop, detImgW,detImgH);
-		doc.addImage(detBoxImgData, 'PNG', paddingLeft, paddingTop, detImgW,detImgH);
+		var rowDendroLeft = paddingLeft;
+		var imgLeft = paddingLeft+rowDendroWidth;
+		var colDendroTop = paddingTop;
+		var imgTop = paddingTop+colDendroHeight;
+		if (rowDendroConfig.show !== 'ALL') {
+			imgLeft = paddingLeft;
+			detMapW = detImgW;
+			detRowClassWidth = detMapW*(NgChm.SUM.calculateSummaryTotalClassBarHeight("row")/NgChm.DET.canvas.width);
+			rowDendroWidth = 0;
+		}
+		if (colDendroConfig.show !== 'ALL') {
+			imgTop = paddingTop;
+			detMapH = detImgH;
+			detColClassHeight = detMapH*(NgChm.SUM.calculateSummaryTotalClassBarHeight("col")/NgChm.DET.canvas.height);
+			colDendroHeight = 0;
+		}
+		resizeDetailDendroCanvas(detMapW,detMapH, rowDendroWidth,colDendroHeight);
+		var detRowDendroData = document.getElementById("detail_row_dendro_canvas").toDataURL('image/png');
+		var detColDendroData = document.getElementById("detail_column_dendro_canvas").toDataURL('image/png');
+		if (rowDendroConfig.show === 'ALL') {
+			doc.addImage(detRowDendroData, 'PNG', rowDendroLeft, imgTop+detColClassHeight, rowDendroWidth, detMapH-detColClassHeight);
+		}
+		if (colDendroConfig.show === 'ALL') {
+			doc.addImage(detColDendroData, 'PNG',imgLeft+detRowClassWidth, colDendroTop, detMapW-detRowClassWidth,colDendroHeight);
+		}
+		doc.addImage(detImgData, 'PNG', imgLeft, imgTop, detMapW,detMapH);
+		doc.addImage(detBoxImgData, 'PNG', imgLeft, imgTop, detMapW,detMapH);
 	} else {
 		var rowDendroLeft = paddingLeft;
 		var imgLeft = paddingLeft+rowDendroWidth;
@@ -189,12 +221,12 @@ NgChm.PDF.getPDF = function() {
 		if (rowDendroConfig.show === 'NONE') {
 			imgLeft = paddingLeft;
 		} else {
-			doc.addImage(sumRowDendroData, 'PNG', rowDendroLeft, imgTop+colClassHeight, rowDendroWidth, sumMapH*NgChm.SUM.matrixHeight/NgChm.SUM.totalHeight);
+			doc.addImage(sumRowDendroData, 'PNG', rowDendroLeft, imgTop+colClassHeight, rowDendroWidth, sumMapH-colClassHeight);
 		}
 		if (colDendroConfig.show === 'NONE') {
 			imgTop = paddingTop;
 		} else {
-			doc.addImage(sumColDendroData, 'PNG', imgLeft+rowClassWidth, colDendroTop, sumMapW*NgChm.SUM.matrixWidth/NgChm.SUM.totalWidth,colDendroHeight);
+			doc.addImage(sumColDendroData, 'PNG', imgLeft+rowClassWidth, colDendroTop, sumMapW-rowClassWidth,colDendroHeight);
 		}
 		doc.addImage(sumImgData, 'PNG', imgLeft, imgTop, sumMapW,sumMapH);
 		
@@ -207,8 +239,35 @@ NgChm.PDF.getPDF = function() {
 			doc.addImage(sumBoxImgData, 'PNG', imgLeft, imgTop, sumMapW,sumMapH);
 			doc.addPage();
 			createHeader(theFont);
-			doc.addImage(detImgData, 'PNG', detImgL, paddingTop, detImgW,detImgH);
-			doc.addImage(detBoxImgData, 'PNG', detImgL, paddingTop, detImgW,detImgH);
+			var rowDendroLeft = paddingLeft;
+			var imgLeft = paddingLeft+rowDendroWidth;
+			var colDendroTop = paddingTop;
+			var imgTop = paddingTop+colDendroHeight;
+			if (rowDendroConfig.show !== 'ALL') {
+				imgLeft = paddingLeft;
+				detMapW = detImgW;
+				detRowClassWidth = detMapW*(NgChm.SUM.calculateSummaryTotalClassBarHeight("row")/NgChm.DET.canvas.width);
+				rowDendroWidth = 0;
+			}
+			if (colDendroConfig.show !== 'ALL') {
+				imgTop = paddingTop;
+				detMapH = detImgH;
+				detColClassHeight = detMapH*(NgChm.SUM.calculateSummaryTotalClassBarHeight("col")/NgChm.DET.canvas.height);
+				colDendroHeight = 0;
+			}
+			
+			resizeDetailDendroCanvas(detMapW,detMapH,rowDendroWidth,colDendroHeight);
+			var detRowDendroData = document.getElementById("detail_row_dendro_canvas").toDataURL('image/png');
+			var detColDendroData = document.getElementById("detail_column_dendro_canvas").toDataURL('image/png');
+
+			if (rowDendroConfig.show === 'ALL') {
+				doc.addImage(detRowDendroData, 'PNG', rowDendroLeft, imgTop+detColClassHeight, rowDendroWidth, detMapH-detColClassHeight);
+			}
+			if (colDendroConfig.show === 'ALL') {
+				doc.addImage(detColDendroData, 'PNG',imgLeft+detRowClassWidth, colDendroTop, detMapW-detRowClassWidth,colDendroHeight);
+			}
+			doc.addImage(detImgData, 'PNG', imgLeft, imgTop, detMapW,detMapH);
+			doc.addImage(detBoxImgData, 'PNG', imgLeft, imgTop, detMapW,detMapH);
 		} else {
 			NgChm.SUM.resetBoxCanvas();
 			sumBoxImgData = NgChm.SUM.boxCanvas.toDataURL('image/png');
@@ -219,10 +278,10 @@ NgChm.PDF.getPDF = function() {
 
 	// Add row and column labels to the PDF
 	if (mapsToShow !== "S"){
-		var detClient2PdfWRatio = NgChm.DET.canvas.clientWidth/detImgW;  // scale factor to place the labels in their proper locations
-		var detClient2PdfHRatio = NgChm.DET.canvas.clientHeight/detImgH;
+		var detClient2PdfWRatio = NgChm.DET.canvas.clientWidth/detMapW;  // scale factor to place the labels in their proper locations
+		var detClient2PdfHRatio = NgChm.DET.canvas.clientHeight/detMapH;
 		var headerSize = 0;
-		var colHeight = NgChm.DET.calculateTotalClassBarHeight("column") + NgChm.DET.dendroHeight;
+		var colHeight = NgChm.DET.calculateTotalClassBarHeight("column") + colDendroHeight;
 		if (colHeight > 0) {
 			headerSize += detImgH * (colHeight / (NgChm.DET.dataViewHeight + colHeight));
 		}
@@ -239,16 +298,13 @@ NgChm.PDF.getPDF = function() {
 			if (label.getAttribute("axis") == "Row"){
 				if (NgChm.DET.labelIndexInSearch(NgChm.SEL.currentRow+i,"Row")) {
 					doc.setFillColor(selectedColor.r, selectedColor.g, selectedColor.b);
-					doc.rect(label.offsetLeft/detClient2PdfWRatio+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop+1, longestRowLabelUnits+2, theFont+10,'F'); 
-				} else {
-					doc.setFillColor(255, 255, 255);
-					doc.rect(label.offsetLeft/detClient2PdfWRatio+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop+1, longestRowLabelUnits+2, theFont+2,'F'); 
+					doc.rect((label.offsetLeft-NgChm.DET.canvas.offsetLeft)/detClient2PdfWRatio+rowDendroWidth+paddingLeft, (label.offsetTop-NgChm.DET.canvas.offsetTop)/detClient2PdfHRatio+paddingTop+colDendroHeight+1, longestRowLabelUnits+2, theFont,'F');
 				}
 				rowLabels++;
 			} else if (label.getAttribute("axis") == "Column") {
 				if (NgChm.DET.labelIndexInSearch(NgChm.SEL.currentCol+i-rowLabels,"Column")) {
 					doc.setFillColor(selectedColor.r, selectedColor.g, selectedColor.b);
-					doc.rect((label.offsetLeft/detClient2PdfWRatio)-2.5, label.offsetTop/detClient2PdfHRatio+paddingTop,  theFont+2.5, longestColLabelUnits+2,'F'); 
+					doc.rect((label.offsetLeft-NgChm.DET.canvas.offsetLeft)/detClient2PdfWRatio+rowDendroWidth-1, (label.offsetTop-NgChm.DET.canvas.offsetTop)/detClient2PdfHRatio+paddingTop+colDendroHeight,  theFont+2.5, longestColLabelUnits+2,'F'); 
 				}
 			}
 		}
@@ -257,12 +313,21 @@ NgChm.PDF.getPDF = function() {
 		for (var i = 0; i < allLabels.length; i++){
 			var label = allLabels[i];
 			if ((label.getAttribute("axis") == "Row") || (label.getAttribute("axis") == "ColumnCovar")) {
-				doc.text(label.offsetLeft/detClient2PdfWRatio+detImgL, label.offsetTop/detClient2PdfHRatio+paddingTop+theFont*.75, label.innerHTML, null);
+				if (label.id.indexOf("legendDet") > -1) {
+//					doc.text((label.offsetLeft+(label.clientWidth*1.5-NgChm.DET.canvas.offsetLeft))/detClient2PdfWRatio+rowDendroWidth,label.offsetTop/detClient2PdfHRatio+paddingTop, label.innerHTML, null, 270);
+					doc.text((label.offsetLeft-NgChm.DET.canvas.offsetLeft)/detClient2PdfWRatio+rowDendroWidth+paddingLeft, (label.offsetTop-NgChm.DET.canvas.offsetTop)/detClient2PdfHRatio+paddingTop+colDendroHeight+theFont*.75-1, label.innerHTML, null);
+				} else {
+					doc.text((label.offsetLeft-NgChm.DET.canvas.offsetLeft)/detClient2PdfWRatio+rowDendroWidth+paddingLeft, (label.offsetTop-NgChm.DET.canvas.offsetTop)/detClient2PdfHRatio+paddingTop+colDendroHeight+theFont*.75, label.innerHTML, null);
+//					doc.text((label.offsetLeft-NgChm.DET.canvas.offsetLeft)/detClient2PdfWRatio+rowDendroWidth, (label.offsetTop-NgChm.DET.canvas.offsetTop)/detClient2PdfHRatio+paddingTop+colDendroHeight, label.innerHTML, null, 270);
+				}
+				
+//				doc.text((label.offsetLeft-NgChm.DET.canvas.offsetLeft)/detClient2PdfWRatio+rowDendroWidth+paddingLeft, (label.offsetTop-NgChm.DET.canvas.offsetTop)/detClient2PdfHRatio+paddingTop+colDendroHeight+theFont*.75, label.innerHTML, null);
 			} else if ((label.getAttribute("axis") == "Column") || (label.getAttribute("axis") == "RowCovar")) {
 				if (label.id.indexOf("legendDet") > -1) {
-					doc.text((label.offsetLeft+(label.clientWidth*1.5))/detClient2PdfWRatio, label.offsetTop/detClient2PdfHRatio+paddingTop, label.innerHTML, null, 270);
+					doc.text((label.offsetLeft-NgChm.DET.canvas.offsetLeft)/detClient2PdfWRatio+rowDendroWidth+paddingLeft, (label.offsetTop-NgChm.DET.canvas.offsetTop)/detClient2PdfHRatio+paddingTop+colDendroHeight, label.innerHTML, null, 270);
+//					doc.text((label.offsetLeft+(label.clientWidth*1.5-NgChm.DET.canvas.offsetLeft))/detClient2PdfWRatio+rowDendroWidth,label.offsetTop/detClient2PdfHRatio+paddingTop, label.innerHTML, null, 270);
 				} else {
-					doc.text(label.offsetLeft/detClient2PdfWRatio, label.offsetTop/detClient2PdfHRatio+paddingTop, label.innerHTML, null, 270);
+					doc.text((label.offsetLeft-NgChm.DET.canvas.offsetLeft)/detClient2PdfWRatio+rowDendroWidth, (label.offsetTop-NgChm.DET.canvas.offsetTop)/detClient2PdfHRatio+paddingTop+colDendroHeight, label.innerHTML, null, 270);
 				}
 			} 
  
@@ -294,15 +359,31 @@ NgChm.PDF.getPDF = function() {
 		rowBarsToDraw = NgChm.heatMap.getRowClassificationOrder("show");
 	}
 	var topOff = paddingTop + classBarTitleSize + 5;
+	
+	// adding the data matrix distribution plot here
+	var sectionHeader = "Data Matrix Distribution"
+	doc.addPage();
+	createHeader(theFont);
+	doc.setFontSize(classBarHeaderSize);
+	doc.setFontType("bold");
+	doc.text(10, paddingTop, sectionHeader , null);
+	doc.setFontType("normal");
+	var leftOff = 20;
+	getDataMatrixDistributionPlot();
+	
 	var sectionHeader = "Row Covariate Bar Legends"
 	if (rowBarsToDraw.length > 0){
-		doc.addPage();
+//		doc.addPage();
+		leftOff = 20; // ...reset leftOff...
+		topSkip  = classBarFigureH + classBarHeaderSize + classBarTitleSize + 20; // return class bar height to original value in case it got changed in this row
+		topOff += topSkip; // ... and move the next figure to the line below
 		createHeader(theFont);
 		doc.setFontSize(classBarHeaderSize);
 		doc.setFontType("bold");
-		doc.text(10, paddingTop, sectionHeader , null);
+		doc.text(10, topOff, sectionHeader , null);
 		doc.setFontType("normal");
 		var leftOff = 20;
+		topOff += classBarTitleSize + 5;
 		for (var i = 0; i < rowBarsToDraw.length;i++){
 			var key = rowBarsToDraw[i];
 			var colorMap = NgChm.heatMap.getColorMapManager().getColorMap("row", key);
@@ -317,15 +398,9 @@ NgChm.PDF.getPDF = function() {
 	sectionHeader = "Column Covariate Bar Legends"
 	// Draw column class bar legends
 	if (colBarsToDraw.length > 0){
-		if (rowBarsToDraw.length === 0){
-			doc.addPage();
-			createHeader(theFont);
-			topOff = paddingTop;
-		} else {
-			leftOff = 20; // ...reset leftOff...
-			topSkip  = classBarFigureH + classBarHeaderSize + classBarTitleSize + 20; // return class bar height to original value in case it got changed in this row
-			topOff += topSkip; // ... and move the next figure to the line below
-		}
+		leftOff = 20; // ...reset leftOff...
+		topSkip  = classBarFigureH + classBarHeaderSize + classBarTitleSize + 20; // return class bar height to original value in case it got changed in this row
+		topOff += topSkip; // ... and move the next figure to the line below
 		doc.setFontSize(classBarHeaderSize);
 		doc.setFontType("bold");
 		doc.text(10, topOff, sectionHeader , null);
@@ -343,6 +418,9 @@ NgChm.PDF.getPDF = function() {
 		}
 	}
 	NgChm.DET.canvas.focus();
+//	NgChm.SEL.updateSelection();
+	NgChm.SUM.summaryResize();
+	NgChm.DET.detailResize();
 	// TODO: in case there is an empty page after the class bar legends, delete it
 	doc.save( NgChm.heatMap.getMapInformation().name + '.pdf');
 	
@@ -383,6 +461,130 @@ NgChm.PDF.getPDF = function() {
 			doc.text(10, paddingTop, contText, null);
 		}
 		doc.setFontType("normal");
+	}
+	
+	/**********************************************************************************
+	 * FUNCTION - getDataMatrixDistributionPlot: create the distribution plot
+	 **********************************************************************************/
+	function getDataMatrixDistributionPlot(){
+		// function ripped from UPM used in the gear panel
+		var currentDl = NgChm.SEL.currentDl;
+		var cm = NgChm.heatMap.getColorMapManager().getColorMap("data",currentDl);
+		var thresholds = cm.getThresholds();
+		var numBreaks = thresholds.length;
+		var highBP = parseFloat(thresholds[numBreaks-1]);
+		var lowBP = parseFloat(thresholds[0]);
+		var diff = highBP-lowBP;
+		var bins = new Array(10+1).join('0').split('').map(parseFloat); // make array of 0's to start the counters
+		var breaks = new Array(9+1).join('0').split('').map(parseFloat);
+		for (var i=0; i <breaks.length;i++){
+			breaks[i]+=lowBP+diff/(breaks.length-1)*i; // array of the breakpoints shown in the preview div
+			breaks[i]=parseFloat(breaks[i].toFixed(2));
+		}
+		var numCol = NgChm.heatMap.getNumColumns(NgChm.MMGR.DETAIL_LEVEL);
+		var numRow = NgChm.heatMap.getNumRows(NgChm.MMGR.DETAIL_LEVEL)
+		var count = 0;
+		var nan=0;
+		for (var i=0; i<numCol;i++){
+			for(var j=0;j<numRow;j++){
+				count++;
+				var val = NgChm.heatMap.getValue(NgChm.MMGR.DETAIL_LEVEL,j,i);
+				if (isNaN(val) || val>=NgChm.SUM.maxValues){ // is it Missing value?
+					nan++;
+				} else if (val <= NgChm.SUM.minValues){ // is it a cut location?
+					continue;
+				}
+				if (val <= lowBP){
+					bins[0]++;
+					continue;
+				} else if (highBP < val){
+					bins[bins.length-1]++;
+					continue;
+				}
+				for (var k=0;k<breaks.length;k++){
+					if (breaks[k]<=val && val < breaks[k+1]){
+						bins[k+1]++;
+						break;
+					}
+				}
+			}
+		}
+		var total = 0;
+		var binMax = nan;
+		for (var i=0;i<bins.length;i++){
+			if (bins[i]>binMax)
+				binMax=bins[i];
+			total+=bins[i];
+		}
+		
+		var leftOff = 20;
+		var bartop = topOff+5;
+		var threshMaxLen = getThreshMaxLength(thresholds,classBarLegendTextSize);
+		var missingCount=0;
+		
+		var barHeight = classBarLegendTextSize + 3;
+		for (var j = 0; j < breaks.length; j++){ // draw all the bars within the break points
+			var rgb = cm.getColor(breaks[j]);
+			doc.setFillColor(rgb.r,rgb.g,rgb.b);
+			doc.setDrawColor(0,0,0);
+			value = bins[j];
+			if (isNaN(value) || value == undefined){
+				value = 0;
+			}
+			if (condenseClassBars){ // square
+				var barW = 10;
+				doc.rect(leftOff + threshMaxLen, bartop, barW, barHeight, "FD"); // make the square
+				doc.rect(leftOff + threshMaxLen-2, bartop+barHeight, 2, 1, "FD"); // make break bar
+				doc.setFontSize(classBarLegendTextSize);
+				doc.text(leftOff + threshMaxLen - doc.getStringUnitWidth(breaks[j].toString())*classBarLegendTextSize - 4, bartop + classBarLegendTextSize + barHeight/2, breaks[j].toString() , null);
+				doc.text(leftOff +barW + threshMaxLen + 10, bartop + classBarLegendTextSize, "n = " + value , null);
+			} else { // histogram
+				var barW = (value/binMax*classBarFigureW)*.65;  //scale bars to fit page
+				doc.rect(leftOff + threshMaxLen, bartop, barW, barHeight, "FD"); // make the histo bar
+				doc.rect(leftOff + threshMaxLen-2, bartop+barHeight, 2, 1, "FD"); // make break bar
+				doc.setFontSize(classBarLegendTextSize);
+				doc.text(leftOff + threshMaxLen - doc.getStringUnitWidth(breaks[j].toString())*classBarLegendTextSize - 4, bartop + classBarLegendTextSize + barHeight/2, breaks[j].toString() , null);
+				doc.text(leftOff + threshMaxLen +barW + 5, bartop + classBarLegendTextSize, "n = " + value , null);
+			}
+			missingCount -= value; 
+			bartop+=barHeight; // adjust top position for the next bar
+		}
+		// draw the last bar in the color plot
+		var rgb = cm.getColor(breaks[breaks.length-1]);
+		doc.setFillColor(rgb.r,rgb.g,rgb.b);
+		doc.setDrawColor(0,0,0);
+		value = bins[bins.length-1];
+		if (isNaN(value) || value == undefined){
+			value = 0;
+		}
+		if (condenseClassBars){ // square
+			var barW = 10;
+			doc.rect(leftOff + threshMaxLen, bartop, barW, barHeight, "FD"); // make the square
+			doc.setFontSize(classBarLegendTextSize);
+			doc.text(leftOff +barW + threshMaxLen + 10, bartop + classBarLegendTextSize, "n = " + value , null);
+		} else { // histogram
+			var barW = (value/binMax*classBarFigureW)*.65;  //scale bars to fit page
+			doc.rect(leftOff + threshMaxLen, bartop, barW, barHeight, "FD"); // make the histo bar
+			doc.setFontSize(classBarLegendTextSize);
+			doc.text(leftOff + threshMaxLen +barW + 5, bartop + classBarLegendTextSize, "n = " + value , null);
+		}
+		missingCount -= value; 
+		bartop+=barHeight; // adjust top position for the next bar
+		// Draw missing values bar IF missing values > 0
+		missingCount = Math.max(0,nan); // just in case missingCount goes negative...
+		if (missingCount > 0) {
+			foundMissing = 1;
+			var rgb = colorMap.getColor("Missing");
+			doc.setFillColor(rgb.r,rgb.g,rgb.b);
+			doc.setDrawColor(0,0,0);
+			var barW = missingCount/binMax*classBarFigureW;
+			doc.rect(leftOff + threshMaxLen, bartop, barW, barHeight, "FD");
+			doc.setFontSize(classBarLegendTextSize);
+			doc.text(leftOff + threshMaxLen - doc.getStringUnitWidth("Missing Value")*classBarLegendTextSize - 4, bartop + classBarLegendTextSize, "Missing Value" , null);
+			doc.text(leftOff + threshMaxLen +barW + 5, bartop + classBarLegendTextSize, "n = " + missingCount , null);
+		}
+		var foundMissing = 0;
+		setClassBarFigureH(10,'discrete',true);   
 	}
 
 	/**********************************************************************************
@@ -739,15 +941,38 @@ NgChm.PDF.getPDF = function() {
 		NgChm.PDF.rowDendroHeight = document.getElementById('row_dendro_canvas').height;
 		NgChm.SUM.boxCanvas.width =  sumMapW;
 		NgChm.SUM.boxCanvas.height = sumMapH;
-		document.getElementById('column_dendro_canvas').width = sumMapW * (NgChm.SUM.matrixWidth/NgChm.SUM.totalWidth);
+		document.getElementById('column_dendro_canvas').width = sumMapW - rowClassWidth;
 		document.getElementById('column_dendro_canvas').height = colDendroHeight;
 		document.getElementById('row_dendro_canvas').width = rowDendroWidth;
-		document.getElementById('row_dendro_canvas').height = sumMapH * (NgChm.SUM.matrixHeight/NgChm.SUM.totalHeight);
+		document.getElementById('row_dendro_canvas').height = sumMapH - colClassHeight;
+		document.getElementById('summary_col_top_items_canvas').style.width = sumMapW - rowClassWidth;
+		document.getElementById('summary_row_top_items_canvas').style.height = sumMapH - colClassHeight;
+
 		NgChm.SUM.drawSummaryHeatMap();
 		NgChm.SUM.setSelectionDivSize(sumMapW,sumMapH);
 		NgChm.SUM.drawTopItems();
 		NgChm.SUM.colDendro.drawNoResize();
 		NgChm.SUM.rowDendro.drawNoResize();
+	}
+	
+	function resizeDetailDendroCanvas(detMapW,detMapH, rowDendroW, colDendroH){
+		NgChm.DET.canvas.style.height = detMapH;
+		NgChm.DET.canvas.style.width = detMapW;
+		NgChm.DET.clearLabels();
+		NgChm.DET.drawRowAndColLabels();  
+		document.getElementById('detail_row_dendro_canvas').height = detMapH;
+		document.getElementById('detail_row_dendro_canvas').style.height = detMapH;
+		document.getElementById('detail_row_dendro_canvas').width = rowDendroW;
+		document.getElementById('detail_row_dendro_canvas').style.width = rowDendroW;
+		
+		document.getElementById('detail_column_dendro_canvas').width = detMapW;
+		document.getElementById('detail_column_dendro_canvas').style.width = detMapW;
+		document.getElementById('detail_column_dendro_canvas').height = colDendroH;
+		document.getElementById('detail_column_dendro_canvas').style.height = colDendroH;
+		NgChm.DET.rowDendro.draw();
+		NgChm.DET.colDendro.draw();
+		NgChm.DET.detailDrawColClassBarLabels();
+		NgChm.DET.detailDrawRowClassBarLabels();
 	}
 	
 	/*

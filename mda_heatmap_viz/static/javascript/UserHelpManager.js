@@ -28,20 +28,18 @@ NgChm.UHM.userHelpOpen = function() {
     // pixels
     var rowClassWidthPx = NgChm.DET.getRowClassPixelWidth();
     var colClassHeightPx = NgChm.DET.getColClassPixelHeight();
-    var rowDendroWidthPx =  NgChm.DET.getRowDendroPixelWidth();
-    var colDendroHeightPx = NgChm.DET.getColDendroPixelHeight();
-	var mapLocY = NgChm.DET.offsetY - colClassHeightPx - colDendroHeightPx;
-	var mapLocX = NgChm.DET.offsetX - rowClassWidthPx - rowDendroWidthPx;
+	var mapLocY = NgChm.DET.offsetY - colClassHeightPx;
+	var mapLocX = NgChm.DET.offsetX - rowClassWidthPx;
 	var objectType = "none";
-    if (NgChm.DET.offsetY > colClassHeightPx + colDendroHeightPx) { 
-    	if  (NgChm.DET.offsetX > rowClassWidthPx + rowDendroWidthPx) {
+    if (NgChm.DET.offsetY > colClassHeightPx) { 
+    	if  (NgChm.DET.offsetX > rowClassWidthPx) {
     		objectType = "map";
     	}
-    	if  (NgChm.DET.offsetX < rowClassWidthPx + rowDendroWidthPx && NgChm.DET.offsetX > rowDendroWidthPx) {
+    	if  (NgChm.DET.offsetX < rowClassWidthPx) {
     		objectType = "rowClass";
     	}
-    } else if (NgChm.DET.offsetY > colDendroHeightPx) {
-    	if  (NgChm.DET.offsetX > rowClassWidthPx + rowDendroWidthPx) {
+    } else {
+    	if  (NgChm.DET.offsetX > rowClassWidthPx) {
     		objectType = "colClass";
     	}
     }
@@ -110,7 +108,7 @@ NgChm.UHM.userHelpOpen = function() {
         	var col = Math.floor(NgChm.SEL.currentCol + (mapLocX/rowElementSize)*NgChm.DET.getSamplingRatio('col'));
         	var colLabels = NgChm.heatMap.getColLabels().labels;
         	label = colLabels[col-1];
-    		var coveredHeight = NgChm.DET.canvas.clientHeight*NgChm.DET.dendroHeight/NgChm.DET.canvas.height
+    		var coveredHeight = 0;
     		pos = Math.floor(NgChm.SEL.currentCol + (mapLocX/rowElementSize));
     		var classBarsConfig = NgChm.heatMap.getColClassificationConfig(); 
     		var classBarsConfigOrder = NgChm.heatMap.getColClassificationOrder();
@@ -131,7 +129,7 @@ NgChm.UHM.userHelpOpen = function() {
     		var row = Math.floor(NgChm.SEL.currentRow + (mapLocY/colElementSize)*NgChm.DET.getSamplingRatio('row'));
         	var rowLabels = NgChm.heatMap.getRowLabels().labels;
         	label = rowLabels[row-1];
-    		var coveredWidth = NgChm.DET.canvas.clientWidth*NgChm.DET.dendroWidth/NgChm.DET.canvas.width
+    		var coveredWidth = 0;
     		pos = Math.floor(NgChm.SEL.currentRow + (mapLocY/colElementSize));
     		var classBarsConfig = NgChm.heatMap.getRowClassificationConfig(); 
     		var classBarsConfigOrder = NgChm.heatMap.getRowClassificationOrder();
@@ -327,7 +325,7 @@ NgChm.UHM.detailDataToolHelp = function(e,text,width,align) {
 	    	helptext.style.textAlign= align;
 	    }
 	    helptext.style.position = "absolute";
-	    e.parentElement.appendChild(helptext);
+	    if (e.parentElement) e.parentElement.appendChild(helptext);
 //	    helptext.style.display="inherit";
 	    
 //	    if (helptext.offsetParent == e.parentElement){ // in most cases, this will be true
@@ -378,7 +376,7 @@ NgChm.UHM.getDivElement = function(elemName) {
  **********************************************************************************/
 NgChm.UHM.setTableRow = function(tableObj, tdArray, colSpan, align) {
 	var tr = tableObj.insertRow();
-	tr.className = "show";
+	tr.className = "chmTblRow";
 	for (var i = 0; i < tdArray.length; i++) {
 		var td = tr.insertCell(i);
 		if (typeof colSpan != 'undefined') {
@@ -421,6 +419,7 @@ NgChm.UHM.addBlankRow = function(addDiv, rowCnt) {
  * user help pop-ups and any active timeouts associated with those pop-up panels.
  **********************************************************************************/
 NgChm.UHM.userHelpClose = function() {
+	NgChm.UHM.previewDiv = null;
 	clearTimeout(NgChm.DET.detailPoint);
 	var helptext = document.getElementById('helptext');
 	if (helptext){
@@ -481,7 +480,7 @@ NgChm.UHM.saveHeatMapChanges = function() {
 			}
 		}
 	} else {
-		if ((NgChm.heatMap.isFileMode()) || (NgChm.staticPath !== "")) {
+		if ((NgChm.MMGR.source!== NgChm.MMGR.WEB_SOURCE) || (NgChm.staticPath !== "")) {
 			if (NgChm.staticPath !== "") {
 				text = "<br>There are no changes to save to this Galaxy heat map file at this time.<br><br>";
 			} else {
@@ -500,6 +499,20 @@ NgChm.UHM.saveHeatMapChanges = function() {
 }
 
 /**********************************************************************************
+ * FUNCTION - widgetHelp: This function displays a special help popup box for
+ * the widgetized version of the NG-CHM embedded viewer.  
+ **********************************************************************************/
+NgChm.UHM.widgetHelp = function() {
+	document.getElementById('ngchmLogos').style.display = '';
+	NgChm.UHM.initMessageBox();
+	NgChm.UHM.setMessageBoxHeader("About NG-CHM Viewer");
+	var text = "<br>The NG-CHM Heat Map Viewer is a dynamic, graphical environment for exploration of clustered or non-clustered heat map data in a web browser. It supports zooming, panning, searching, covariate bars, and link-outs that enable deep exploration of patterns and associations in heat maps.<br><br><a href='http://bioinformatics.mdanderson.org/main/NG-CHM-V2:Overview' target='_blank'>Full NG-CHM Information and Help</a><br><br><b>Software Version: </b>" + NgChm.CM.version+"<br><b>Map Version: </b>" +NgChm.heatMap.getMapInformation().version_id+"<br><br>";
+	NgChm.UHM.setMessageBoxText(text);
+	NgChm.UHM.setMessageBoxButton(3, "images/closeButton.png", "", "NgChm.UHM.messageBoxCancel");
+	document.getElementById('msgBox').style.display = '';
+}
+
+/**********************************************************************************
  * FUNCTION - zipSaveNotification: This function handles all of the tasks necessary 
  * display a modal window whenever a zip file is being saved. The textId passed in
  * instructs the code to display either the startup save OR preferences save message.  
@@ -507,12 +520,12 @@ NgChm.UHM.saveHeatMapChanges = function() {
 NgChm.UHM.zipSaveNotification = function(autoSave) {
 	var text;
 	NgChm.UHM.initMessageBox();
-	NgChm.UHM.setMessageBoxHeader("NG-CHM File Save");
+	NgChm.UHM.setMessageBoxHeader("NG-CHM File Viewer");
 	if (autoSave) {
 		text = "<br>The NG-CHM archive file that you have just opened contains out dated heat map configuration information and is being updated.<br><br>In order to avoid the need for this update in the future, you will want to replace the NG-CHM file that you opened with the new file.";
 	} else {
-		text = "<br>You have just saved a heat map as a NG-CHM file.<br><br>In order to see your saved changes, you will want to open this new file using the NG-CHM File Viewer application."
-		NgChm.UHM.setMessageBoxButton(1, "images/getZipViewer.png", "Download NG-CHM Viewer App", "NgChm.UHM.zipRequestAppDownload");
+		text = "<br>You have just saved a heat map as a NG-CHM file.  In order to see your saved changes, you will want to open this new file using the NG-CHM File Viewer application.  If you have not already downloaded the application, press the Download Viewer button to get the latest version.<br><br>The application downloads as a single HTML file (ngchmApp.html).  When the download completes, you may run the application by simply double-clicking on the downloaded file.  You may want to save this file to a location of your choice on your computer for future use.<br><br>" 
+		NgChm.UHM.setMessageBoxButton(1, "images/downloadViewer.png", "Download NG-CHM Viewer App", "NgChm.UHM.zipAppDownload");
 	}
 	NgChm.UHM.setMessageBoxText(text);
 	NgChm.UHM.setMessageBoxButton(3, "images/closeButton.png", "", "NgChm.UHM.messageBoxCancel");
@@ -527,27 +540,16 @@ NgChm.UHM.zipSaveNotification = function(autoSave) {
 NgChm.UHM.viewerAppVersionExpiredNotification = function(oldVersion, newVersion) {
 	NgChm.UHM.initMessageBox();
 	NgChm.UHM.setMessageBoxHeader("New NG-CHM File Viewer Version Available");
-	NgChm.UHM.setMessageBoxText("<br>The version of the NG-CHM File Viewer application that you are running ("+oldVersion+") has been superceded by a newer version ("+newVersion+"). You will be able to view all pre-existing heat maps with this new backward-compatible version.<br><br>You may wish to download and install the latest version of the viewer.");
-	NgChm.UHM.setMessageBoxButton(1, "images/getZipViewer.png", "Download NG-CHM Viewer App", "NgChm.UHM.zipRequestAppDownload");
+	NgChm.UHM.setMessageBoxText("<br>The version of the NG-CHM File Viewer application that you are running ("+oldVersion+") has been superceded by a newer version ("+newVersion+"). You will be able to view all pre-existing heat maps with this new backward-compatible version. However, you may wish to download the latest version of the viewer.<br><br>The application downloads as a single HTML file (ngchmApp.html).  When the download completes, you may run the application by simply double-clicking on the downloaded file.  You may want to save this file to a location of your choice on your computer for future use.<br><br>");
+	NgChm.UHM.setMessageBoxButton(1, "images/downloadViewer.png", "Download NG-CHM Viewer App", "NgChm.UHM.zipAppDownload");
 	NgChm.UHM.setMessageBoxButton(3, "images/closeButton.png", "", "NgChm.UHM.messageBoxCancel");
 	document.getElementById('msgBox').style.display = '';
 }
 
 /**********************************************************************************
- * FUNCTION - zipRequestAppDownload: This function handles all of the tasks necessary 
- * display a modal window whenever an NG-CHM File Viewer Application download is 
- * requested.  
+ * FUNCTION - zipAppDownload: This function calls the Matrix Manager to initiate
+ * the download of the NG-CHM File Viewer application. 
  **********************************************************************************/
-NgChm.UHM.zipRequestAppDownload = function() {
-	var text;
-	NgChm.UHM.initMessageBox();
-	NgChm.UHM.setMessageBoxHeader("Download NG-CHM File Viewer Application");
-	NgChm.UHM.setMessageBoxText("<br>The NG-CHM File Viewer application may be used to open NG-CHM files. Press the Download button to get the NG-CHM File Viewer application.<br><br>When the download completes, extract the contents to a location of your choice and click on the extracted chm.html file to begin viewing NG-CHM heatmap file downloads.<br><br>");
-	NgChm.UHM.setMessageBoxButton(1, "images/downloadButton.png", "Download App", "NgChm.UHM.zipAppDownload");
-	NgChm.UHM.setMessageBoxButton(3, "images/closeButton.png", "", "NgChm.UHM.messageBoxCancel");
-	document.getElementById('msgBox').style.display = '';
-}
-
 NgChm.UHM.zipAppDownload = function() {
 	var dlButton = document.getElementById('msgBoxBtnImg_1');
 	dlButton.style.display = 'none';
@@ -653,6 +655,12 @@ NgChm.UHM.invalidFileFormat = function() {
  * 5. messageBoxCancel - Closes the message box when a Cancel is requested.  
  **********************************************************************************/
 NgChm.UHM.initMessageBox = function() {
+	var msgBox = document.getElementById('msgBox');
+	var headerpanel = document.getElementById('mdaServiceHeader');
+	document.getElementById('loader').style.display = 'none'
+	msgBox.style.top = headerpanel.offsetTop + 150;
+	msgBox.style.left = headerpanel.offsetLeft + 300;
+	
 	document.getElementById('msgBox').style.display = 'none';
 	document.getElementById('msgBoxBtnImg_1').style.display = 'none';
 	document.getElementById('msgBoxBtnImg_2').style.display = 'none';
@@ -690,12 +698,16 @@ NgChm.UHM.messageBoxCancel = function() {
 }
 
 NgChm.UHM.openHelp = function() {
-	var url = location.origin+location.pathname;
-	if (NgChm.staticPath == ""){
-		window.open(url.replace("chm.html", "chmHelp.html"),'_blank');
+	if (NgChm.MMGR.source !== NgChm.MMGR.WEB_SOURCE) {
+		NgChm.UHM.widgetHelp();
 	} else {
-		url = url.replace(location.pathname,NgChm.staticPath);
-		window.open(url+"chmHelp.html",'_blank');
+		var url = location.origin+location.pathname;
+		if (NgChm.staticPath == ""){
+			window.open(url.replace("chm.html", "chmHelp.html"),'_blank');
+		} else {
+			url = url.replace(location.pathname,NgChm.staticPath);
+			window.open(url+"chmHelp.html",'_blank');
+		}
 	}
 }
 
