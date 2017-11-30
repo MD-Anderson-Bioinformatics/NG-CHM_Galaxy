@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<tool id="mda_heatmap_gen" name="NG-CHM Generator" version="2.0.5">
+<tool id="mda_heatmap_gen" name="NG-CHM Generator" version="2.1.1">
   <description>Create Clustered Heat Maps</description>
 <!-- <command interpreter="python" detect_errors="aggressive">$__tool_directory__/mda_heatmap_gen.py  'Heat_Map_$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__' 0 0 labels labels 'None'-->
    <command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap.sh  "standard" "Heat_Map_$hmname" "$hmdesc" '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__/' 0 0 labels labels 'None'
@@ -14,22 +14,22 @@
       <exit_code range="1:" level="fatal" />
 	</stdio>
   <inputs>
-    <param name="inputmatrix" type="data" format="Tabular" label="Input Matrix" />
-    <param name="hmname" size="20" type="text" value="Heat_Map_name"  label="User Defined Heat Map Name"/>
-    <param name="hmdesc" size="100" optional="true" type="text" value="Heat_Map_description" label="User Defined Heat Map Description"/>
-    <param name="summarymethod" 	type="select"  label="Data Summarization Method">
+    <param name="inputmatrix" type="data" format="Tabular" label="Input Data Matrix" help="Tab delimited text file with row labels, column labels, and data."  />
+    <param name="hmname" size="20" type="text" value="Heat_Map_name"  label="Heat Map Name" help="Short Name for heat map (no spaces)."/>
+    <param name="hmdesc" size="100" optional="true" type="text" value="Heat_Map_description" label="Heat Map Description" help="Longer description of the heat map contents."/>
+    <param name="summarymethod" 	type="select"  label="Data Summarization Method" help="For large matrices, the selected method is used to aggregate data values in the summary view.">
 		<option value="average">Average</option>
 		<option value="sample">Sample</option>
 		<option value="mode">Mode</option>
     </param>
-      <conditional name="d_rows">
-	<param name="rowOrderMethod" type="select" label="Row ordering method" help="Choices -- Hierarchical Clustering, Original Order, Random">
+    <conditional name="d_rows">
+	<param name="rowOrderMethod" type="select" label="Row ordering method" help="Determine if rows should be clustered, randomized, or remain as is.">
 		<option value="Hierarchical">Hierarchical Clustering</option>
 		<option value="Original">Original Order</option>	    
 		<option value="Random">Random</option>	    
 	</param>
         <when value="Hierarchical">
-			<param name="rowDistanceMeasure" type="select"  label="Row Distance Metric" help="Euclidean, Binary, Manhattan, Maximum, Canberra, Minkowski, or Correlation">
+			<param name="rowDistanceMeasure" type="select"  label="Row Distance Metric" help="For clustering, select the method of determining distance between rows">
 				<option value="euclidean">Euclidean</option>
 				<option value="binary">Binary</option>
 				<option value="manhattan">Manhattan</option>
@@ -38,7 +38,7 @@
 				<option value="minkowski">Minkowski</option>	    
 				<option value="correlation">Correlation</option>	    
 			</param>
-			<param name="rowAgglomerationMethod" type="select"  label="Row Clustering Method" help="Choices:  Average Linkage, Complete Linkage,  Single Linkage, 'Ward', 'Mcquitty', 'Median', or 'Centroid'.">
+			<param name="rowAgglomerationMethod" type="select"  label="Row Clustering Method" help="For clustering, select algorithm for building clusters.">
 				<option value="average">Average Linkage</option>
 				<option value="complete">Complete Linkage</option>
 				<option value="single">Single Linkage</option>
@@ -58,13 +58,13 @@
         </when>
     </conditional>
 	<conditional name="d_cols">
-	<param name="columnOrderMethod" type="select" label="Column ordering method" help="Choices -- Hierarchical Clustering, Original Order, Random">
+	<param name="columnOrderMethod" type="select" label="Column ordering method" help="Determine if columns should be clustered, randomized, or remain as is.">
 		<option value="Hierarchical">Hierarchical Clustering</option>
 		<option value="Original">Original Order</option>	    
 		<option value="Random">Random</option>	    
 	</param>
         <when value="Hierarchical">
-			<param name="columnDistanceMeasure" type="select"  label="Column Distance Metric" help="Euclidean, Binary, Manhattan, Maximum, Canberra, Minkowski, or Correlation">
+			<param name="columnDistanceMeasure" type="select"  label="Column Distance Metric" help="For clustering, select the method of determining distance between columns">
 				<option value="euclidean">Euclidean</option>
 				<option value="binary">Binary</option>
 				<option value="manhattan">Manhattan</option>
@@ -73,7 +73,7 @@
 				<option value="minkowski">Minkowski</option>	    
 				<option value="correlation">Correlation</option>	    
 			</param>
-			<param name="columnAgglomerationMethod" type="select"  label="Column Clustering Method" help="Choices:  Average Linkage, Complete Linkage,  Single Linkage, 'Ward', 'Mcquitty', 'Median', or 'Centroid'.">
+			<param name="columnAgglomerationMethod" type="select"  label="Column Clustering Method" help="For clustering, select algorithm for building clusters.">
 				<option value="average">Average Linkage</option>
 				<option value="complete">Complete Linkage</option>
 				<option value="single">Single Linkage</option>
@@ -93,7 +93,7 @@
         </when>
     </conditional>
     <repeat name="operations" title="Covariate Bars">
-        <param name="class_name" size="20" type="text" value="" label="Axis Covariate Name">
+        <param name="class_name" size="20" type="text" value="" label="Covariate Name" help="Label for the covariate to display in the heat map.">
            <sanitizer invalid_char="_">
               <valid initial="none">
                 <add preset="string.letters"/>
@@ -103,8 +103,8 @@
               </mapping>
            </sanitizer>
         </param>
-        <param name="repeatinput" type="data" format="text" label="Axis Covariate File"/>
-	<param name="cat" type="select" label="Axis Covariate Type">
+        <param name="repeatinput" type="data" format="text" label="Covariate File" help="Tab delimited text file with row or column label and covariate value on each line."/>
+	<param name="cat" type="select" label="Axis Covariate Type" help="Identify the covariate as belonging to rows or columns and containing categorical or continuous values.">
 	  <option value="row_categorical" >Row Categorical</option>
 	  <option value="row_continuous" >Row Continuous</option>
 	  <option value="column_categorical" >Column Categorical</option>
