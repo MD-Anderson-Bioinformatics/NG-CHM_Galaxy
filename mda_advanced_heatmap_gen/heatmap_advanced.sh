@@ -71,6 +71,6 @@ done
 #echo "classifications: " $classifications
 
 #call java program to generate NGCHM viewer files.
-java -jar ${12}/GalaxyMapGen.jar "${1}" "${2}" "${3}" DataLayer1 $4 linear ${15} ${16} $5 $6 $7 $tdir/ROfile.txt $tdir/RDfile.txt ${17} ${19} $8 $9 ${10} $tdir/COfile.txt $tdir/CDfile.txt ${18} ${20} ${11} "${21}" $classifications  
+java -jar ${12}/GalaxyMapGen.jar "${1}" "${2}" "${3}" DataLayer1 $4 linear ${15} ${16} $5 $6 $7 $tdir/ROfile.txt $tdir/RDfile.txt "${17}" "${19}" $8 $9 ${10} $tdir/COfile.txt $tdir/CDfile.txt "${18}" "${20}" ${11} "${21}" $classifications  
 #clean up tempdir
 rm -rf $tdir
