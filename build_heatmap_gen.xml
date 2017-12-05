@@ -17,7 +17,8 @@
   </target>	
   <target name="zipviz">
   	 <zip destfile="mda_heatmap_viz.zip"
-  	       basedir="mda_heatmap_viz"
+  	       basedir="."
+           includes="mda_heatmap_viz/*,mda_heatmap_viz/static/*,mda_heatmap_viz/static/images/*,mda_heatmap_viz/static/javascript/*,mda_heatmap_viz/config/*,mda_heatmap_viz/templates/*" 
   	  />	
   </target>	
 	
