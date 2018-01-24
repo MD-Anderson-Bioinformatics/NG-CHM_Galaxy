@@ -3,7 +3,10 @@
 FROM bgruening/galaxy-stable
 
 ##### APT-GET #####
-#RUN apt-get update
+RUN apt-get update
+
+#Need to install R now for some reason
+RUN apt-get install -y r-base
 
 ##### Place Regular MD Anderson Heat Map software in Tools and Visualization directories #####
 ADD ./mda_heatmap_gen/* /galaxy-central/tools/Heat_Map_Creation/

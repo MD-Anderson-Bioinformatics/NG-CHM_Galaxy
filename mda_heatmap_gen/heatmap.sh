@@ -1,12 +1,16 @@
 #echo $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${14} ${15} ${16} ${17} ${18}
 
+#get tool data and tool install directories
+tooldir=$(cut -d';' -f1 <<< ${12})
+tooldata=$(cut -d';' -f2 <<< ${12})
+
 #create temp directory for row and col order and dendro files.
-tdir=${12}/$(date +%y%m%d%M%S)
+tdir=$tooldata/$(date +%y%m%d%M%S)
 echo $tdir
 mkdir $tdir
 
 #run R to cluster matrix
-output="$(R --slave --vanilla --file=${12}/CHM.R --args $4 $5 $6 $7 $8 $9 ${10} $tdir/ROfile.txt $tdir/COfile.txt $tdir/RDfile.txt $tdir/CDfile.txt ${13} ${14} ${15} ${16} 2>&1)"
+output="$(R --slave --vanilla --file=$tooldir/CHM.R --args $4 $5 $6 $7 $8 $9 ${10} $tdir/ROfile.txt $tdir/COfile.txt $tdir/RDfile.txt $tdir/CDfile.txt ${13} ${14} ${15} ${16} 2>&1)"
 rc=$?;
 if [ $rc != 0 ]
 then
@@ -47,6 +51,6 @@ done
 echo "classifications " $classifications
 echo "${11} " ${11}
 #call java program to generate NGCHM viewer files.
-java -jar ${12}/GalaxyMapGen.jar "${1}" "${2}" "${3}" DataLayer1 $4 linear ${15} ${16} $5 $6 $7 $tdir/ROfile.txt $tdir/RDfile.txt $8 $9 ${10} $tdir/COfile.txt $tdir/CDfile.txt ${11} $classifications
+java -jar $tooldir/GalaxyMapGen.jar "${1}" "${2}" "${3}" DataLayer1 $4 linear ${15} ${16} $5 $6 $7 $tdir/ROfile.txt $tdir/RDfile.txt $8 $9 ${10} $tdir/COfile.txt $tdir/CDfile.txt ${11} $classifications
 #clean up tempdir
 rm -rf $tdir

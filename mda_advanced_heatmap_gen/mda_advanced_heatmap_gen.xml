@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<tool id="mda_advanced_heatmap_gen" name="Advanced NG-CHM Generator" version="2.1.1">
-  <description> Create Clustered Heat Maps</description>
-<!-- command interpreter="python" detect_errors="aggressive">$__tool_directory__/mad_advanced_heatmap_gen.py  'Heat_Map_$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__' ${d_rows.rowDendroCut} ${d_cols.colDendroCut} $rowDataType $colDataType  -->
-<command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap_advanced.sh  'advanced' 'Heat_Map_$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__' ${d_rows.rowDendroCut} ${d_cols.colDendroCut} $rowDataType $colDataType 'c_${d_rows.rcutrows.rowDendroTreeCut}' 'c_${d_cols.ccutrows.colDendroTreeCut}' 't_$rowTopItems' 't_$colTopItems' 
+<tool id="mda_advanced_heatmap_gen" name="Advanced NG-CHM Generator" version="2.3">
+  <requirements>
+    <requirement type="package" version="3.4.1">r-base</requirement> 
+  </requirements>
+  <description> Create Clustered Heat Maps with Advanced Options</description>
+<command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap_advanced.sh  'advanced' 'Heat_Map_$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__;$__tool_data_path__' ${d_rows.rowDendroCut} ${d_cols.colDendroCut} $rowDataType $colDataType 'c_${d_rows.rcutrows.rowDendroTreeCut}' 'c_${d_cols.ccutrows.colDendroTreeCut}' 't_$rowTopItems' 't_$colTopItems' 
 
     "
     #for $attr in $hm_attribute
