@@ -287,7 +287,7 @@
               </mapping>
            </sanitizer>
         </param>
-        <param name="repeatinput" type="data" format="text" label="Covariate File" help="Tab delimited text file with row or column label and covariate value on each line."/>
+        <param name="repeatinput" type="data" format="Tabular" label="Covariate File" help="Tab delimited text file with row or column label and covariate value on each line."/>
         <conditional name="cattype">
 			<param name="cat" type="select" label="Covariate Type" help="Identify the covariate as belonging to rows or columns and containing categorical or continuous values.">
 			  <option value="row_categorical" >Row Categorical</option>
