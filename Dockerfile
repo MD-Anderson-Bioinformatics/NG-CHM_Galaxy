@@ -8,6 +8,14 @@ RUN apt-get update
 #Need to install R now for some reason
 RUN apt-get install -y r-base
 
+#Need to upgrade to Java 8
+RUN apt-get install -y software-properties-common python-software-properties
+RUN add-apt-repository -y ppa:openjdk-r/ppa
+RUN apt-get update 
+RUN apt-get install -y openjdk-8-jdk
+RUN update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
+
+
 ##### Place Regular MD Anderson Heat Map software in Tools and Visualization directories #####
 ADD ./mda_heatmap_gen/* /galaxy-central/tools/Heat_Map_Creation/
 ADD ./GalaxyMapGen.jar /galaxy-central/tools/Heat_Map_Creation/
