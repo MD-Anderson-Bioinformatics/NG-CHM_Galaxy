@@ -8,15 +8,15 @@
 
     "
     #for $attr in $hm_attribute
-      ${attr.attrbute_key}:${attr.attrbute_value};
+      '${attr.attrbute_key}':'${attr.attrbute_value}';
     #end for
     "
 
     #for $op in $operations
-       ${op.class_name}
-       ${op.repeatinput.file_name}
-       ${op.cattype.cat}
-       ${op.cattype.bartype}
+       '${op.class_name}'
+       '${op.repeatinput.file_name}'
+       '${op.cattype.cat}'
+       '${op.cattype.bartype}'
       #end for
  	'$output' 
  </command>

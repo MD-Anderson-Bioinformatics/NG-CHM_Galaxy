@@ -6,9 +6,9 @@
    <description>Create Clustered Heat Maps</description>
    <command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap.sh  "standard" "Heat_Map_$hmname" "$hmdesc" '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__;$__tool_data_path__/' 0 0 labels labels 'None'
     #for $op in $operations
-       ${op.class_name}
-       ${op.repeatinput.file_name}
-       ${op.cat}
+       '${op.class_name}'
+       '${op.repeatinput.file_name}'
+       '${op.cat}'
       #end for
  	'$output' 
  </command>
