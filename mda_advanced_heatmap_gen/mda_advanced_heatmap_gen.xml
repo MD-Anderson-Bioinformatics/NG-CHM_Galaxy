@@ -1,48 +1,108 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<tool id="mda_advanced_heatmap_gen" name="Advanced NG-CHM Generator" version="2.3">
-  <requirements>
-    <requirement type="package" version="3.4.1">r-base</requirement> 
-  </requirements>
-  <description> Create Clustered Heat Maps with Advanced Options</description>
-<command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap_advanced.sh  'advanced' 'Heat_Map_$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__;$__tool_data_path__' ${d_rows.rowDendroCut} ${d_cols.colDendroCut} $rowDataType $colDataType 'c_${d_rows.rcutrows.rowDendroTreeCut}' 'c_${d_cols.ccutrows.colDendroTreeCut}' 't_$rowTopItems' 't_$colTopItems' 
+<tool id="mda_advanced_heatmap_gen" name="Advanced NG-CHM Generator" version="2.1.1">
+  <description> Create Clustered Heat Maps</description>
+<!-- command interpreter="python" detect_errors="aggressive">$__tool_directory__/mad_advanced_heatmap_gen.py  'Heat_Map_$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__' ${d_rows.rowDendroCut} ${d_cols.colDendroCut} $rowDataType $colDataType  -->
+<command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap_advanced.sh  'advanced' 'Heat_Map_$hmname' '$hmdesc' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__' ${d_rows.rowDendroCut} ${d_cols.colDendroCut} $rowDataType $colDataType 'c_${d_rows.rcutrows.rowDendroTreeCut}' 'c_${d_cols.ccutrows.colDendroTreeCut}' 't_$rowTopItems' 't_$colTopItems' 
 
-    "
+	"
     #for $attr in $hm_attribute
-      '${attr.attrbute_key}':'${attr.attrbute_value}';
+      ${attr.attrbute_key}:${attr.attrbute_value};
     #end for
     "
 
-    #for $op in $operations
-       '${op.class_name}'
-       '${op.repeatinput.file_name}'
-       '${op.cattype.cat}'
-       '${op.cattype.bartype}'
-      #end for
+    #for $layer in $hm_layers
+      ${layer.layer_name}
+      ${layer.layer_matrix}
+      ${layer.layer_break1}
+      ${layer.layer_break2}
+      ${layer.layer_break3}
+      ${layer.layer_color1}
+      ${layer.layer_color2}
+      ${layer.layer_color3}
+      ${layer.layer_missing}
+    #end for
+    
  	'$output' 
  </command>
 	<stdio>
       <exit_code range="1:" level="fatal" />
 	</stdio>
   <inputs>
-    <param name="inputmatrix" type="data" format="Tabular" label="Input Data Matrix" help="Tab delimited text file with row labels, column labels, and data."/>
-    <param name="hmname" size="40" type="text" value="Heat_Map_name"  label="Heat Map Name" help="Short Name for heat map (no spaces)."/>
-           <sanitizer>
-              <valid>
-                <add preset="string.printable"/>
-            	<remove value="&quot;"/>
-            	<remove value="&apos;"/>
-                <remove value=" "/> 
+  	<repeat name="hm_layers" title="Layers">
+        <param name="layer_name" size="20" type="text" value="" label="Layer Name" help="Label for the layer to display in the heat map.">
+           <sanitizer invalid_char="_">
+              <valid initial="">
+                <add preset="string.letters"/>
+                <add preset="string.digits"/>
               </valid>
+              <mapping initial="">
+              </mapping>
            </sanitizer>
+        </param>
+        <param name="layer_matrix" type="data" format="Tabular" label="Input Data Matrix" help="Tab delimited text file with row labels, column labels, and data."/>
+        <param name="layer_break1" size="20" type="text" value="-1" label="Breakpoint 1" help="First breakpoint.">
+	        <valid initial="">
+	          <add preset="string.letters"/>
+	          <add preset="string.digits"/>
+	        </valid>
+	        <mapping initial="">
+	        </mapping>
+          </param>
+        <!-- <param name="layer_color1" size="20" type="color" rgb="false"  value="blue" label="Color 1" help="First color."/> -->
+		<param name="layer_color1" size ="20" type="text" label="Color 1" value="#0000ff">
+		   <valid initial="">
+		     <add preset="string.ascii_letters"/>
+		     <add preset="string.digits"/>
+		   </valid>
+		   <mapping initial="">
+	        </mapping>
+		</param>
+          <param name="layer_break2" size="20" type="text" value="0" label="Breakpoint 2" help="Middle breakpoint.">
+	          <valid initial="">
+	            <add preset="string.letters"/>
+	            <add preset="string.digits"/>
+	          </valid>
+	          <mapping initial="">
+	          </mapping>
+          </param>
+          <param name="layer_color2" size="20" type="color" rgb="false"  value="white" label="Color 2" help="Middle color."/>
+          <param name="layer_color2" size ="20" type="text" label="Color 2" value="#ffffff">
+		   <valid initial="">
+		     <add preset="string.ascii_letters"/>
+		     <add preset="string.digits"/>
+		   </valid>
+		   <mapping initial="">
+	        </mapping>
+		</param>
+          <param name="layer_break3" size="20" type="text" value="1" label="Breakpoint 3" help="Last breakpoint.">
+		     <valid initial="">
+		       <add preset="string.letters"/>
+		       <add preset="string.digits"/>
+		     </valid>
+		     <mapping initial="">
+	     	</mapping>
+          </param>
+          <!-- <param name="layer_color3" size="20" type="color" rgb="false"  value="red" label="Color 3" help="Last color."/> -->
+          <param name="layer_color3" size ="20" type="text" label="Color 3" value="#ff0000">
+		   <valid initial="">
+		     <add preset="string.ascii_letters"/>
+		     <add preset="string.digits"/>
+		   </valid>
+		   <mapping initial="">
+	        </mapping>
+		</param>
+          <!-- <param name="layer_missing" size="20" type="color" rgb="false" value="black" label="Missing Color" help="Color for missing values."/> -->
+          <param name="layer_missing" size ="20" type="text" label="Missing Color" value="#b3b3b3">
+		   <valid initial="">
+		     <add preset="string.ascii_letters"/>
+		     <add preset="string.digits"/>
+		   </valid>
+		   <mapping initial="">
+	        </mapping>
+		</param>
+    </repeat>       
+    <param name="hmname" size="20" type="text" value="Heat_Map_name"  label="Heat Map Name" help="Short Name for heat map (no spaces)."/>
     <param name="hmdesc" size="100" optional="true" type="text" value="Heat_Map_description" label="Heat Map Description" help="Longer description of the heat map contents."/>
-           <sanitizer>
-              <valid>
-                <add preset="string.printable"/>
-            	<remove value="&quot;"/>
-            	<remove value="&apos;"/>
-                <remove value=" "/> 
-              </valid>
-           </sanitizer>
     <param name="summarymethod" 	type="select"  label="Data Summarization Method" help="For large matrices, the selected method is used to aggregate data values in the summary view.">
 		<option value="average">Average</option>
 		<option value="sample">Sample</option>
@@ -153,6 +213,7 @@
         <option value="labels" selected="true" >None</option>
         <option value="bio.probe.affymetrix" >Affymetrix Probe Id</option>
         <option value="bio.feature.agilent" >Agilent Id</option>
+        <option value="bio.rrid" >Antibody RRID</option>
         <option value="bio.sample.cbioportal" >cBioPortal sample Id</option>
         <option value="bio.transcript.ensemble" >Ensemble transcript Id</option>
         <option value="bio.gene.entrez" >Gene Entrez Id</option>
@@ -275,6 +336,7 @@
         <option value="labels" selected="true" >None</option>
         <option value="bio.probe.affymetrix" >Affymetrix Probe Id</option>
         <option value="bio.feature.agilent" >Agilent Id</option>
+        <option value="bio.rrid" >Antibody RRID</option>
         <option value="bio.sample.cbioportal" >cBioPortal sample Id</option>
         <option value="bio.transcript.ensemble" >Ensemble transcript Id</option>
         <option value="bio.gene.entrez" >Gene Entrez Id</option>
@@ -292,47 +354,7 @@
         <option value="bio.gene.unigene" >Unigene CId</option>
         <option value="bio.protein.uniprot" >UniProt Id</option>
     </param>    
-    <repeat name="operations" title="Covariate Bars">
-        <param name="class_name" size="25" type="text" value="" label="Covariate Name" help="Covariate heat map display label.">
-           <sanitizer>
-              <valid>
-                <add preset="string.printable"/>
-            	<remove value="&quot;"/>
-            	<remove value="&apos;"/>
-                <remove value=" "/> 
-              </valid>
-           </sanitizer>
-        </param>
-        <param name="repeatinput" type="data" format="Tabular" label="Covariate File" help="Tab delimited text file with row or column label and covariate value on each line."/>
-        <conditional name="cattype">
-			<param name="cat" type="select" label="Covariate Type" help="Identify the covariate as belonging to rows or columns and containing categorical or continuous values.">
-			  <option value="row_categorical" >Row Categorical</option>
-			  <option value="row_continuous" >Row Continuous</option>
-			  <option value="column_categorical" >Column Categorical</option>
-			  <option value="column_continuous" >Column Continuous</option>
-			</param>
-	        <when value="row_continuous">
-		 		<param name="bartype" type="select" label="Display Type">
-				  <option value="color_plot" >Standard</option>
-				  <option value="bar_plot" >Bar Plot</option>
-				  <option value="scatter_plot" >Scatter Plot</option>
-				</param>
-	        </when>
-	        <when value="column_continuous">
-		 		<param name="bartype" type="select" label="Display Type">
-				  <option value="color_plot" >Standard</option>
-				  <option value="bar_plot" >Bar Plot</option>
-				  <option value="scatter_plot" >Scatter Plot</option>
-				</param>
-	        </when>
-	        <when value="column_categorical">
-	 	 		<param name="bartype" type="text"  hidden="true" value="color_plot"/>
-	        </when>
-	        <when value="row_categorical">
-	 	 		<param name="bartype" type="text"  hidden="true" value="color_plot"/>
-	        </when>
-	 	</conditional>
-     </repeat>       
+    
      <repeat name="hm_attribute" title="Heat Map Attributes">
         <param name="attrbute_key" size="50" type="text" value="" label="Heat Map Attribute Key" help="For map level attributes. Enter the key (no spaces).">
            <sanitizer invalid_char="_">
