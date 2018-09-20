@@ -1,0 +1,37 @@
+##### BASE #####
+#  commands to run this container and display Galaxy in 127.0.0.1:8877
+#$ cd /path to/git/NG-CHM_Galaxy
+#$ docker stop hm_container
+#$ docker rm  hm_container
+#$ docker rmi mdangchm
+#$ docker build -f Docker-MatrixManipulation-Only  -t mdangchm .
+#$ docker run --name="hm_container" -d  -m="2g" -p 8877:80 -p 7026:21 -e "GALAXY_CONFIG_ADMIN_USERS=rbrown@insilico.us.com" mdangchm
+# web browser http://127.0.0.1:8877
+# 
+
+#TODO !!!!!!!!!!!!!!!!!!  TEMP change to speed up test builds    
+FROM bgruening/galaxy-stable:17.09
+
+##### APT-GET #####
+#RUN apt-get update
+
+#fix SSL to prevent errors  https://urllib3.readthedocs.io/en/latest/user-guide.html#ssl-py2
+#RUN sudo pip install --upgrade pip
+#RUN sudo pip install urllib3[secure]
+
+
+
+##### Place Matrix Manipulation software in Tools directory #####
+ADD ./Matrix_Manipulation/* /galaxy-central/tools/Matrix_Manipulation/
+RUN  chmod +x /galaxy-central/tools/Matrix_Manipulation/
+RUN  chmod 777 /galaxy-central/tools/Matrix_Manipulation
+#RUN apt-get install xlrd
+#RUN sudo pip install xlrd
+
+
+
+#Dev tools for testing
+RUN sed -i '/<toolbox monitor="true">/a \\t</section>' /galaxy-central/config/tool_conf.xml.sample
+RUN sed -i '/<toolbox monitor="true">/a \\t\t<tool file="Matrix_Manipulation/Matrix_Filters.xml"   />' /galaxy-central/config/tool_conf.xml.sample
+RUN sed -i '/<toolbox monitor="true">/a \\t<section id="Matrix_Manipulation" name="Matrix Manipulation">' /galaxy-central/config/tool_conf.xml.sample
+RUN sudo chmod 777 /galaxy-central/config/tool_conf.xml.sample
