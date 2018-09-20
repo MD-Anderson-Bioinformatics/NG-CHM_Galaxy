@@ -1,0 +1,52 @@
+<?xml version='1.1' encoding='utf-8'?>
+<tool id="Matrix_Multiply" name="Matrix Compose" version="1.2.4">
+  <description> one matrix using one or two matrices</description>
+ <command interpreter="python">Matrix_Multiply.py '$extra.input1' 'extra.$transpose' 'extra.$input2' '$extra.choice' '$output_file'</command>
+
+ <inputs>
+    <conditional name="extra">
+    	<param name="choice" type="select" label="Choose composition type">
+	 		<option value="MatrixMultiply">Matrix Multiplication</option> 
+	 		<option value="Corr2Matrices">Correlate two matrices</option> 
+	 		<option value="Corr1Matrix">Correlate one matrix with itself</option> 
+	  	</param>	
+
+	 	 <when value="MatrixMultiply">
+		 	<param name="input1" type="data" format="tabular" label="First Input Matrix size NxM" />
+		 	<param name="transpose" type="select" label="transpose matrix?">
+			  <option value="y">Transpose matrix</option>
+			  <option value="n" selected="true">Do Not transpose matrix</option>
+		 	</param> 	
+		 	<param name="input2" type="data" format="tabular" label="Second Input Matrix size NxP" />
+		 </when>
+	 	 <when value="Corr2Matrices">
+		 	<param name="input1" type="data" format="tabular" label="First Input Matrix size NxM" />
+		 	<param name="transpose" type="select" label="transpose matrix?">
+			  <option value="y">Transpose matrix</option>
+			  <option value="n" selected="true">Do Not transpose matrix</option>
+		 	</param> 	
+		 	<param name="input2" type="data" format="tabular" label="Second Input Matrix size NxP" />
+		 </when>
+	 	 <when value="Corr1Matrix">
+		 	<param name="input1" type="data" format="tabular" label="Input Matrix" />
+		 	<param name="transpose" type="text" size="10" hidden="true"  value="n" />
+		 	<param name="input2" type="data" hidden="true"  value="$input1" />
+		 </when>
+   </conditional>
+ 	
+  	
+<!--  	<param name="thresh" type="float" size="4" value=".05" label="Filter Threshold (Axes with Metric below Threshold will be Removed)" />
+ 	<param name="transpose" type="select" multiple="false" display="checkboxes" label="transpose first matrix?">
+ 	
+ 	<param name="axes" type="select" label="Chose Axes to Filter on (Rows or Columns)">
+ 		<option value="Row">Row</option>
+ 		<option value="Column">Column</option>
+ 	</param>
+ -->	
+ </inputs>
+ 
+ <outputs>
+ 	<data name="output_file" format="tabular" />
+ </outputs>
+ 
+ </tool>

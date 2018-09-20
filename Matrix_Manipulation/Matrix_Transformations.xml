@@ -1,0 +1,106 @@
+<?xml version='1.1' encoding='utf-8'?>
+<tool id="Matrix_Transformations" name="Matrix Transformations" version="2.2">
+  <description> by Rows, Columns, All by method</description>
+ <command interpreter="python">Matrix_Transformations.py '$p_input' '$extra.choice' '$extra.axes' '$extra.scalevalue' '$extra.offsetvalue' '$output_file'</command>
+
+ <inputs>
+    <conditional name="extra">
+ 	  <param name="choice" type="select" label="Choose Normalization Method">
+ 		<option value="mean_center_normalization">Mean Centered Normalization</option>
+ 		<option value="median_center_normalization">Median Centered Normalization</option>
+ 		<option value="ln_normalization">Log2 Normalization w offset</option>
+ 		<option value="log_normalization">Log10 Normalization w offset</option>
+ 		<option value="z_score_normalization">Z-Score Normalization</option>
+		<option value="transpose">Matrix Transpose</option>
+ 		<option value="add_offset">Add Offset Value</option>
+ 		<option value="scale">Scale by Multiple</option>
+ 		<option value="divide_by_sum">Divide by Sum</option>
+	  </param>
+ 	    <when value="add_offset">
+			<param name="offsetvalue" type="text" size="10" value="0.0" label="Matrix Values offset" help="Add value to each Matrix element."/>
+	 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+	 		<param name="axes" type="text" size="10" hidden="true"  value="neither"/>
+	    </when>
+	    <when value="scale">
+			<param name="scalevalue" type="text" size="10" value="1.0" label="Matrix Value scaling" help="multiply value with each Matrix element."/>
+	 		<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+	 		<param name="axes" type="text" size="10" hidden="true"  value="neither"/>
+	    </when>
+	    <when value="ln_normalization">
+			<param name="offsetvalue" type="text" size="10" value="0.0" label="Matrix Values offset" help="Calculate log2 for each Matrix element then add offset."/>
+	 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+ 			<param name="axes" type="select" label="Choose Axis">
+ 				<option value="Row">Row</option>
+ 				<option value="Column">Column</option>
+ 			</param>
+	    </when>
+	    <when value="log_normalization">
+			<param name="offsetvalue" type="text" size="10" value="0.0" label="Matrix Values offset" help="Calculate log10 for each Matrix element then add offset."/>
+	 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+ 			<param name="axes" type="select" label="Choose Axis">
+ 				<option value="Row">Row</option>
+ 				<option value="Column">Column</option>
+ 			</param>
+	    </when>	
+ 		<when value="z_score_normalization">
+	 		<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+	 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+ 			<param name="axes" type="select" label="Choose Axis">
+ 				<option value="Row">Row</option>
+ 				<option value="Column">Column</option>
+ 			</param>
+	    </when> 		
+ 		<when value="mean_center_normalization">
+	 		<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+	 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+ 			<param name="axes" type="select" label="Choose Axis">
+ 				<option value="Row">Row</option>
+ 				<option value="Column">Column</option>
+ 			</param>
+	    </when>
+ 		<when value="median_center_normalization">
+	 		<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+	 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+ 			<param name="axes" type="select" label="Choose Axis">
+ 				<option value="Row">Row</option>
+ 				<option value="Column">Column</option>
+ 			</param>
+	    </when>
+		<when value="transpose">
+	 		<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+	 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+	 		<param name="axes" type="text" size="10" hidden="true"  value="neither"/>
+	    </when>
+ 		<when value="divide_by_sum">
+	 		<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+	 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+ 			<param name="axes" type="select" label="Choose Axis">
+ 				<option value="Row">Row</option>
+ 				<option value="Column">Column</option>
+ 			</param>
+	    </when>
+    </conditional>
+
+ 	<param name="p_input" type="data" format="tabular" label="Input Matrix"> </param>
+
+<!--  need scipy!!!!
+		<option value="rank">Rank Normalization</option>
+		<when value="rank">
+	 		<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+	 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+	    </when>
+ 	
+ 	<param name="axes" type="select" label="Choose Axis">
+ 		<option value="Row">Row</option>
+ 		<option value="Column">Column</option>
+ 	</param>
+--> 	
+ </inputs>
+
+
+
+ <outputs>
+ 	<data name="output_file" format="tabular" />
+ </outputs>
+ 
+ </tool>

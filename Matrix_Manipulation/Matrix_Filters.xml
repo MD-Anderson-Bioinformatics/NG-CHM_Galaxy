@@ -1,0 +1,58 @@
+<?xml version='1.1' encoding='utf-8'?>
+<tool id="Matrix_Filters" name="Matrix Filters" version="2.1.12">
+  <description> rows or columns based on specified threshold</description>
+ <command interpreter="python">Matrix_Filters.py '$p_input' '$extra.choice' '$extra.thresh' '$axes' '$output_file'</command>
+ <inputs>
+ 	<param name="p_input" type="data" format="tabular" label="Input Matrix" />
+ 	
+     <conditional name="extra">
+      <param name="choice" type="select" label="Choose Metric to Filter By">
+ 		<option value="LowerLimit">Remove row/column if any cell is less than threshold value</option>
+ 		<option value="UpperLimit">Remove row/column if any cell is greater than threshold value</option>
+ 		<option value="NANnumber">Remove row/column if number NAN cells exceeds threshold value </option>
+ 		<option value="NANpercent">Remove row/column if NAN cells exceeds threshold percent</option>
+ 		<option value="VarianceValue">Remove row/column if Variance is below threshold value</option>
+ 		<option value="VarianceCount">Remove row/column if Variance is not in top row/column count</option>
+ 		<option value="VariancePercent">Remove row/column if Variance is not in top percent</option>
+ 		<option value="MADcount">Remove row/column if Median Absolute Deviation (MAD) is not in top row/column count</option>
+ 		<option value="MADpercent">Remove row/column if Median Absolute Deviation (MAD) is not in top percent</option>
+<!-- 	<option value="Covariance">Remove row/column if covariance exceeds threshold value</option>
+    	<option value="Median">Remove row/column if Median is less than threshold value</option>
+ 		<option value="MADvalue">Remove row/column if Median Absolute Deviation (MAD) is below threshold value</option>
+ 		<option value="Mean">Remove row/column if Mean is less than threshold value</option>
+ 		<option value="Quantile">Remove row/column if less than Quantile_Cutoff</option>
+ 		<option value="GeneList">Keep only these genes</option>
+ 		<option value="Histogram">View filter histogram</option>
+ --> 
+  	</param>
+ 	    <when value="LowerLimit">
+			<param name="thresh" type="float" size="5" value="0.01" label="Absolute minimum value" help="Lowest value allowed or row/col removed."/>
+	    </when>
+ 	    <when value="UpperLimit">
+			<param name="thresh" type="float" size="5" value="0.9" label="Absolute maximum value" help="Highest value allowed or row/col removed."/>
+	    </when>
+ 	    <when value="NANnumber">
+			<param name="thresh" type="float" size="5" value="50" label="Maximum number NANs" help="More NANs per row/col removed."/>
+	    </when>
+  	    <when value="NANpercent">
+			<param name="thresh" type="float" size="5" value="20" label="Percent maximum" help="Above percent rows/cols removed."/>
+	    </when>
+  	    <when value="Variance">
+			<param name="thresh" type="float" size="5" value="90" label="Percentile minimum" help="Below percentile rows/cols removed."/>
+	    </when> 	
+    </conditional>
+ <!-- 	
+ 	<param name="thresh" type="float" size="4" value=".05" label="Filter Threshold (Value above/below row/column will be Removed)" />
+--> 	
+ 	<param name="axes" type="select" label="Choose Axes to Filter on (Rows or Columns)">
+ 		<option value="Row">Row</option>
+ 		<option value="Column">Column</option>
+ 	</param>
+ 	
+ 	
+ </inputs>
+ <outputs>
+ 	<data name="output_file" format="tabular" />
+ </outputs>
+ 
+ </tool>

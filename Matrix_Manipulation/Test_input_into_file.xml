@@ -1,0 +1,61 @@
+<?xml version='1.1' encoding='utf-8'?>
+<tool id="Test-input-into-file" name="Test-File" version="1.0.0" force_history_refresh="True">
+  <description> Read xml params into a file</description>
+  
+<command interpreter="python">Test-input-into-file.py  $inputfile "$__tool_dir__" $outputfile  
+      #for $op in $test_param1
+        ${op.discrete_fields1.Text_Fields1} 
+      #end for
+      "$EndofVarParam1" 
+      "$Covariate_Type" 
+      "$EndofVarParam2" 
+      #for $op in $test_param3
+        ${op.discrete_fields3.Text_Fields3} 
+      #end for
+      "$EndofVarParam3" 
+  </command> 
+<!--      #in=$__tool_dir__/$inputfile  
+      #inputfile="$__tool_dir__"$inputfile  
+      
+type 	Describes the parameter type - each different type as different semantics 
+ and the tool form widget is different. Currently valid parameter types are: 
+ text, integer, float, boolean, genomebuild, select, color, data_column, hidden, hidden_data, baseurl, file, ftpfile, data, data_collection, library_data, drill_down. The definition of supported parameter 
+ types as defined in the parameter_types dictionary in /lib/galaxy/tools/parameters/basic.py.
+ -->      
+	<stdio>
+      <exit_code range="1:" level="fatal" /> 
+	</stdio>
+  <inputs>
+    <data format="txt" name="inputfile"/>
+	<repeat name="test_param1" title="Select 1 or more Covariate Clinical Categories">
+		  <conditional name="discrete_fields1">
+			<param name="Text_Fields1" type="select" label="Covariate Bar Choices" help="">
+				<option value='cat_EMPTY' selected="true">Click cursor in middle of this text to see choices</option>
+				<option value='cat_SampleTypeCode'>Sample Cohort</option>
+				<option value='cat_gender'>Gender</option>
+				<option value='cat_race'>Race</option>
+			</param>
+		  </conditional>     
+	</repeat>       
+	<param name="EndofVarParam1" type="hidden" value="paramend1" </param>
+	<param name="Covariate_Type" type="select" value="" label="Type of Covariate Bars" help="Choose Sample or Gene covariate bar files">
+        <option value="S" selected="true">Participant-Sample</option> 
+        <option value="G" >Gene</option>
+	</param>
+	<param name="EndofVarParam2" type="hidden" value="paramend2" </param>
+	<repeat name="test_param3" title="Select 1 or more Covariate Clinical Categories">
+		  <conditional name="discrete_fields3">
+			<param name="Text_Fields3" type="select" label="Covariate Bar Choices" help="">
+				<option value='cat_EMPTY' selected="true">Click cursor in middle of this text to see choices</option>
+				<option value='cat_SampleTypeCode'>Sample Cohort</option>
+				<option value='cat_gender'>Gender</option>
+				<option value='cat_race'>Race</option>
+			</param>
+		  </conditional>     
+	</repeat>       
+	<param name="EndofVarParam3" type="hidden" value="paramend1" </param>
+  </inputs>
+  <outputs>
+     <data format="txt" name="outputfile" label="${tool.name} on ${on_string}"/>
+  </outputs>
+</tool>

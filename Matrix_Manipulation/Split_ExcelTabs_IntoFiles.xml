@@ -1,0 +1,35 @@
+<?xml version='1.1' encoding='utf-8'?>
+<tool id="Split_ExcelTabs_IntoFiles" name="Split Excel Tabs" version="1.0">
+  <description>into separate tab delimited files</description>
+ <command interpreter="python">Split_ExcelTabs_IntoFiles.py '$input' '' '$extra.tabnumber' '$output_file'</command>
+
+ <inputs>
+ 	<param name="input" type="data" format="txt" label="Input Excel.xls or Excel.xlsx file"> </param>
+ 		
+    <conditional name="extra">
+ 	  <param name="choice" type="select" label="Select tab" help="Select tab position or name">
+		<option value="tab_number">Tab number</option>
+  	  </param>  	
+<!--
+'$extra.tabname'
+		<option value="tab_name">Tab name</option>
+		<option value="all">All tabs in file</option>
+ 		<option value="1">First tab only</option>
+  	  </param>  	
+    <when value="tab_name">
+		<param name="tabname" type="text" size="20" value="" label="Tab Name" help="Spreadsheet Tab Name">
+		</param>
+    </when>
+-->
+    <when value="tab_number">
+		<param name="tabnumber" type="text" size="2" value="1" label="Tab position" help="Integer Tab position from left">
+		</param>
+   </when>
+  </conditional>
+ </inputs>
+
+ <outputs>
+ 	<data name="output_file" format="tabular" label="Output File Name" help="Name based on Input file name and tab name"/>
+ </outputs>
+ 
+ </tool>

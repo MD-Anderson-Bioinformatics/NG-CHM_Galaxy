@@ -1,0 +1,23 @@
+<?xml version='1.1' encoding='utf-8'?>
+<tool id="Matrix_Statistics" name="Matrix Statistics" version="1.1.5" force_history_refresh="True">
+  <description>View metadata about Heat Map Matrix</description>
+ <command interpreter="python">Matrix_Statistics.py '$input' '$choice' '$cutoff' '$axes' '$out_file'</command> 
+ <inputs>
+ 	<param name="choice" type="select" label="Choose Metric to Filter By">
+  		<option value="Histogram">Plot info about either matrix row/column</option>
+  	</param>
+
+ 	<param name="input" type="data" format="tabular" label="Heat Map Matrix" />
+ 	 	
+ 	<param name="cutoff" type="float" size="4" value=".05" label="Filter Threshold (Value above/below row/column will be Removed)" />
+ 	
+ 	<param name="axes" type="select" label="Choose Axes to Filter on (Rows or Columns)">
+ 		<option value="Row">Row</option>
+ 		<option value="Column">Column</option>
+ 	</param>	
+ </inputs>
+ <outputs>
+ 	<data name="out_file" format="tabular" />
+ </outputs>
+ 
+ </tool>

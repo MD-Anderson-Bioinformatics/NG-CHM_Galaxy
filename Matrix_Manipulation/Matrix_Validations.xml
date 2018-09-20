@@ -1,0 +1,40 @@
+<?xml version='1.1' encoding='utf-8'?>
+<tool id="Matrix_Validations" name="Matrix Data Validation" version="2.2">
+  <description> Locate and identify non-numbers</description>
+ <command interpreter="python">Matrix_Validations.py '$p_input' 'Zero'  'Row' '$output_file'</command>
+ <inputs>
+ 	<param name="p_input" type="data" format="tabular" label="Input Matrix" />
+ 	
+ <!--  
+    <conditional name="extra">
+ 	<param name="replacement" type="select" label="Choose Replacement Type for Non-Numeric Data Cells">
+ 		<option value="Mean">Mean</option>
+ 		<option value="Zero">Zero</option>
+ 	</param>
+		<when value="Mean">
+	 		<param name="axes" type="select" label="Choose Axes To Calculate Cell Replacement Value">
+				<option value="Row">Row</option>
+	 			<option value="Column">Column</option>
+	 		</param>
+	    </when>
+ 		<when value="Zero">
+	 		<param name="axes" type="text" size="10" hidden="true" value="Row"/>
+	    </when>
+    </conditional>
+--> 	
+<!--   replace by when above  to place zero values doesn't matter if by row or column 
+ 	<param name="axes" type="select" label="Choose Axes To Calculate Cell Replacement Value">
+		<option value="Row">Row</option>
+ 		<option value="Column">Column</option>
+ 	</param>
+ --> 		
+ 	
+ 	
+ </inputs>
+ 
+ <outputs>
+ 	<data name="output_file" format="txt" />
+ </outputs>
+ 
+ </tool>
+ 
