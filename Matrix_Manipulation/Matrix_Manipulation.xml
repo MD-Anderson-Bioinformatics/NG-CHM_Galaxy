@@ -1,27 +1,28 @@
 <?xml version='1.1' encoding='utf-8'?>
 <tool id="Matrix_Manipulation" name="Matrix Manipulation" version="1.2.4">
-
+	 <description> before creating heatmap</description>
 
 	
 	<!-- TODO: need to figure out how to execute proper .py file with correct inputs -->
 	<command interpreter="python">
-	
-	if $manipulation.option == "Matrix_Filters":
-		python '$__tool_directory__/Matrix_Filters.py' '$p_input' '${manipulation.extra.choice}' '${manipulation.extra.thresh}' '${manipulation.axis}' '$output_file'
-	elif $manipulation.option == "Matrix_Multiply":
-		python '$__tool_directory__/Matrix_Multiply.py' '${manipulation.extra.input1}' '${manipulation.extra.transpose}' '${manipulation.extra.input2}' '${manipulation.extra.choice}' '$output_file'
-	elif $manipulation.option == "Matrix_Statistics":
-		python '$__tool_directory__/Matrix_Statistics.py' '${manipulation.input}' '${manipulation.choice}' '${manipulation.cutoff}' '${manipulation.axis}' '$out_file'
-	elif $manipulation.option == "Matrix_Transformations":
-		python '$__tool_directory__/Matrix_Transformations.py' '${manipulation.p_input}' '${manipulation.choice}' '${manipulation.axis}' '${manipulation.scalevalue}' '${manipulation.offsetvalue}' '$output_file'
-	elif $manipulation.option == "Matrix_Validations":
+	if '${manipulation.option}' == "Matrix_Filters":
+		python '$__tool_directory__/Matrix_Filters.py' '$p_input '${manipulation.extra.choice}' '${manipulation.extra.thresh}' '${manipulation.axis}' '$output_file'
+	elif '${manipulation.option}' == "Matrix_Multiply":
+		python '$__tool_directory__/Matrix_Multiply.py' '$p_input' '${manipulation.extra.transpose}' '${manipulation.extra.input2}' '${manipulation.extra.choice}' '$output_file'
+	elif '${manipulation.option}' == "Matrix_Statistics":
+		python '$__tool_directory__/Matrix_Statistics.py' '$p_input' '$choice' '$cutoff' '$axis' '$out_file'
+	elif '${manipulation.option}' == "Matrix_Transformations":
+		python '$__tool_directory__/Matrix_Transformations.py' '$p_input' '$choice' '$axis' '$scalevalue' '$offsetvalue' '$output_file'
+	elif '${manipulation.option}' == "Matrix_Validations":
 		python '$__tool_directory__/Matrix_Validations.py' '$p_input' '${manipulation.extra.replacement}'  '${manipulation.extra.axis}' '$output_file'
-	elif $manipulation.option == "Split_ExcelTabs_IntoFiles":
-		python '$__tool_directory__/Split_ExcelTabs_IntoFiles.py' '$input' '' '${manipulation.extra.tabnumber}' '$output_file'
-	
+	else:
+		
+	#end if
+		
 	</command>
 	
 	 <inputs>
+	<param name="p_input" type="data" format="tabular" label="Input Matrix" />
 	<conditional name="manipulation">
 		<param name="option" type="select" label="Choose Manipulation Method">
 			<option value="Matrix_Filters">Filter matrix by rows or columns based on specified threshold</option>
@@ -71,14 +72,11 @@
 							<param name="thresh" type="float" size="5" value="90" label="Percentile minimum" help="Below percentile rows/cols removed."/>
 					    </when> 	
 				    </conditional>
-				 <!-- 	
-				 	<param name="thresh" type="float" size="4" value=".05" label="Filter Threshold (Value above/below row/column will be Removed)" />
-				--> 	
 				 	<param name="axis" type="select" label="Choose axis to Filter on (Rows or Columns)">
 				 		<option value="Row">Row</option>
 				 		<option value="Column">Column</option>
 				 	</param>
-				 	<param name="p_input" type="data" format="tabular" label="Input Matrix" />
+				 	<!-- <param name="p_input" type="data" format="tabular" label="Input Matrix" /> -->
 				 	
 				 <!-- <outputs>
 				 	<data name="output_file" format="tabular" />
@@ -145,7 +143,7 @@
 				  		<option value="Histogram">Plot info about either matrix row/column</option>
 				  	</param>
 				
-				 	<param name="input" type="data" format="tabular" label="Heat Map Matrix" />
+				 	<!-- <param name="input" type="data" format="tabular" label="Heat Map Matrix" /> -->
 				 	 	
 				 	<param name="cutoff" type="float" size="4" value=".05" label="Filter Threshold (Value above/below row/column will be Removed)" />
 				 	
@@ -241,7 +239,7 @@
 					    </when>
 				    </conditional>
 				
-				 	<param name="p_input" type="data" format="tabular" label="Input Matrix"> </param>
+				 	<!-- <param name="p_input" type="data" format="tabular" label="Input Matrix"> </param> -->
 				
 				<!--  need scipy!!!!
 						<option value="rank">Rank Normalization</option>
@@ -267,7 +265,7 @@
 		 	
 		 	<when value="Matrix_Validations">
 		 		<!-- <description> Locate and identify non-numbers</description> -->
-				 	<param name="p_input" type="data" format="tabular" label="Input Matrix" />
+				 	<!-- <param name="p_input" type="data" format="tabular" label="Input Matrix" /> -->
 				 	
 				    <conditional name="extra">
 				 	<param name="replacement" type="select" label="Choose Replacement Type for Non-Numeric Data Cells">
