@@ -1,6 +1,6 @@
 ##### BASE #####
 
-FROM bgruening/galaxy-stable
+FROM bgruening/galaxy-stable:1503
 
 ##### APT-GET #####
 RUN apt-get update

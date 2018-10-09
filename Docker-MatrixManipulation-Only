@@ -13,7 +13,11 @@
 FROM bgruening/galaxy-stable:17.09
 
 ##### APT-GET #####
-#RUN apt-get update
+RUN apt-get update
+#RUN apt-get install python3-matplotlib
+#RUN sudo apt-get build-dep python-matplotlib
+#RUN apt-get install python-matplotlib
+RUN  echo y | sudo apt-get install python-matplotlib
 
 #fix SSL to prevent errors  https://urllib3.readthedocs.io/en/latest/user-guide.html#ssl-py2
 #RUN sudo pip install --upgrade pip
