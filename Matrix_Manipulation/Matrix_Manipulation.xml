@@ -4,7 +4,24 @@
 
 	
 	<!-- TODO: need to figure out how to execute proper .py file with correct inputs -->
+	<command interpreter="bash" detect_errors="aggressive">
+		$__tool_directory__/Matrix_Manipulation.sh '$__tool_directory__' '${manipulation.option}' '$p_input' '$output_file' 
+			'${manipulation.extra.choice}' '${manipulation.extra.thresh}' '${manipulation.extra.axis}' 
+			'${manipulation.extra.transpose}' '${manipulation.extra.input2}' '${manipulation.extra.offsetvalue}' '${manipulation.extra.scalevalue}'
+			
+	</command>
+	
+	<!-- 
+	
+	
+	$__tool_directory__/Matrix_Manipulation.sh '${manipulation.option}' '$p_input' '$output_file' `#Default inputs 1-3`/
+				'${manipulation.extra_filters.choice}' '${manipulation.extra_filters.thresh}' '${manipulation.axis}' `#Filters` \
+				'${manipulation.extra_multiply.transpose}' '${manipulation.extra_multiply.input2}' '${manipulation.extra_multiply.choice}' `#Multiply` \
+				'$choice' '$thresh' '$axis' `#Statistics` \
+				'$choice' '$axis' '$scalevalue' '$offsetvalue' `#Transforms`
+	
 	<command interpreter="python">
+	print('enter command')
 	if '${manipulation.option}' == "Matrix_Filters":
 		python '$__tool_directory__/Matrix_Filters.py' '$p_input '${manipulation.extra.choice}' '${manipulation.extra.thresh}' '${manipulation.axis}' '$output_file'
 	elif '${manipulation.option}' == "Matrix_Multiply":
@@ -16,11 +33,9 @@
 	elif '${manipulation.option}' == "Matrix_Validations":
 		python '$__tool_directory__/Matrix_Validations.py' '$p_input' '${manipulation.extra.replacement}'  '${manipulation.extra.axis}' '$output_file'
 	else:
-		
-	#end if
-		
-	</command>
-	
+		print('no selection made')
+	 </command>
+	 -->
 	 <inputs>
 	<param name="p_input" type="data" format="tabular" label="Input Matrix" />
 	<conditional name="manipulation">
@@ -34,271 +49,310 @@
 		</param>
 	
 			<when value="Matrix_Filters">
-				<!-- <description> rows or columns based on specified threshold</description> -->
-				
-				     <conditional name="extra">
-				      <param name="choice" type="select" label="Choose Metric to Filter By">
-				 		<option value="LowerLimit">Remove row/column if any cell is less than threshold value</option>
-				 		<option value="UpperLimit">Remove row/column if any cell is greater than threshold value</option>
-				 		<option value="NANnumber">Remove row/column if number NAN cells exceeds threshold value </option>
-				 		<option value="NANpercent">Remove row/column if NAN cells exceeds threshold percent</option>
-				 		<option value="VarianceValue">Remove row/column if Variance is below threshold value</option>
-				 		<option value="VarianceCount">Remove row/column if Variance is not in top row/column count</option>
-				 		<option value="VariancePercent">Remove row/column if Variance is not in top percent</option>
-				 		<option value="MADcount">Remove row/column if Median Absolute Deviation (MAD) is not in top row/column count</option>
-				 		<option value="MADpercent">Remove row/column if Median Absolute Deviation (MAD) is not in top percent</option>
-				<!-- 	<option value="Covariance">Remove row/column if covariance exceeds threshold value</option>
-				    	<option value="Median">Remove row/column if Median is less than threshold value</option>
-				 		<option value="MADvalue">Remove row/column if Median Absolute Deviation (MAD) is below threshold value</option>
-				 		<option value="Mean">Remove row/column if Mean is less than threshold value</option>
-				 		<option value="Quantile">Remove row/column if less than Quantile_Cutoff</option>
-				 		<option value="GeneList">Keep only these genes</option>
-				 		<option value="Histogram">View filter histogram</option>
-				 --> 
-				  	</param>
-				 	    <when value="LowerLimit">
-							<param name="thresh" type="float" size="5" value="0.01" label="Absolute minimum value" help="Lowest value allowed or row/col removed."/>
-					    </when>
-				 	    <when value="UpperLimit">
-							<param name="thresh" type="float" size="5" value="0.9" label="Absolute maximum value" help="Highest value allowed or row/col removed."/>
-					    </when>
-				 	    <when value="NANnumber">
-							<param name="thresh" type="float" size="5" value="50" label="Maximum number NANs" help="More NANs per row/col removed."/>
-					    </when>
-				  	    <when value="NANpercent">
-							<param name="thresh" type="float" size="5" value="20" label="Percent maximum" help="Above percent rows/cols removed."/>
-					    </when>
-				  	    <when value="Variance">
-							<param name="thresh" type="float" size="5" value="90" label="Percentile minimum" help="Below percentile rows/cols removed."/>
-					    </when> 	
-				    </conditional>
-				 	<param name="axis" type="select" label="Choose axis to Filter on (Rows or Columns)">
-				 		<option value="Row">Row</option>
-				 		<option value="Column">Column</option>
-				 	</param>
-				 	<!-- <param name="p_input" type="data" format="tabular" label="Input Matrix" /> -->
-				 	
-				 <!-- <outputs>
-				 	<data name="output_file" format="tabular" />
-				 </outputs> -->
+			     <conditional name="extra">
+			      <param name="choice" type="select" label="Choose Metric to Filter By">
+			 		<option value="LowerLimit">Remove row/column if any cell is less than threshold value</option>
+			 		<option value="UpperLimit">Remove row/column if any cell is greater than threshold value</option>
+			 		<option value="NANnumber">Remove row/column if number NAN cells exceeds threshold value </option>
+			 		<option value="NANpercent">Remove row/column if NAN cells exceeds threshold percent</option>
+			 		<option value="VarianceValue">Remove row/column if Variance is below threshold value</option>
+			 		<option value="VarianceCount">Remove row/column if Variance is not in top row/column count</option>
+			 		<option value="VariancePercent">Remove row/column if Variance is not in top percent</option>
+			 		<option value="MADcount">Remove row/column if Median Absolute Deviation (MAD) is not in top row/column count</option>
+			 		<option value="MADpercent">Remove row/column if Median Absolute Deviation (MAD) is not in top percent</option>
+			<!-- 	<option value="Covariance">Remove row/column if covariance exceeds threshold value</option>
+			    	<option value="Median">Remove row/column if Median is less than threshold value</option>
+			 		<option value="MADvalue">Remove row/column if Median Absolute Deviation (MAD) is below threshold value</option>
+			 		<option value="Mean">Remove row/column if Mean is less than threshold value</option>
+			 		<option value="Quantile">Remove row/column if less than Quantile_Cutoff</option>
+			 		<option value="GeneList">Keep only these genes</option>
+			 		<option value="Histogram">View filter histogram</option>
+			 --> 
+			  	</param>
+			 	    <when value="LowerLimit">
+						<param name="thresh" type="float" size="5" value="0.01" label="Absolute minimum value" help="Lowest value allowed or row/col removed."/>
+						<param name="axis" type="select" label="Choose axis to Filter on (Rows or Columns)">
+					 		<option value="Row">Row</option>
+					 		<option value="Column">Column</option>
+					 	</param>
+					 	
+					 	<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+				 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+					 	<param name="transpose" type="text" size="10" hidden="true"  value="n" />
+					 	<param name="input2" type="data" hidden="true"  value="$input1" />
+				    </when>
+			 	    <when value="UpperLimit">
+						<param name="thresh" type="float" size="5" value="0.9" label="Absolute maximum value" help="Highest value allowed or row/col removed."/>
+						<param name="axis" type="select" label="Choose axis to Filter on (Rows or Columns)">
+					 		<option value="Row">Row</option>
+					 		<option value="Column">Column</option>
+					 	</param>
+					 	
+					 	<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+				 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+					 	<param name="transpose" type="text" size="10" hidden="true"  value="n" />
+					 	<param name="input2" type="data" hidden="true"  value="$input1" />
+				    </when>
+			 	    <when value="NANnumber">
+						<param name="thresh" type="float" size="5" value="50" label="Maximum number NANs" help="More NANs per row/col removed."/>
+						<param name="axis" type="select" label="Choose axis to Filter on (Rows or Columns)">
+					 		<option value="Row">Row</option>
+					 		<option value="Column">Column</option>
+					 	</param>
+					 	
+					 	<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+				 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+					 	<param name="transpose" type="text" size="10" hidden="true"  value="n" />
+					 	<param name="input2" type="data" hidden="true"  value="$input1" />
+				    </when>
+			  	    <when value="NANpercent">
+						<param name="thresh" type="float" size="5" value="20" label="Percent maximum" help="Above percent rows/cols removed."/>
+						<param name="axis" type="select" label="Choose axis to Filter on (Rows or Columns)">
+					 		<option value="Row">Row</option>
+					 		<option value="Column">Column</option>
+					 	</param>
+					 	
+					 	<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+				 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+					 	<param name="transpose" type="text" size="10" hidden="true"  value="n" />
+					 	<param name="input2" type="data" hidden="true"  value="$input1" />
+				    </when>
+			  	    <when value="Variance">
+						<param name="thresh" type="float" size="5" value="90" label="Percentile minimum" help="Below percentile rows/cols removed."/>
+						<param name="axis" type="select" label="Choose axis to Filter on (Rows or Columns)">
+					 		<option value="Row">Row</option>
+					 		<option value="Column">Column</option>
+					 	</param>
+					 	
+					 	<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+				 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+					 	<param name="transpose" type="text" size="10" hidden="true"  value="n" />
+					 	<param name="input2" type="data" hidden="true"  value="$input1" />
+				    </when> 	
+			 	</conditional>
 			</when>
 		
 		
-		
 			<when value="Matrix_Multiply">
-				<!-- <description> one matrix using one or two matrices</description> -->
-				
-				    <conditional name="extra">
-				    	<param name="choice" type="select" label="Choose composition type">
-					 		<option value="MatrixMultiply">Matrix Multiplication</option> 
-					 		<option value="Corr2Matrices">Correlate two matrices</option> 
-					 		<option value="Corr1Matrix">Correlate one matrix with itself</option> 
-					  	</param>	
-				
-					 	 <when value="MatrixMultiply">
-						 	<param name="input1" type="data" format="tabular" label="First Input Matrix size NxM" />
-						 	<param name="transpose" type="select" label="transpose matrix?">
-							  <option value="y">Transpose matrix</option>
-							  <option value="n" selected="true">Do Not transpose matrix</option>
-						 	</param> 	
-						 	<param name="input2" type="data" format="tabular" label="Second Input Matrix size NxP" />
-						 </when>
-					 	 <when value="Corr2Matrices">
-						 	<param name="input1" type="data" format="tabular" label="First Input Matrix size NxM" />
-						 	<param name="transpose" type="select" label="transpose matrix?">
-							  <option value="y">Transpose matrix</option>
-							  <option value="n" selected="true">Do Not transpose matrix</option>
-						 	</param> 	
-						 	<param name="input2" type="data" format="tabular" label="Second Input Matrix size NxP" />
-						 </when>
-					 	 <when value="Corr1Matrix">
-						 	<param name="input1" type="data" format="tabular" label="Input Matrix" />
-						 	<param name="transpose" type="text" size="10" hidden="true"  value="n" />
-						 	<param name="input2" type="data" hidden="true"  value="$input1" />
-						 </when>
-				   </conditional>
-				 	
-				  	
-				<!--  	<param name="thresh" type="float" size="4" value=".05" label="Filter Threshold (axis with Metric below Threshold will be Removed)" />
-				 	<param name="transpose" type="select" multiple="false" display="checkboxes" label="transpose first matrix?">
-				 	
-				 	<param name="axis" type="select" label="Chose axis to Filter on (Rows or Columns)">
-				 		<option value="Row">Row</option>
-				 		<option value="Column">Column</option>
-				 	</param>
-				 -->	
-				 <!-- </inputs> -->
-				 
-				 <!-- <outputs>
-				 	<data name="output_file" format="tabular" />
-				 </outputs> -->
+			    <conditional name="extra">
+			    	<param name="choice" type="select" label="Choose composition type">
+				 		<option value="MatrixMultiply">Matrix Multiplication</option> 
+				 		<option value="Corr2Matrices">Correlate two matrices</option> 
+				 		<option value="Corr1Matrix">Correlate one matrix with itself</option> 
+				  	</param>	
+				 	 <when value="MatrixMultiply">
+					 	<param name="transpose" type="select" label="transpose matrix?">
+						  <option value="y">Transpose matrix</option>
+						  <option value="n" selected="true">Do Not transpose matrix</option>
+					 	</param> 	
+					 	<param name="input2" type="data" format="tabular" label="Second Input Matrix size NxP" />
+					 	
+					 	<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+				 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+					 	<param name="thresh" type="float" size="4" value=".05" hidden="true" />
+					 	<param name="axis" type="text" size="10" hidden="true" value="Row"/>
+					 </when>
+				 	 <when value="Corr2Matrices">
+					 	<param name="transpose" type="select" label="transpose matrix?">
+						  <option value="y">Transpose matrix</option>
+						  <option value="n" selected="true">Do Not transpose matrix</option>
+					 	</param> 	
+					 	<param name="input2" type="data" format="tabular" label="Second Input Matrix size NxP" />
+					 	
+					 	<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+				 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+					 	<param name="thresh" type="float" size="4" value=".05" hidden="true" />
+					 	<param name="axis" type="text" size="10" hidden="true" value="Row"/>
+					 </when>
+				 	 <when value="Corr1Matrix">
+					 	<param name="transpose" type="text" size="10" hidden="true"  value="n" />
+					 	<param name="input2" type="data" hidden="true"  value="$input1" />
+					 	
+					 	<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+				 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+					 	<param name="thresh" type="float" size="4" value=".05" hidden="true" />
+					 	<param name="axis" type="text" size="10" hidden="true" value="Row"/>
+					 </when>
+			   </conditional>
 		 	</when>
-		 	
 		 	
 		 	
 		 	
 		 	<when value="Matrix_Statistics">
-		 		<!-- <description>View metadata about Heat Map Matrix</description> -->
-				 	<param name="choice" type="select" label="Choose Metric to Filter By">
-				  		<option value="Histogram">Plot info about either matrix row/column</option>
-				  	</param>
-				
-				 	<!-- <param name="input" type="data" format="tabular" label="Heat Map Matrix" /> -->
-				 	 	
-				 	<param name="cutoff" type="float" size="4" value=".05" label="Filter Threshold (Value above/below row/column will be Removed)" />
-				 	
-				 	<param name="axis" type="select" label="Choose axis to Filter on (Rows or Columns)">
-				 		<option value="Row">Row</option>
-				 		<option value="Column">Column</option>
-				 	</param>	
-				 <!-- </inputs> -->
-				 <!-- <outputs>
-				 	<data name="out_file" format="tabular" />
-				 </outputs> -->
+			 	<conditional name="extra">
+				    <param name="choice" type="select" label="Choose Metric to Filter By">
+				 		<option value="Histogram">Plot info about either matrix row/column</option>
+				  	</param>	
+				  	<when value = "Histogram">
+					 	<param name="thresh" type="float" size="4" value=".05" label="Filter Threshold (Value above/below row/column will be Removed)" />
+					 	<param name="axis" type="select" label="Choose axis to Filter on (Rows or Columns)">
+					 		<option value="Row">Row</option>
+					 		<option value="Column">Column</option>
+					 	</param>	
+					 	
+					 	<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+				 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+					 	<param name="transpose" type="text" size="10" hidden="true"  value="n" />
+					 	<param name="input2" type="data" hidden="true"  value="$input1" />
+				 	</when>
+			 	</conditional>
 		 	</when>
 		 	
 		 	
 		 	
-		 	
 		 	<when value="Matrix_Transformations">
-		 	<!-- 	<description> by Rows, Columns, All by method</description> -->
-				    <conditional name="extra">
-				 	  <param name="choice" type="select" label="Choose Normalization Method">
-				 		<option value="mean_center_normalization">Mean Centered Normalization</option>
-				 		<option value="median_center_normalization">Median Centered Normalization</option>
-				 		<option value="ln_normalization">Log2 Normalization w offset</option>
-				 		<option value="log_normalization">Log10 Normalization w offset</option>
-				 		<option value="z_score_normalization">Z-Score Normalization</option>
-						<option value="transpose">Matrix Transpose</option>
-				 		<option value="add_offset">Add Offset Value</option>
-				 		<option value="scale">Scale by Multiple</option>
-				 		<option value="divide_by_sum">Divide by Sum</option>
-					  </param>
-				 	    <when value="add_offset">
-							<param name="offsetvalue" type="text" size="10" value="0.0" label="Matrix Values offset" help="Add value to each Matrix element."/>
-					 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
-					 		<param name="axis" type="text" size="10" hidden="true"  value="neither"/>
-					    </when>
-					    <when value="scale">
-							<param name="scalevalue" type="text" size="10" value="1.0" label="Matrix Value scaling" help="multiply value with each Matrix element."/>
-					 		<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
-					 		<param name="axis" type="text" size="10" hidden="true"  value="neither"/>
-					    </when>
-					    <when value="ln_normalization">
-							<param name="offsetvalue" type="text" size="10" value="0.0" label="Matrix Values offset" help="Calculate log2 for each Matrix element then add offset."/>
-					 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
-				 			<param name="axis" type="select" label="Choose Axis">
-				 				<option value="Row">Row</option>
-				 				<option value="Column">Column</option>
-				 			</param>
-					    </when>
-					    <when value="log_normalization">
-							<param name="offsetvalue" type="text" size="10" value="0.0" label="Matrix Values offset" help="Calculate log10 for each Matrix element then add offset."/>
-					 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
-				 			<param name="axis" type="select" label="Choose Axis">
-				 				<option value="Row">Row</option>
-				 				<option value="Column">Column</option>
-				 			</param>
-					    </when>	
-				 		<when value="z_score_normalization">
-					 		<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
-					 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
-				 			<param name="axis" type="select" label="Choose Axis">
-				 				<option value="Row">Row</option>
-				 				<option value="Column">Column</option>
-				 			</param>
-					    </when> 		
-				 		<when value="mean_center_normalization">
-					 		<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
-					 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
-				 			<param name="axis" type="select" label="Choose Axis">
-				 				<option value="Row">Row</option>
-				 				<option value="Column">Column</option>
-				 			</param>
-					    </when>
-				 		<when value="median_center_normalization">
-					 		<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
-					 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
-				 			<param name="axis" type="select" label="Choose Axis">
-				 				<option value="Row">Row</option>
-				 				<option value="Column">Column</option>
-				 			</param>
-					    </when>
-						<when value="transpose">
-					 		<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
-					 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
-					 		<param name="axis" type="text" size="10" hidden="true"  value="neither"/>
-					    </when>
-				 		<when value="divide_by_sum">
-					 		<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
-					 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
-				 			<param name="axis" type="select" label="Choose Axis">
-				 				<option value="Row">Row</option>
-				 				<option value="Column">Column</option>
-				 			</param>
-					    </when>
-				    </conditional>
-				
-				 	<!-- <param name="p_input" type="data" format="tabular" label="Input Matrix"> </param> -->
-				
-				<!--  need scipy!!!!
-						<option value="rank">Rank Normalization</option>
-						<when value="rank">
-					 		<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
-					 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
-					    </when>
-				 	
-				 	<param name="axis" type="select" label="Choose Axis">
-				 		<option value="Row">Row</option>
-				 		<option value="Column">Column</option>
-				 	</param>
-				--> 	
-				 <!-- </inputs> -->
-				
-				 <!-- <outputs>
-				 	<data name="output_file" format="tabular" />
-				 </outputs> -->
+			    <conditional name="extra">
+			 	  <param name="choice" type="select" label="Choose Normalization Method">
+			 		<option value="mean_center_normalization">Mean Centered Normalization</option>
+			 		<option value="median_center_normalization">Median Centered Normalization</option>
+			 		<option value="ln_normalization">Log2 Normalization w offset</option>
+			 		<option value="log_normalization">Log10 Normalization w offset</option>
+			 		<option value="z_score_normalization">Z-Score Normalization</option>
+					<option value="transpose">Matrix Transpose</option>
+			 		<option value="add_offset">Add Offset Value</option>
+			 		<option value="scale">Scale by Multiple</option>
+			 		<option value="divide_by_sum">Divide by Sum</option>
+				  </param>
+			 	    <when value="add_offset">
+						<param name="offsetvalue" type="text" size="10" value="0.0" label="Matrix Values offset" help="Add value to each Matrix element."/>
+				 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+				 		<param name="axis" type="text" size="10" hidden="true"  value="neither"/>
+				 		
+				 		<param name="thresh" type="float" size="4" value=".05" hidden="true" />
+				 		<param name="transpose" type="text" size="10" hidden="true"  value="n" />
+				 		<param name="input2" type="data" hidden="true"  value="$input1" />
+				    </when>
+				    <when value="scale">
+						<param name="scalevalue" type="text" size="10" value="1.0" label="Matrix Value scaling" help="multiply value with each Matrix element."/>
+				 		<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+				 		<param name="axis" type="text" size="10" hidden="true"  value="neither"/>
+				 		
+				 		<param name="thresh" type="float" size="4" value=".05" hidden="true" />
+				 		<param name="transpose" type="text" size="10" hidden="true"  value="n" />
+				 		<param name="input2" type="data" hidden="true"  value="$input1" />
+				    </when>
+				    <when value="ln_normalization">
+						<param name="offsetvalue" type="text" size="10" value="0.0" label="Matrix Values offset" help="Calculate log2 for each Matrix element then add offset."/>
+				 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+			 			<param name="axis" type="select" label="Choose Axis">
+			 				<option value="Row">Row</option>
+			 				<option value="Column">Column</option>
+			 			</param>
+			 			
+			 			<param name="thresh" type="float" size="4" value=".05" hidden="true" />
+			 			<param name="transpose" type="text" size="10" hidden="true"  value="n" />
+			 			<param name="input2" type="data" hidden="true"  value="$input1" />
+				    </when>
+				    <when value="log_normalization">
+						<param name="offsetvalue" type="text" size="10" value="0.0" label="Matrix Values offset" help="Calculate log10 for each Matrix element then add offset."/>
+				 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+			 			<param name="axis" type="select" label="Choose Axis">
+			 				<option value="Row">Row</option>
+			 				<option value="Column">Column</option>
+			 			</param>
+			 			
+			 			<param name="thresh" type="float" size="4" value=".05" hidden="true" />
+			 			<param name="transpose" type="text" size="10" hidden="true"  value="n" />
+			 			<param name="input2" type="data" hidden="true"  value="$input1" />
+				    </when>	
+			 		<when value="z_score_normalization">
+				 		<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+				 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+			 			<param name="axis" type="select" label="Choose Axis">
+			 				<option value="Row">Row</option>
+			 				<option value="Column">Column</option>
+			 			</param>
+			 			
+			 			<param name="thresh" type="float" size="4" value=".05" hidden="true" />
+			 			<param name="transpose" type="text" size="10" hidden="true"  value="n" />
+			 			<param name="input2" type="data" hidden="true"  value="$input1" />
+				    </when> 		
+			 		<when value="mean_center_normalization">
+				 		<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+				 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+			 			<param name="axis" type="select" label="Choose Axis">
+			 				<option value="Row">Row</option>
+			 				<option value="Column">Column</option>
+			 			</param>
+			 			
+			 			<param name="thresh" type="float" size="4" value=".05" hidden="true" />
+			 			<param name="transpose" type="text" size="10" hidden="true"  value="n" />
+			 			<param name="input2" type="data" hidden="true"  value="$input1" />
+				    </when>
+			 		<when value="median_center_normalization">
+				 		<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+				 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+			 			<param name="axis" type="select" label="Choose Axis">
+			 				<option value="Row">Row</option>
+			 				<option value="Column">Column</option>
+			 			</param>
+			 			
+			 			<param name="thresh" type="float" size="4" value=".05" hidden="true" />
+			 			<param name="transpose" type="text" size="10" hidden="true"  value="n" />
+			 			<param name="input2" type="data" hidden="true"  value="$input1" />
+				    </when>
+					<when value="transpose">
+				 		<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+				 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+				 		<param name="axis" type="text" size="10" hidden="true"  value="neither"/>
+				 		
+				 		<param name="thresh" type="float" size="4" value=".05" hidden="true" />
+				 		<param name="transpose" type="text" size="10" hidden="true"  value="n" />
+				 		<param name="input2" type="data" hidden="true"  value="$input1" />
+				    </when>
+			 		<when value="divide_by_sum">
+				 		<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+				 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+			 			<param name="axis" type="select" label="Choose Axis">
+			 				<option value="Row">Row</option>
+			 				<option value="Column">Column</option>
+			 			</param>
+			 			
+			 			<param name="thresh" type="float" size="4" value=".05" hidden="true" />
+			 			<param name="transpose" type="text" size="10" hidden="true"  value="n" />
+			 			<param name="input2" type="data" hidden="true"  value="$input1" />
+				    </when>
+			    </conditional>
 		 	</when>
 		 	
 		 	
 		 	
 		 	
 		 	<when value="Matrix_Validations">
-		 		<!-- <description> Locate and identify non-numbers</description> -->
-				 	<!-- <param name="p_input" type="data" format="tabular" label="Input Matrix" /> -->
-				 	
-				    <conditional name="extra">
-				 	<param name="replacement" type="select" label="Choose Replacement Type for Non-Numeric Data Cells">
+			    <conditional name="extra">
+				 	<param name="choice" type="select" label="Choose Replacement Type for Non-Numeric Data Cells">
 				 		<option value="Mean">Mean</option>
 				 		<option value="Zero">Zero</option>
 				 	</param>
-						<when value="Mean">
-					 		<param name="axis" type="select" label="Choose Axis To Calculate Cell Replacement Value">
-								<option value="Row">Row</option>
-					 			<option value="Column">Column</option>
-					 		</param>
-					    </when>
-				 		<when value="Zero">
-					 		<param name="axis" type="text" size="10" hidden="true" value="Row"/>
-					    </when>
-				    </conditional>
-				<!--   replace by when above  to place zero values doesn't matter if by row or column 
-				 	<param name="axis" type="select" label="Choose axis To Calculate Cell Replacement Value">
-						<option value="Row">Row</option>
-				 		<option value="Column">Column</option>
-				 	</param>
-				 --> 		
-				 
-				<!--  <outputs>
-				 	<data name="output_file" format="txt" />
-				 </outputs> -->
+					<when value="Mean">
+				 		<param name="axis" type="select" label="Choose Axis To Calculate Cell Replacement Value">
+							<option value="Row">Row</option>
+				 			<option value="Column">Column</option>
+				 		</param>
+				 		
+				 		<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+				 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+				 		<param name="thresh" type="float" size="4" value=".05" hidden="true" />
+				 		<param name="transpose" type="text" size="10" hidden="true"  value="n" />
+				 		<param name="input2" type="data" hidden="true"  value="$input1" />
+				    </when>
+			 		<when value="Zero">
+				 		<param name="axis" type="text" size="10" hidden="true" value="Row"/>
+				 		
+				 		<param name="offsetvalue" type="text" size="10" hidden="true"   value="0"/>
+				 		<param name="scalevalue" type="text" size="10" hidden="true"   value="1.0"/>
+				 		<param name="thresh" type="float" size="4" value=".05" hidden="true" />
+				 		<param name="transpose" type="text" size="10" hidden="true"  value="n" />
+				 		<param name="input2" type="data" hidden="true"  value="$input1" />
+				    </when>
+			    </conditional>
 		 	</when>
 		 	
 		 	
 		 	
 		 	
-		 	<when value="Split_ExcelTabs_IntoFiles">
-		 		<!-- <description>into separate tab delimited files</description> -->
+		 	<!-- <when value="Split_ExcelTabs_IntoFiles">
+		 		<description>into separate tab delimited files</description>
 				
 				 	<param name="input" type="data" format="txt" label="Input Excel.xls or Excel.xlsx file"> </param>
 				 		
@@ -306,7 +360,7 @@
 				 	  <param name="choice" type="select" label="Select tab" help="Select tab position or name">
 						<option value="tab_number">Tab number</option>
 				  	  </param>  	
-				<!--
+				
 				'$extra.tabname'
 						<option value="tab_name">Tab name</option>
 						<option value="all">All tabs in file</option>
@@ -316,17 +370,17 @@
 						<param name="tabname" type="text" size="20" value="" label="Tab Name" help="Spreadsheet Tab Name">
 						</param>
 				    </when>
-				-->
+				
 				    <when value="tab_number">
 						<param name="tabnumber" type="text" size="2" value="1" label="Tab position" help="Integer Tab position from left">
 						</param>
 				   </when>
 				  </conditional>
 				
-				 <!-- <outputs>
+				 <outputs>
 				 	<data name="output_file" format="tabular" label="Output File Name" help="Name based on Input file name and tab name"/>
-				 </outputs> -->
-		 	</when>
+				 </outputs>
+		 	</when> -->
 		 	
 		 	
 		 	

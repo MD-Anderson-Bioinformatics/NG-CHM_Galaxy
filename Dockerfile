@@ -36,11 +36,16 @@ RUN  chmod 777 /galaxy-central/tools/Advanced_Heat_Map_Creation
 
 ##### Place Matrix Manipulation software in Tools #####
 ADD ./Matrix_Manipulation/* /galaxy-central/tools/Matrix_Manipulation/
+#RUN sudo -H python -m pip install urllib3[secure]
+#RUN sudo -H python -m pip install -U pip
+#RUN sudo -H python -m pip install -U matplotlib --upgrade --ignore-installed six
+RUN PYTHONPATH='/usr/local/lib/python2.7/dist-packages/'
+#RUN  chmod +x /galaxy-central/tools/Matrix_Manipulation
 RUN  chmod 777 /galaxy-central/tools/Matrix_Manipulation
 
 ##### Modify Tool_Conf to include MDA Heatmap #####
 RUN sed -i '/<toolbox monitor="true">/a \\t<section id="Heat_Map_Creation" name="Heat Map Creation">\n\t\t<tool file="Heat_Map_Creation/mda_heatmap_gen.xml" />\n\t\t<tool file="Advanced_Heat_Map_Creation/mda_advanced_heatmap_gen.xml" />\n\t</section>' /galaxy-central/config/tool_conf.xml.sample
-RUN sed -i '/<toolbox monitor="true">/a \\t<section id="Matrix_Manipulation" name="Matrix Manipulation">\n\t\t<tool file="Matrix_Manipulation/Matrix_Manipulation.xml" />  \n\t  </section>' /galaxy-central/config/tool_conf.xml.sample
+RUN sed -i '/<toolbox monitor="true">/a \\t<section id="Matrix_Manipulation" name="Matrix Manipulation">\n\t\t<tool file="Matrix_Manipulation/Matrix_Manipulation.xml" />    </section>' /galaxy-central/config/tool_conf.xml.sample
 
 ##### Place MDA and Insilico logo on the Welcome Page #####
 RUN  chmod -777  /etc/galaxy/web/welcome_image.png
