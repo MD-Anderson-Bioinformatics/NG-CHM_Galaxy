@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <tool id="mda_heatmap_gen" name="NG-CHM Generator" version="2.3">
    <requirements>
-     <requirement type="package" version="3.4.1">r-base</requirement> 
+       <requirement type="package" version="3.4.1">r-base</requirement> 
+	   <requirement type="package" version="8.0.144">openjdk</requirement>
    </requirements>
    <description>Create Clustered Heat Maps</description>
    <command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap.sh  "standard" "Heat_Map_$hmname" "$hmdesc" '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__;$__tool_data_path__/' 0 0 labels labels 'None'

@@ -8,7 +8,7 @@ import sys, traceback, argparse
 import numpy as np
 from Matrix_Validate_import import reader, Labeler
 import math
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 #Define argparse Function
 def get_args():
@@ -135,7 +135,7 @@ def Variance_Percent_Filter_row(matrix,cutoff,row_header_list,column_header_list
     filter_cols = column_header_list
     #np.savetxt('testtest.txt',matrix,delimiter='\t')
 
-    
+    """
     if create_plot:    
         numBins  = 10
         binWidth = 1
@@ -163,7 +163,8 @@ def Variance_Percent_Filter_row(matrix,cutoff,row_header_list,column_header_list
         tot = sum(binData)       
         bins     = []                
         for j in range(numBins):
-            bins.append(j*binWidth)
+           bins.append(j*binWidth)
+           
     #ttps://pythonspot.com/matplotlib-bar-chart/
         y_pos = np.arange(numBins)
         plt.xticks(y_pos, binCat)
@@ -176,6 +177,7 @@ def Variance_Percent_Filter_row(matrix,cutoff,row_header_list,column_header_list
         fig, ax = plt.subplots(num=1, figsize=(8,3))
         
         plt.show()
+    """
 
     
     
@@ -245,6 +247,7 @@ def Variance_Percent_Filter_col(matrix,cutoff,row_header_list,column_header_list
     filter_cols = np.delete(column_header_list,deletes,0)
     #np.savetxt('testtest.txt',matrix,delimiter='\t')
 
+    """
     if create_plot:    
         numBins  = 10
         binWidth = 1
@@ -270,11 +273,13 @@ def Variance_Percent_Filter_col(matrix,cutoff,row_header_list,column_header_list
             binCat.append(str("%0.2f" % (current_bin_max - incrmnt/2.0)))
                            
         tot = sum(binData)       
-        bins     = []                
+        bins     = []
+        
         for j in range(numBins):
             bins.append(j*binWidth)
     #https://pythonspot.com/matplotlib-bar-chart/
         y_pos = np.arange(numBins)
+        
         plt.xticks(y_pos, binCat)
         plt.title("Distribution of Variance Values by Column")
         plt.ylabel('Variance  Bin Totals')
@@ -284,6 +289,7 @@ def Variance_Percent_Filter_col(matrix,cutoff,row_header_list,column_header_list
     
         fig, ax = plt.subplots(num=1, figsize=(8,3))
         plt.show()
+    """
 
     return matrix, filter_rows, filter_cols,len(deletes),minVal,maxVal
     
@@ -308,7 +314,8 @@ def UpperLowerLimit_Filter_Row(upperLower, matrix,cutoff,row_header_list,column_
                     if val > maxVal:  maxVal = val
         
         #print(temp_stdev)
-        if removeRow:  deletes = np.append(deletes,[i],0)
+        if removeRow:  
+            deletes = np.append(deletes,[i],0)
             
     #Delete Rows sub-Threshold Rows       
     matrix = np.delete(matrix,deletes,0)
@@ -545,10 +552,10 @@ def main():
         if args.choice == "VariancePercent" or args.choice == "VarianceCount":  # > percent variance
             
             if args.axes == "Row":
-                if args.choice == "VarianceCount":  threshold= len(row_header_list)*threshold/100.0
+                if args.choice == "VarianceCount":  threshold= (1-threshold/len(row_header_list))*100.0
 
                 matrix, filter_rows, filter_cols,delCnt,minVal,maxVal = Variance_Percent_Filter_row(matrix,threshold,row_header_list,column_header_list)
-                Labeler(matrix,filter_rows,filter_cols,args.output_file_txt)
+                Labeler(matrix,filter_cols,filter_rows,args.output_file_txt)
                 if delCnt < 1:
                     print('\nNO Filtering occurred for rows using variance percentile < '+str(args.thresh)+ ' by row. Matrix row minimum variance=  %.2f' % minVal+' and maximum variance=  %.2f' % maxVal)
                     sys.stderr.write('\nFiltering out rows using variance percentile < '+str(args.thresh)+ ' removed '+str(delCnt)+' rows')
@@ -556,9 +563,9 @@ def main():
                 else:   
                     print('\nFiltering out rows using variance percentile < '+str(args.thresh)+ ' removed '+str(delCnt)+' rows')
             elif args.axes == "Column":
-                if args.choice == "VarianceCount":  threshold= len(column_header_list)*threshold/100.0
+                if args.choice == "VarianceCount":  threshold= (1-threshold/len(column_header_list))*100.0
                 matrix, filter_rows, filter_cols,delCnt,minVal,maxVal = Variance_Percent_Filter_col(matrix,threshold,row_header_list,column_header_list)
-                Labeler(matrix,filter_rows,filter_cols,args.output_file_txt)
+                Labeler(matrix,filter_cols,filter_rows,args.output_file_txt)
                 if delCnt < 1:
                     print('\nNO Filtering occurred for columns using variance percentile < '+str(args.thresh)+ ' by columns. Matrix columns minimum variance=  %.2f' % minVal+' and maximum variance=  %.2f' % maxVal)
                     sys.stderr.write('\nNO Filtering out rows using variance percentile < '+str(args.thresh)+ ' removed '+str(delCnt)+' rows')
@@ -572,7 +579,7 @@ def main():
         elif args.choice == "LowerLimit":  #!! todo is NOT lower or upper limit but range of values
             if args.axes == "Row":
                 matrix, filter_rows, filter_cols,delCnt,minVal,maxVal = UpperLowerLimit_Filter_Row('lower',matrix,threshold,row_header_list,column_header_list)
-                Labeler(matrix,filter_rows,filter_cols,args.output_file_txt)
+                Labeler(matrix,filter_cols,filter_rows,args.output_file_txt)
                 if delCnt < 1:
                     print('\nNO Filtering occurred for rows using LowerLimit < '+str(args.thresh)+ ' by row. Matrix row minimum range=  %.2f' % minVal+' and maximum range=  %.2f' % maxVal)
                     sys.stderr.write('\nNO Filtering out rows using LowerLimit < '+str(args.thresh)+ ' removed '+str(delCnt)+' rows')
@@ -581,7 +588,7 @@ def main():
                     print('\nFiltered out '+str(delCnt)+' rows with Lower Limit < '+str(args.thresh))
             elif args.axes == "Column":
                 matrix, filter_rows, filter_cols,delCnt,minVal,maxVal = UpperLowerLimit_Filter_Col('lower', matrix,threshold,row_header_list,column_header_list)
-                Labeler(matrix,filter_rows,filter_cols,args.output_file_txt)
+                Labeler(matrix,filter_cols,filter_rows,args.output_file_txt)
                 if delCnt < 1:
                     print('\nNO Filtering occurred for columns using Lower Limit < '+str(args.thresh)+ ' by columns. Matrix columns minimum range=  %.2f' % minVal+' and maximum range=  %.2f' % maxVal)
                     sys.stderr.write('\nNO Filtering out rows using Lower Limit < '+str(args.thresh)+ ' removed '+str(delCnt)+' rows')
@@ -592,7 +599,7 @@ def main():
         elif args.choice == "UpperLimit":  #!! todo is NOT lower or upper limit but range of values
             if args.axes == "Row":
                 matrix, filter_rows, filter_cols,delCnt,minVal,maxVal = UpperLowerLimit_Filter_Row('upper',matrix,threshold,row_header_list,column_header_list)
-                Labeler(matrix,filter_rows,filter_cols,args.output_file_txt)
+                Labeler(matrix,filter_cols,filter_rows,args.output_file_txt)
                 if delCnt < 1:
                     print('\nNO Filtering occurred for rows using Upper Limit < '+str(args.thresh)+ ' by row. Matrix row minimum range=  %.2f' % minVal+' and maximum range=  %.2f' % maxVal)
                     sys.stderr.write('\nNO Filtering out rows using Upper Limit < '+str(args.thresh)+ ' by row. Matrix row minimum range=  %.2f' % minVal+' and maximum range=  %.2f' % maxVal)
@@ -601,7 +608,7 @@ def main():
                     print('\nFiltered out '+str(delCnt)+' rows with UpperLimit < '+str(args.thresh))
             elif args.axes == "Column":
                 matrix, filter_rows, filter_cols,delCnt,minVal,maxVal = UpperLowerLimit_Filter_Col('upper', matrix,threshold,row_header_list,column_header_list)
-                Labeler(matrix,filter_rows,filter_cols,args.output_file_txt)
+                Labeler(matrix,filter_cols,filter_rows,args.output_file_txt)
                 if delCnt < 1:
                     print('\nNO Filtering occurred for columns using UpperLimit < '+str(args.thresh)+ ' by columns. Matrix columns minimum range=  %.2f' % minVal+' and maximum range=  %.2f' % maxVal)
                     sys.stderr.write('\nFiltering out rows using UpperLimit < '+str(args.thresh)+ ' by columns. Matrix columns minimum range=  %.2f' % minVal+' and maximum range=  %.2f' % maxVal)
@@ -615,7 +622,7 @@ def main():
                 if args.choice == "MADpercent":  threshold= len(row_header_list)*threshold/100.0
 
                 matrix, filter_rows, filter_cols,delCnt,maxVal = Row_Value_MAD(matrix,threshold,row_header_list,column_header_list)
-                Labeler(matrix,filter_rows,filter_cols,args.output_file_txt)
+                Labeler(matrix,filter_cols,filter_rows,args.output_file_txt)
                 if delCnt < 1:
                     print('\nNO Filtering occurred for rows using MAD < '+str(threshold)+ ' by row. Matrix row MAD maximum value=  %.2f' % maxVal)
                     sys.stderr.write('\nFiltering out rows using MAD < '+str(threshold)+ ' by row. Matrix row  MAD maximum value=  %.2f' % maxVal)
@@ -626,7 +633,7 @@ def main():
                 if args.choice == "MADpercent":  threshold= len(column_header_list)*threshold/100.0
 
                 matrix, filter_rows, filter_cols,delCnt,maxVal = Col_Value_MAD(matrix,threshold,row_header_list,column_header_list)
-                Labeler(matrix,filter_rows,filter_cols,args.output_file_txt)
+                Labeler(matrix,filter_cols,filter_rows,args.output_file_txt)
                 if delCnt < 1:
                     print('\nNO Filtering occurred for columns using MAD < '+str(threshold)+ ' by columns. Matrix columns MAD maximum value=  %.2f' % maxVal)
                     sys.stderr.write('\nFiltering out columns using MAD < '+str(threshold)+ ' by columns. Matrix columns  MAD maximum value=  %.2f' % maxVal)
@@ -643,7 +650,7 @@ def main():
                 val= '%'  
             if args.axes == "Row":
                 matrix, filter_rows, filter_cols,delCnt, maxFoundNANs = NAN_Filter_Row(matrix,nanList,maxNANs,row_header_list,column_header_list)
-                Labeler(matrix,filter_rows,filter_cols,args.output_file_txt)
+                Labeler(matrix,filter_cols,filter_rows,args.output_file_txt)
                 if delCnt < 1:
                     print('\nNO Filtering occurred for rows using NAN limit = or > '+str(args.thresh)+val+ ' by row. Matrix row max NAN count is =' + str(maxFoundNANs ))
                     sys.stderr.write('\nNO Filtering out rows using NAN limit = or >  '+str(args.thresh)+val+ ' by row. Matrix row max NAN count is =' + str(maxFoundNANs ))
@@ -652,7 +659,7 @@ def main():
                     print('\nFiltered out '+str(delCnt)+' rows using NAN limit = or >  '+str(args.thresh)+val)
             elif args.axes == "Column":
                 matrix, filter_rows, filter_cols,delCnt, maxFoundNANs = NAN_Filter_Column(matrix, nanList, maxNANs, row_header_list, column_header_list)
-                Labeler(matrix,filter_rows,filter_cols,args.output_file_txt)
+                Labeler(matrix,filter_cols,filter_rows,args.output_file_txt)
                 if delCnt < 1:
                     print('\nNO Filtering occurred for columns using NAN limit = or > '+str(args.thresh)+val+ ' by columns. Matrix columns max NAN count is = '+ str(maxFoundNANs))
                     sys.stderr.write('\nNO Filtering out columns using NAN limit = or > '+str(args.thresh)+val+ ' by columns. Matrix columns max NAN count is = '+ str(maxFoundNANs))

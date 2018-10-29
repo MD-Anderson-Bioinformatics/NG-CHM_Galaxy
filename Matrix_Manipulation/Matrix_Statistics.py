@@ -7,7 +7,7 @@ Created on Feb2018
 import sys, traceback, argparse
 import numpy as np
 from Matrix_Validate_import import reader
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from Matrix_Filters import Variance_Percent_Filter_row, Variance_Percent_Filter_col
 
 #Define argparse Function
@@ -53,7 +53,7 @@ def Histo(matrix):
     maxBin = int(max(data)+0.5)
     binWidth = float(maxBin-minBin)/numBins
     bins= []
-    
+    """
     for j in range(numBins):
         bins.append(minBin+ j*binWidth)
     #bins= 20
@@ -75,7 +75,7 @@ def Histo(matrix):
 #    fig.savefig("/Users/bobbrown/Desktop/Matrix-tools-Test-output/Column_Mean_Histogram.png")
     
     plt.show()
-    
+    """
     return()
 
 #========== test create variable number output files in Galaxy
