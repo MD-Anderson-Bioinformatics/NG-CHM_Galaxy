@@ -8,7 +8,7 @@ import sys, traceback, argparse
 import numpy as np
 import os
 #import matplotlib.pyplot as plt
-import matplotlib.pyplot as plt; plt.rcdefaults()
+#import matplotlib.pyplot as plt; plt.rcdefaults()
 
 # Define the Reading Function Which Pulls the Data from a .txt file
 def reader(input_file_txt, create_plot= False):
@@ -17,7 +17,7 @@ def reader(input_file_txt, create_plot= False):
         
     f = open(input_file_txt, "rU")
 
-    print( 'Valid NAN identifiers are: empty cells, cells with blanks,"NA","N/A","-", and "?"')
+    #print( 'Valid NAN identifiers are: empty cells, cells with blanks,"NA","N/A","-", and "?"')
 
     column_labels = []
     row_labels = []
@@ -25,7 +25,7 @@ def reader(input_file_txt, create_plot= False):
     firstLine= True
     
     line = f.readline()
-    
+
 #    "NA","N/A","-","?","NAN","NaN","Na","na","n/a","null",EMPTY/Null, SPACE (blank char) 
 
     nanList    = ["", " ","NAN", "NA", "N/A", "-","?"]
@@ -45,7 +45,7 @@ def reader(input_file_txt, create_plot= False):
             column_labels   = line[1:]
         else:
             if lengthRow != len(line):
-                print("\nERROR matrix row lengths unequal for row 0 and row "+str(row)+"\n" )
+               # print("\nERROR matrix row lengths unequal for row 0 and row "+str(row)+"\n" )
                 sys.exit(-1)
             
             temp  = []
@@ -64,13 +64,12 @@ def reader(input_file_txt, create_plot= False):
                     if itemUC in nanList:
                         nanCnt += 1
                         binCatDict[itemUC]= binCatDict[itemUC]+1
-                        #print( 'Legit nans= ',str(item))
+                       # print( 'Legit nans= ',str(item))
                     else:
                         if nonNumCnt == 0:  sys.stderr.write("Start List of up to first 50 Invalid cell values \n")
                         nonNumCnt +=1
                         if nonNumCnt < 50:  sys.stderr.write("At row_column= "+str(row)+"_"+str(column)+' invalid data cell value '+ item+"\n")
-
-                
+                       
             matrix.append(temp)
             
         line = f.readline()
@@ -86,8 +85,7 @@ def reader(input_file_txt, create_plot= False):
     orderDict= {0:"", 1:"", 2:'-', 3:'?',4:'NA',  5:'N/A' ,6:'NAN', 7:'Text'}
 #TODO verify dict orde for data    
         #print("> key value  =",key, str(value))
-    print">>> NAN type and counts =",str(binCatDict)
-    
+
     if create_plot:    
         numBins = len(binCat)
         binWidth = 1
@@ -100,7 +98,8 @@ def reader(input_file_txt, create_plot= False):
                 binData.append(value+0.01)
             else:
                 binData.append(value)
-                
+
+        #"""
         for j in range(numBins):
             bins.append(j*binWidth)
     #ttps://pythonspot.com/matplotlib-bar-chart/
@@ -123,12 +122,16 @@ def reader(input_file_txt, create_plot= False):
     #    fig.savefig("/Users/bobbrown/Desktop/Matrix-tools-Test-output/hist-out.png")
         
         plt.show()
+        #"""
 
 #after plot error?
     x,y=np.shape(matrix)
     if nanCnt > 0: print("WARNING -- Found "+str(nanCnt)+" Valid Non-numbers. Their percent of total matrix data cell values = "+str((100*nanCnt)/(x*y))+"% ")
     if nonNumCnt > 0:  sys.exit(-1)
-    
+    #print ("reader output:")
+    #print (matrix)
+    #print (column_labels)
+    #print(row_labels)
     return matrix,column_labels,row_labels
 
 #----------------------------------------------------------------------
@@ -142,21 +145,26 @@ def MatchLabels(column_labels,row_labels):
             for k in range(0,len(column_labels)):
                 if column_labels[k] != row_labels[k] and cnt < 20:
                     cnt += 1
-                    sys.err("ERROR At column & row position "+str(k)+" Matrix 1 column value "+str(column_labels)+" not equal 2nd Matrix row value "+str(row_labels)+"\n" )
+                    #sys.err("ERROR At column & row position "+str(k)+" Matrix 1 column value "+str(column_labels)+" not equal 2nd Matrix row value "+str(row_labels)+"\n" )
             
             if cnt > 0: 
                 sys.exit(-11)
 #----------------------------------------------------------------------
 # restores row and column labels in ouput
 def Labeler(matrix,column_labels,row_labels,output_file_txt):
+    #print("matrix length: " + str(len(matrix)))
+    #print("row labels length: " + str(len(row_labels)))
+    #print("col labels length: " +str(len(column_labels)))
     #Define Null Sets For Col and Row Headers
     with open(output_file_txt,'w') as f:
         f.write("")
         for k in range(0,len(column_labels)):
                 f.write('\t' + str(column_labels[k]) )
         f.write('\n')
-        for i in range(0,len(row_labels)):
+        #for i in range(0,len(row_labels)):
+        for i in range(0,len(matrix)):
                 f.write(str(row_labels[i]) )
+                #print("matrix["+str(i)+"] length:" + str(len(matrix[i])))
                 for j in range(0,len(matrix[0])):
                         f.write('\t' + format(matrix[i][j]))
                 f.write('\n')

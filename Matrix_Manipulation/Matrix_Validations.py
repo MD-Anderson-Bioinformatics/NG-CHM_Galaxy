@@ -7,7 +7,7 @@ Created on Jun 7, 2017 modified Feb2018
 import sys, traceback, argparse
 import numpy as np
 import os
-from Matrix_Validate_import import reader
+from Matrix_Validate_import import reader, Labeler
 
 #Define The Four Arguments Used in the Program
 def get_args():
@@ -30,8 +30,10 @@ def nan_replacer_mean_rows(matrix):
     for i in range(0,len(matrix)):
         temp_mean = np.nanmean(matrix[i])
         for j in range(0,len(matrix[0])):
-            if matrix[i][j] == "NA": #np.isnan(matrix[i][j]) == True:
+            #if matrix[i][j] == "NA": #np.isnan(matrix[i][j]) == True:
+            if np.isnan(matrix[i][j]) == True:
                 matrix[i][j] = temp_mean     
+                nanCnt = nanCnt + 1
     return matrix, nonNumCnt, nanCnt
 
 #Define Function to Replace Null Values with Column Mean
@@ -45,8 +47,10 @@ def nan_replacer_mean_columns(matrix):
         col = [row[i] for row in matrix]
         temp_mean = np.nanmean(col)
         for j in range(0,len(matrix)):
-            if matrix[i][j] == "NA": #elif np.isnan(matrix[j][i]) == True:
-                matrix[j][i] = temp_mean     
+            #if matrix[i][j] == "NA": #elif np.isnan(matrix[j][i]) == True:
+            if np.isnan(matrix[j][i]) == True:
+                matrix[j][i] = temp_mean  
+                nanCnt = nanCnt + 1   
     
     return matrix, nonNumCnt, nanCnt
 
@@ -59,7 +63,8 @@ def nan_replacer_zero(matrix):
     #Loop Replacing all Null Values with Row Range
     for i in range(0,len(matrix)):
         for j in range(0,len(matrix[0])):
-            if matrix[i][j] =="NA":
+            #if matrix[i][j] =="NA":
+            if np.isnan(matrix[i][j]) == True:
                matrix[i][j] = 0
 
     return matrix, nonNumCnt, nanCnt
@@ -102,17 +107,18 @@ def main():
 #         else:
 #             print('Matrix is Good-to-Go -- all numbers in data area. ')
 
-    with open(args.output_file_txt,'w') as f:
-        f.write("Use original input file for further processing\n")
-    f.close()
-    sys.exit(0)
+    #with open(args.output_file_txt,'w') as f:
+    #    f.write("Use original input file for further processing\n")
+    #f.close()
+    #sys.exit(0)
     
 # TODO !!!!!  Below if MDA decides to use it  TURNED OFF FOR NOW
 # TODO !!!!!  Below if MDA decides to use it  TURNED OFF FOR NOW
-"""
+
     if args.replacement == "Mean":
         if args.axes == "Row":
             matrix, nonNumCnt, nanCnt = nan_replacer_mean_rows(matrix)
+            Labeler(matrix,og_cols,og_rows,args.output_file_txt)
             #OLD_labeler(matrix, og_cols, og_rows, args.output_file_txt)
             #print('Mean,Row')
             if nonNumCnt > 0:
@@ -129,6 +135,7 @@ def main():
                 sys.exit(0)
         elif args.axes == "Column":
             matrix, nonNumCnt, nanCnt = nan_replacer_mean_columns(matrix)
+            Labeler(matrix,og_cols,og_rows,args.output_file_txt)
             #OLD_labeler(matrix, og_cols, og_rows, args.output_file_txt)
             #print('Mean,Column')
             if nonNumCnt > 0:
@@ -148,6 +155,7 @@ def main():
             sys.stderr.write('Mean, but given Invalid Axis= '+str(args.axes))
     elif args.replacement == "Zero":
         matrix, nonNumCnt, nanCnt = nan_replacer_zero(matrix)
+        Labeler(matrix,og_cols,og_rows,args.output_file_txt)
         #OLD_labeler(matrix, og_cols, og_rows, args.output_file_txt)
         if nonNumCnt > 0:
             print('\nERROR Matrix has non-numbers that are non-NAN identifiers in matrix. Total and percent unknown strings found = '+str(nonNumCnt)+ ',  %.2f' % (100.0*nonNumCnt/(1.0*len(og_cols)*len(og_rows)))+'%' )
@@ -165,7 +173,7 @@ def main():
         print('zero, but given Invalid Axis= '+str(args.axes))
         sys.stderr.write('zero, but given Invalid Axis= '+str(args.axes))
         sys.exit(-2)
-"""
+
        
 if __name__ == '__main__':
     main()

@@ -252,7 +252,7 @@ def main():
                 labeler(matrix,og_cols,og_rows,args.output_file_txt)
                 print("scaling "+str(scaleValue)+" by column")
             else:
-                print("scaling "+scale+" invalid axis")
+                print("scaling "+str(scaleValue)+" invalid axis")
         elif args.choice == "transpose":
             matrix = Transpose(matrix)  #issue using same  matrix? 
             labeler(matrix,og_rows,og_cols,args.output_file_txt) #swapped row&col labels

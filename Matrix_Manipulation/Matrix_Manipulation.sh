@@ -1,21 +1,21 @@
-echo "1: " $1 # tool directory
-echo "2: " $2 # manipulation option
-echo "3: " $3 # input file
-echo "4: " $4 # output file
-echo "5: " $5 # choice
-echo "6: " $6 # thresh
-echo "7: " $7 # axis 
-echo "8: " $8 # transpose
-echo "9: " $9 # input2
-echo "10: " $10 # offsetvalue
-echo "11: " ${11} # scalevalue
+#echo "1: " $1 # tool directory
+#echo "2: " $2 # manipulation option
+#echo "3: " $3 # input file
+#echo "4: " $4 # output file
+#echo "5: " $5 # choice
+#echo "6: " $6 # thresh
+#echo "7: " $7 # axis 
+#echo "8: " $8 # transpose
+#echo "9: " $9 # input2
+#echo "10: " ${10} # offsetvalue
+#echo "11: " ${11} # scalevalue
 #echo "12: " ${12} 
 #echo "13: " ${13} 
 #echo "14: " ${14} 
 #echo "15: " ${15}
 #echo "16: " ${16}
 
-echo "tool directory is: " $1
+#echo "tool directory is: " $1
 if [ "$2" = "Matrix_Filters" ]; then
 	echo "filter chosen"
 	#python $__tool_directory__/Matrix_Filters.py '$p_input '${manipulation.extra.choice}' '${manipulation.extra.thresh}' '${manipulation.axis}' '$output_file'
