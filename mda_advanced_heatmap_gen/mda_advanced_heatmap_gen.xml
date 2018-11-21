@@ -58,7 +58,7 @@
 	        <when value="Hierarchical">
 				<param name="rowDistanceMeasure" type="select"  label="Row Distance Metric" help="For clustering, select the method of determining distance between rows.">
 					<option value="euclidean">Euclidean</option>
-					<option value="binary">Binary</option>
+					<!-- <option value="binary">Binary</option> -->
 					<option value="manhattan">Manhattan</option>
 					<option value="maximum">Maximum</option>
 					<option value="canberra">Canberra</option>	    
@@ -180,7 +180,7 @@
         <when value="Hierarchical">
 			<param name="columnDistanceMeasure" type="select"  label="Column Distance Metric" help="For clustering, select the method of determining distance between columns.">
 				<option value="euclidean">Euclidean</option>
-				<option value="binary">Binary</option>
+				<!-- <option value="binary">Binary</option> -->
 				<option value="manhattan">Manhattan</option>
 				<option value="maximum">Maximum</option>
 				<option value="canberra">Canberra</option>	    
