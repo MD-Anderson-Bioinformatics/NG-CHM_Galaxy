@@ -5,12 +5,13 @@
 
 <project default="all" name="Create Runnable Jar for Project NGCHM">
 
-  <target name="all" depends="clean, tar_heatmap_gen, tar_advanced_heatmap_gen, remove_temp ">
+  <target name="all" depends="clean, tar_heatmap_gen, tar_advanced_heatmap_gen, tar_Matrix_Manipulation, remove_temp ">
   </target>
 	 <delete>
 	    <fileset file="mda_heatmap_viz.zip"/>
 	    <fileset file="mda_heatmap_gen.tar"/>
 		<fileset file="mda_advanced_heatmap_gen.tar"/>
+		<fileset file="Matrix_Manipulation.tar"/>
 	  </delete>
   <target name="clean">
 	
@@ -44,6 +45,12 @@
 	</tar>
   </target>  	
 	
+  <target name="tar_Matrix_Manipulation">
+  	<tar destfile="Matrix_Manipulation.tar">
+  	  <tarfileset dir="Matrix_Manipulation"/>
+	</tar>
+  </target>  
+		
   <target name="remove_temp">
 	 <delete>
 	    <fileset file="mda_heatmap_viz.zip"/>
