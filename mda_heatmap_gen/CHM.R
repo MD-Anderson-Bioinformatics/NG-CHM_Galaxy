@@ -17,7 +17,7 @@
 
 performDataOrdering<-function(dataFile, rowOrderMethod, rowDistanceMeasure, rowAgglomerationMethod, colOrderMethod, colDistanceMeasure, colAgglomerationMethod,rowOrderFile, colOrderFile, rowDendroFile, colDendroFile, rowCut, colCut)
 { 
-   dataMatrix = read.table(dataFile, header=TRUE, sep = "\t", row.names = 1, as.is=TRUE, na.strings=c("NA","N/A","-","?"))
+   dataMatrix = read.table(dataFile, header=TRUE, sep = "\t", check.names = FALSE, row.names = 1, as.is=TRUE, na.strings=c("NA","N/A","-","?"))
    rowOrder <-  createOrdering(dataMatrix, rowOrderMethod, "row", rowDistanceMeasure, rowAgglomerationMethod)  
    if (rowOrderMethod == "Hierarchical") {
       writeHCDataTSVs(rowOrder, rowDendroFile, rowOrderFile)
@@ -39,6 +39,7 @@ writeHCDataTSVs<-function(uDend, outputHCDataFileName, outputHCOrderFileName)
  
    data=matrix(,length(uDend$labels),2);
    for (i in 1:length(uDend$labels)) {
+   	  print(uDend$labels[i])
       data[i,1] = uDend$labels[i];
       data[i,2] = which(uDend$order==i);
    }
