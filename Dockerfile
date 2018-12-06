@@ -47,6 +47,11 @@ RUN  chmod 777 /galaxy-central/tools/Matrix_Manipulation
 RUN sed -i '/<toolbox monitor="true">/a \\t<section id="Heat_Map_Creation" name="Heat Map Creation">\n\t\t<tool file="Heat_Map_Creation/mda_heatmap_gen.xml" />\n\t\t<tool file="Advanced_Heat_Map_Creation/mda_advanced_heatmap_gen.xml" />\n\t</section>' /galaxy-central/config/tool_conf.xml.sample
 RUN sed -i '/<toolbox monitor="true">/a \\t<section id="Matrix_Manipulation" name="Matrix Manipulation">\n\t\t<tool file="Matrix_Manipulation/Matrix_Manipulation.xml" />    </section>' /galaxy-central/config/tool_conf.xml.sample
 
+#add the .ngchm datatype to the /galaxy-central/config/datatypes_conf.xml.sample file reduce warnings
+ADD ./ngchm_datatypes_conf.xml /galaxy-central/config/datatypes_conf.xml
+RUN  chmod 777 /galaxy-central/config/datatypes_conf.xml   
+#not working RUN sed -i '/</datatype>/a \\t<datatype extension="ngchm" type="galaxy.datatypes.data:ngchm" mimetype="application/zip" display_in_upload="true" />\\n' /galaxy-central/config/datatypes_conf.xml.sample
+
 ##### Place MDA and Insilico logo on the Welcome Page #####
 RUN  chmod -777  /etc/galaxy/web/welcome_image.png
 COPY ./mda_heatmap_viz/static/images/MDA&InSilico&Docker.png  /etc/galaxy/web/welcome_image.png
