@@ -64,11 +64,17 @@ then
 fi
 
 #now add the user provided classification files 
+untitledBarCount = 1
 for i in "$@"; do
   if [ $count -gt 20 ]
   then
 #    echo "class entry: " $i
-    classifications=$classifications' '$i
+  	if [ "$i" == "" ] ; then
+  		classifications=$classifications' Classification'$untitledBarCount
+  		untitledBarCount=$((untitledBarCount+1))
+  	else
+    	classifications=$classifications' '$i
+    fi
   fi
   count=$((count+1))
 done
