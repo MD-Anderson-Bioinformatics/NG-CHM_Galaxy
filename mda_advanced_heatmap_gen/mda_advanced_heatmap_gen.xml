@@ -61,7 +61,7 @@
 					<!-- <option value="binary">Binary</option> ** breaks dendrogram -->
 					<option value="manhattan">Manhattan</option>
 					<option value="maximum">Maximum</option>
-					<option value="canberra">Canberra</option>	    
+					<!-- <option value="canberra">Canberra</option>	     ** breaks dendrogram  -->
 					<option value="minkowski">Minkowski</option>	    
 					<!-- <option value="correlation">Correlation</option>  ** breaks dendrogram	 -->    
 				</param>
@@ -183,7 +183,7 @@
 				<!-- <option value="binary">Binary</option> ** breaks dendrogram  -->
 				<option value="manhattan">Manhattan</option>
 				<option value="maximum">Maximum</option>
-				<option value="canberra">Canberra</option>	    
+				<!-- <option value="canberra">Canberra</option> ** breaks dendrogram  -->	    
 				<option value="minkowski">Minkowski</option>	    
 				<!-- <option value="correlation">Correlation</option>	** breaks dendrogram     -->
 			</param>
