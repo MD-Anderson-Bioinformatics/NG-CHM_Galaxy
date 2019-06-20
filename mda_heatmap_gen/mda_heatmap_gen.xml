@@ -5,13 +5,14 @@
 		<requirement type="package" version="8.0.144">openjdk</requirement>
    </requirements>
    <description>Create Clustered Heat Maps</description>
-   <command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap.sh  "standard" "Heat_Map_$hmname" "$hmdesc" '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__;$__tool_data_path__/' 0 0 labels labels 'None'
+   <command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap.sh  "$__tool_directory__" "$__tool_data_path__/" "chm_name|Heat_Map_$hmname" "chm_description|$hmdesc" 
+	"matrix_files|path|$inputmatrix|name|datalayer|summary_method|$summarymethod"
+	"row_configuration|order_method|${d_rows.rowOrderMethod}|distance_metric|${d_rows.rowDistanceMeasure}|agglomeration_method|${d_rows.rowAgglomerationMethod}|tree_covar_cuts|0|data_type|labels"    
+	"col_configuration|order_method|${d_cols.columnOrderMethod}|distance_metric|${d_cols.columnDistanceMeasure}|agglomeration_method|${d_cols.columnAgglomerationMethod}|tree_covar_cuts|0|data_type|labels"    
     #for $op in $operations
-       '${op.class_name}'
-       '${op.repeatinput.file_name}'
-       '${op.cat}'
-      #end for
- 	'$output' 
+       'classification|name|${op.class_name}|path|${op.repeatinput.file_name}|category|${op.cat}'
+    #end for
+ 	'output_location|$output' 
  </command>
 	<stdio>
       <exit_code range="1:" level="fatal" />
@@ -22,11 +23,6 @@
            <sanitizer>
               <valid>
                 <add preset="string.printable"/>
-<!--            <add value="string.letters"/>
-                <add value="string.digits"/>
-                <add value="-"/>
-                <add value="_"/>
--->
             	<remove value="&quot;"/>
             	<remove value="&apos;"/>
                 <remove value=" "/> 
@@ -133,9 +129,9 @@
         </param>
         <param name="repeatinput" type="data" format="Tabular" label="Covariate File" help="Tab delimited text file with row or column label and covariate value on each line."/>
 	<param name="cat" type="select" label="Axis Covariate Type" help="Identify the covariate as belonging to rows or columns and containing categorical or continuous values.">
-	  <option value="row_categorical" >Row Categorical</option>
+	  <option value="row_discrete" >Row Categorical</option>
 	  <option value="row_continuous" >Row Continuous</option>
-	  <option value="column_categorical" >Column Categorical</option>
+	  <option value="column_discrete" >Column Categorical</option>
 	  <option value="column_continuous" >Column Continuous</option>
 	</param>
     </repeat>       

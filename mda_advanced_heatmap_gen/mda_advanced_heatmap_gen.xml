@@ -5,27 +5,73 @@
 		<requirement type="package" version="8.0.144">openjdk</requirement>
   </requirements>
   <description> Create Clustered Heat Maps with Advanced Options</description>
-<command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap_advanced.sh  'advanced' 'Heat_Map_$hmname' '$hmdesc' '$inputmatrix' ${d_rows.rowOrderMethod} ${d_rows.rowDistanceMeasure} ${d_rows.rowAgglomerationMethod} ${d_cols.columnOrderMethod} ${d_cols.columnDistanceMeasure} ${d_cols.columnAgglomerationMethod} $summarymethod '$__tool_directory__;$__tool_data_path__' ${d_rows.rowDendroCut} ${d_cols.colDendroCut} $rowDataType $colDataType 'c_${d_rows.rcutrows.rowDendroTreeCut}' 'c_${d_cols.ccutrows.colDendroTreeCut}' 't_$rowTopItems' 't_$colTopItems' 
-
-    "
+<command interpreter="bash" detect_errors="aggressive">$__tool_directory__/heatmap_advanced.sh  "$__tool_directory__" "$__tool_data_path__/" "chm_name|Heat_Map_$hmname" "chm_description|$hmdesc" "summary_width|$summaryDisplayWidth"
+	"row_configuration|order_method|${d_rows.rowOrderMethod}|distance_metric|${d_rows.rowDistanceMeasure}|agglomeration_method|${d_rows.rowAgglomerationMethod}|tree_covar_cuts|${d_rows.rowDendroCut}|data_type|$rowDataType|top_items|$rowTopItems|tree_cuts|${d_rows.rcutrows.rowDendroTreeCut}|${d_rows.rcutrows.raddcuts}|dendro_show|${d_rows.rowDendroShow}|dendro_height|${d_rows.rowDendroHeight}"      
+	"col_configuration|order_method|${d_cols.columnOrderMethod}|distance_metric|${d_cols.columnDistanceMeasure}|agglomeration_method|${d_cols.columnAgglomerationMethod}|tree_covar_cuts|${d_cols.colDendroCut}|data_type|$colDataType|top_items|$colTopItems|tree_cuts|${d_cols.ccutrows.colDendroTreeCut}|${d_cols.ccutrows.caddcuts}|dendro_show|${d_cols.columnDendroShow}|dendro_height|${d_cols.columnDendroHeight}"    
     #for $attr in $hm_attribute
-      '${attr.attrbute_key}':'${attr.attrbute_value}';
+      'attribute|${attr.attrbute_key}':'${attr.attrbute_value}'
     #end for
-    "
-
+    #for $mx in $matrices
+	   'matrix_files|path|$mx.dataLayer|name|${mx.dataLayerName}|summary_method|${mx.summarymethod}|selection_color|${mx.dataLayerSelectionColor}|cuts_color|${mx.dataLayerCutsColor}|grid_color|${mx.dataLayerGridColor}|grid_show|${mx.dataLayerGridShow}|${mx.colorsBreaks.setColorsBreaks}|${mx.colorsBreaks.matrixColor1}|${mx.colorsBreaks.matrixColor2}|${mx.colorsBreaks.matrixColor3}|${mx.colorsBreaks.matrixBreak1}|${mx.colorsBreaks.matrixBreak2}|${mx.colorsBreaks.matrixBreak3}|${mx.colorsBreaks.missingColor}'
+    #end for
     #for $op in $operations
-       '${op.class_name}'
-       '${op.repeatinput.file_name}'
-       '${op.cattype.cat}'
-       '${op.cattype.bartype}'
-      #end for
- 	'$output' 
+       'classification|name|${op.class_name}|path|${op.repeatinput.file_name}|category|${op.cattype.cat}|bar_type|${op.cattype.scatbar.bartype}|height|${op.classHeight}|fg_color|${op.cattype.scatbar.fg_color}|bg_color|${op.cattype.scatbar.bg_color}'
+    #end for
+ 	'output_location|$output' 
  </command>
 	<stdio>
       <exit_code range="1:" level="fatal" />
 	</stdio>
   <inputs>
-    <param name="inputmatrix" type="data" format="Tabular" label="Input Data Matrix" help="Tab delimited text file with row labels, column labels, and data."/>
+    <repeat name="matrices" title="Heat Map Matrices">
+    	<param name="dataLayer" type="data" format="Tabular" label="Input Data Matrix" help="Tab delimited text file with row labels, column labels, and data."/>
+    	<param name="dataLayerName" size="40" type="text" value="Data_Layer_name"  label="Data Layer Name" help="Name for data layer (no spaces).">
+           <sanitizer>
+              <valid>
+                <add preset="string.printable"/>
+            	<remove value="&quot;"/>
+            	<remove value="&apos;"/>
+                <remove value=" "/> 
+              </valid>
+           </sanitizer>
+        </param>   
+	    <param name="summarymethod" type="select"  label="Data Summarization Method" help="For large matrices, the selected method is used to aggregate data values in the summary view.">
+			<option value="average">Average</option>
+			<option value="sample">Sample</option>
+			<option value="mode">Mode</option>
+	    </param>
+  		<conditional name="colorsBreaks">
+			<param name="setColorsBreaks" type="select" label="Colors and Breakpoints" help="Select whether to set your own colors and breakpoints or use default values.">
+				<option value="none">Use System Generated Colors and Breakpoints</option>
+				<option value="defined">Define Your Own Colors and Breakpoints</option>	    
+			</param>
+	       	<when value="none">
+	 		    	<param name="matrixColor1" type="text" size="0" hidden="true" value="0"/>
+	 		    	<param name="matrixBreak1" type="text" size="0" hidden="true" value="0"/>
+	 		    	<param name="matrixColor2" type="text" size="0" hidden="true" value="0"/>
+	 		    	<param name="matrixBreak2" type="text" size="0" hidden="true" value="0"/>
+	 		    	<param name="matrixColor3" type="text" size="0" hidden="true" value="0"/>
+	 		    	<param name="matrixBreak3" type="text" size="0" hidden="true" value="0"/>
+	 		    	<param name="missingColor" type="text" size="0" hidden="true" value="0"/>
+	       	</when>
+	       	<when value="defined">
+ 					<param name="matrixColor1" type="color" label="Color for Breakpoint One" value="#ff0000"/>
+ 					<param name="matrixBreak1" type="text" label="Value for Breakpoint One" value="-1"/>
+ 					<param name="matrixColor2" type="color" label="Color for Breakpoint Two" value="#ffffff"/>
+ 					<param name="matrixBreak2" type="text" label="Value for Breakpoint Two" value="0"/>
+ 					<param name="matrixColor3" type="color" label="Color for Breakpoint Three" value="#0000ff"/>
+ 					<param name="matrixBreak3" type="text" label="Value for Breakpoint Three" value="1"/>
+ 					<param name="missingColor" type="color" label="Color for Missing Values" value="#000000"/> 
+	        </when>
+        </conditional>
+	   	<param name="dataLayerSelectionColor" type="color" label="Color for selection box" value="#00ff38"/>
+   		<param name="dataLayerCutsColor" type="color" label="Color for Heat Map Gaps" value="#ffffff"/>
+   		<param name="dataLayerGridColor" type="color" label="Color for Heat Map Grid" value="#ffffff"/>
+	    <param name="dataLayerGridShow" type="select"  label="Show Heat Map Grid">
+			<option value="Y">Yes</option>
+			<option value="N">No</option>
+	    </param>
+    </repeat>
     <param name="hmname" size="40" type="text" value="Heat_Map_name"  label="Heat Map Name" help="Short Name for heat map (no spaces)."/>
            <sanitizer>
               <valid>
@@ -44,10 +90,16 @@
                 <remove value=" "/> 
               </valid>
            </sanitizer>
-    <param name="summarymethod" 	type="select"  label="Data Summarization Method" help="For large matrices, the selected method is used to aggregate data values in the summary view.">
-		<option value="average">Average</option>
-		<option value="sample">Sample</option>
-		<option value="mode">Mode</option>
+    <param name="summaryDisplayWidth" 	type="select"  label="Summary Display Width %" help="Sets the percentage of the viewer display of the summary panel.">
+		<option value="50">50%</option>
+		<option value="10">10%</option>
+		<option value="20">20%</option>
+		<option value="30">30%</option>
+		<option value="40">40%</option>
+		<option value="60">60%</option>
+		<option value="70">70%</option>
+		<option value="80">80%</option>
+		<option value="90">90%</option>
     </param>
       <conditional name="d_rows">
 			<param name="rowOrderMethod" type="select" label="Row ordering method" help="Determine if rows should be clustered, randomized, or remain as is.">
@@ -74,6 +126,19 @@
 					<!-- <option value="median">Median</option> ** breaks dendrogram	    
 					<option value="centroid">Centroid</option>	** breaks dendrogram -->    
 				</param>
+				<param name="rowDendroShow" type="select"  label="Show Row Dendrogram" help="For setting the visibility of the row dendrogram.">
+					<option value="ALL">Summary and Detail</option>
+					<option value="SUMMARY">Summary Only</option>
+					<option value="NONE">Hide</option>
+	    		</param>
+				<param name="rowDendroHeight" type="select"  label="Row Dendrogram Display Height" help="For adjusting the displayed height of the dendrogram bar.">
+					<option value="100">100%</option>
+					<option value="50">50%</option>
+					<option value="75">75%</option>
+					<option value="125">125%</option>
+					<option value="150">150%</option>
+					<option value="200">200%</option>
+	    		</param>
 	            <param name="rowDendroCut" type="select" label="Row Cluster Covariate Bar" help="To generate a row covariate bar based on clusters, select the number of clusters(classes) to use.">
 	        		<option value="0" selected="true" >None</option>
 	        		<option value="2" >2</option>
@@ -97,16 +162,16 @@
 		        	</when>
 		        	<when value="treecuts">
 			            <param name="rowDendroTreeCut" type="select" label="Cluster-Based Gap" help="Gaps will be placed between clusters. Select the number of clusters." >
-			        		<option value="0t" selected="true" >None</option>
-			        		<option value="2t" >2</option>
-			        		<option value="3t" >3</option>
-			        		<option value="4t" >4</option>
-			        		<option value="5t" >5</option>
-			        		<option value="6t" >6</option>
-			        		<option value="7t" >7</option>
-			        		<option value="8t" >8</option>
-			        		<option value="9t" >9</option>
-			        		<option value="10t" >10</option>
+			        		<option value="0" selected="true" >None</option>
+			        		<option value="2" >2</option>
+			        		<option value="3" >3</option>
+			        		<option value="4" >4</option>
+			        		<option value="5" >5</option>
+			        		<option value="6" >6</option>
+			        		<option value="7" >7</option>
+			        		<option value="8" >8</option>
+			        		<option value="9" >9</option>
+			        		<option value="10" >10</option>
 			            </param>
 			        </when>
 		        	<when value="positional">
@@ -196,7 +261,20 @@
 				<!-- <option value="median">Median</option>	  ** breaks dendrogram  
 				<option value="centroid">Centroid</option>	** breaks dendrogram     -->
 			</param>
-            <param name="colDendroCut" type="select" label="Column Cluster Covariate Bar" help="To generate a column covariate bar based on clusters, select the number of clusters(classes) to use.">
+			<param name="columnDendroShow" type="select"  label="Show Column Dendrogram" help="For setting the visibility of the column dendrogram.">
+					<option value="ALL">Summary and Detail</option>
+					<option value="SUMMARY">Summary Only</option>
+					<option value="NONE">Hide</option>
+    		</param>
+			<param name="columnDendroHeight" type="select"  label="Column Dendrogram Display Height" help="For adjusting the displayed height of the dendrogram bar.">
+					<option value="100">100%</option>
+					<option value="50">50%</option>
+					<option value="75">75%</option>
+					<option value="125">125%</option>
+					<option value="150">150%</option>
+					<option value="200">200%</option>
+    		</param>
+           <param name="colDendroCut" type="select" label="Column Cluster Covariate Bar" help="To generate a column covariate bar based on clusters, select the number of clusters(classes) to use.">
         		<option value="0" selected="true" >None</option>
         		<option value="2" >2</option>
         		<option value="3" >3</option>
@@ -219,16 +297,16 @@
 	        	</when>
 	        	<when value="treecuts">
 		            <param name="colDendroTreeCut" type="select" label="Cluster-Based Gap" help="Gaps will be placed between clusters. Select the number of clusters.">
-		        		<option value="0t" selected="true" >None</option>
-		        		<option value="2t" >2</option>
-		        		<option value="3t" >3</option>
-		        		<option value="4t" >4</option>
-		        		<option value="5t" >5</option>
-		        		<option value="6t" >6</option>
-		        		<option value="7t" >7</option>
-		        		<option value="8t" >8</option>
-		        		<option value="9t" >9</option>
-		        		<option value="10t" >10</option>
+		        		<option value="0" selected="true" >None</option>
+		        		<option value="2" >2</option>
+		        		<option value="3" >3</option>
+		        		<option value="4" >4</option>
+		        		<option value="5" >5</option>
+		        		<option value="6" >6</option>
+		        		<option value="7" >7</option>
+		        		<option value="8" >8</option>
+		        		<option value="9" >9</option>
+		        		<option value="10" >10</option>
 		            </param>
 		        </when>
 	        	<when value="positional">
@@ -305,32 +383,77 @@
            </sanitizer>
         </param>
         <param name="repeatinput" type="data" format="Tabular" label="Covariate File" help="Tab delimited text file with row or column label and covariate value on each line."/>
+		<param name="classHeight" size="10" type="text" value="15" label="Covariate Display Height" help="Set the display height for column covariates and width for row covariates."/>
         <conditional name="cattype">
 			<param name="cat" type="select" label="Covariate Type" help="Identify the covariate as belonging to rows or columns and containing categorical or continuous values.">
-			  <option value="row_categorical" >Row Categorical</option>
+			  <option value="row_discrete" >Row Categorical</option>
 			  <option value="row_continuous" >Row Continuous</option>
-			  <option value="column_categorical" >Column Categorical</option>
+			  <option value="column_discrete" >Column Categorical</option>
 			  <option value="column_continuous" >Column Continuous</option>
 			</param>
 	        <when value="row_continuous">
-		 		<param name="bartype" type="select" label="Display Type">
-				  <option value="color_plot" >Standard</option>
-				  <option value="bar_plot" >Bar Plot</option>
-				  <option value="scatter_plot" >Scatter Plot</option>
-				</param>
+        		<conditional name="scatbar">
+			 		<param name="bartype" type="select" label="Display Type">
+					  <option value="color_plot" >Standard</option>
+					  <option value="bar_plot" >Bar Plot</option>
+					  <option value="scatter_plot" >Scatter Plot</option>
+					</param>
+	        		<when value="color_plot">
+ 						<param name="bg_color" type="text" size="0" hidden="true" value="#ffffff"/>
+ 						<param name="fg_color" type="text" size="0" hidden="true" value="#000000"/>
+	        		</when>
+	        		<when value="bar_plot">
+ 						<param name="bg_color" type="color" label="Color for Bar Plot Background" value="#ffffff"/>
+ 						<param name="fg_color" type="color" label="Color for Bar Plot Foreground" value="#000000"/>
+	        		</when>
+	        		<when value="scatter_plot">
+ 						<param name="bg_color" type="color" label="Color for Scatter Plot Background" value="#ffffff"/>
+ 						<param name="fg_color" type="color" label="Color for Scatter Plot Foreground" value="#000000"/>
+	        		</when>
+	        	</conditional>
 	        </when>
 	        <when value="column_continuous">
-		 		<param name="bartype" type="select" label="Display Type">
-				  <option value="color_plot" >Standard</option>
-				  <option value="bar_plot" >Bar Plot</option>
-				  <option value="scatter_plot" >Scatter Plot</option>
-				</param>
+        		<conditional name="scatbar">
+			 		<param name="bartype" type="select" label="Display Type">
+					  <option value="color_plot" >Standard</option>
+					  <option value="bar_plot" >Bar Plot</option>
+					  <option value="scatter_plot" >Scatter Plot</option>
+					</param>
+	        		<when value="color_plot">
+ 						<param name="bg_color" type="text" size="0" hidden="true" value="#ffffff"/>
+ 						<param name="fg_color" type="text" size="0" hidden="true" value="#000000"/>
+	        		</when>
+	        		<when value="bar_plot">
+ 						<param name="bg_color" type="color" label="Color for Bar Plot Background" value="#ffffff"/>
+ 						<param name="fg_color" type="color" label="Color for Bar Plot Foreground" value="#000000"/>
+	        		</when>
+	        		<when value="scatter_plot">
+ 						<param name="bg_color" type="color" label="Color for Scatter Plot Background" value="#ffffff"/>
+ 						<param name="fg_color" type="color" label="Color for Scatter Plot Foreground" value="#000000"/>
+	        		</when>
+	        	</conditional>
 	        </when>
-	        <when value="column_categorical">
-	 	 		<param name="bartype" type="text"  hidden="true" value="color_plot"/>
+	        <when value="column_discrete">
+         		<conditional name="scatbar">
+					<param name="bartype" type="select" hidden="true">
+					  <option value="color_plot" >Standard</option>
+					</param>
+ 	        		<when value="color_plot">
+						<param name="bg_color" type="text" size="0" hidden="true" value="#ffffff"/>
+ 						<param name="fg_color" type="text" size="0" hidden="true" value="#000000"/>
+ 					</when>
+	        	</conditional>
 	        </when>
-	        <when value="row_categorical">
-	 	 		<param name="bartype" type="text"  hidden="true" value="color_plot"/>
+	        <when value="row_discrete">
+         		<conditional name="scatbar">
+					<param name="bartype" type="select" hidden="true">
+					  <option value="color_plot" >Standard</option>
+					</param>
+ 	        		<when value="color_plot">
+						<param name="bg_color" type="text" size="0" hidden="true" value="#ffffff"/>
+ 						<param name="fg_color" type="text" size="0" hidden="true" value="#000000"/>
+ 					</when>
+	        	</conditional>
 	        </when>
 	 	</conditional>
      </repeat>       
