@@ -4,7 +4,7 @@
    </HEAD>
    
    <BODY>
-    <div id='NGCHMEmbed' style="background-color: white; width:90%; margin: 0 0 0 5%; border: 2px solid gray; padding: 5px"></div>
+    <div id='NGCHMEmbed' style="background-color: white; width:90vw; height: 95vh; display:flex; flex-direction:column; margin: 0 0 0 5%; border: 2px solid gray; padding: 5px"></div>
     <script src='/plugins/visualizations/mda_heatmap_viz/static/javascript/ngchmWidget-min.js'></script>
     
     <%
