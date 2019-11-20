@@ -123,7 +123,6 @@
                 <add preset="string.printable"/>
             	<remove value="&quot;"/>
             	<remove value="&apos;"/>
-                <remove value=" "/> 
               </valid>
            </sanitizer>
         </param>
