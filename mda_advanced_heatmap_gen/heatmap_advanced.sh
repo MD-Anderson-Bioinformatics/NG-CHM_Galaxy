@@ -357,8 +357,12 @@ then
   if [ `echo "$output" | grep -c "Inf in foreign function call"` -gt 0 ]
   then
     echo "";
-    echo "NOTE 1: This error can occur when a covariate file has inadvertently been selected as an Input Matrix.  Check your Input Matrix entry.";
-    echo "NOTE 2: This error can occur when there is no variation in a data rows or columns in the input matrix.  Try a different distance measure or remove rows/columns without variation.";
+    echo "";
+    echo "R CLUSTERING: Error in clustering the matrix provided (View Details  stdout).   "
+    echo "Note: This error can occur when:"
+    echo "   1. There is invalid numeric data in the matrix provided. Try using Matrix Manipulation tools to fix invalid data.";
+    echo "   2. There is no variation in a row or column in the matrix.  Try a different distance measure or remove rows/columns without variation using Matrix Manipulation tools.";
+    echo "   3. A covariate file has inadvertently been selected as an Input Matrix.  Check your Input Matrix entry.";
   fi
   exit $rc;
 fi
