@@ -26,14 +26,12 @@
     <repeat name="matrices" title="Heat Map Matrices">
     	<param name="dataLayer" type="data" format="Tabular" label="Input Data Matrix" help="Tab delimited text file with row labels, column labels, and data."/>
     	<param name="dataLayerName" size="40" type="text" value="Data_Layer_name"  label="Data Layer Name" help="Name for data layer (no spaces).">
-           <sanitizer>
-              <valid>
-                <add preset="string.printable"/>
+	    <sanitizer>
+        	<valid initial="string.ascii_letters,string.digits">
             	<remove value="&quot;"/>
             	<remove value="&apos;"/>
-                <remove value=" "/> 
               </valid>
-           </sanitizer>
+	    </sanitizer>
         </param>   
 	    <param name="summarymethod" type="select"  label="Data Summarization Method" help="For large matrices, the selected method is used to aggregate data values in the summary view.">
 			<option value="average">Average</option>
@@ -73,23 +71,19 @@
 	    </param>
     </repeat>
     <param name="hmname" size="40" type="text" value="Heat_Map_name"  label="Heat Map Name" help="Short Name for heat map (no spaces)."/>
-           <sanitizer>
-              <valid>
-                <add preset="string.printable"/>
+	    <sanitizer>
+        	<valid initial="string.ascii_letters,string.digits">
             	<remove value="&quot;"/>
             	<remove value="&apos;"/>
-                <remove value=" "/> 
               </valid>
-           </sanitizer>
+	    </sanitizer>
     <param name="hmdesc" size="100" optional="true" type="text" value="Heat_Map_description" label="Heat Map Description" help="Longer description of the heat map contents."/>
-           <sanitizer>
-              <valid>
-                <add preset="string.printable"/>
+	    <sanitizer>
+        	<valid initial="string.ascii_letters,string.digits">
             	<remove value="&quot;"/>
             	<remove value="&apos;"/>
-                <remove value=" "/> 
               </valid>
-           </sanitizer>
+	    </sanitizer>
     <param name="summaryDisplayWidth" 	type="select"  label="Summary Display Width %" help="Sets the percentage of the viewer display of the summary panel.">
 		<option value="50">50%</option>
 		<option value="10">10%</option>
@@ -381,16 +375,22 @@
     </param>    
     <repeat name="operations" title="Covariate Bars">
         <param name="class_name" size="25" type="text" value="" label="Covariate Name" help="Covariate heat map display label.">
-           <sanitizer>
-              <valid>
-                <add preset="string.printable"/>
+	    <sanitizer>
+        	<valid initial="string.ascii_letters,string.digits">
             	<remove value="&quot;"/>
             	<remove value="&apos;"/>
               </valid>
-           </sanitizer>
+	    </sanitizer>
        </param>
         <param name="repeatinput" type="data" format="Tabular" label="Covariate File" help="Tab delimited text file with row or column label and covariate value on each line."/>
-		<param name="classHeight" size="10" type="text" value="15" label="Covariate Display Height" help="Set the display height for column covariates and width for row covariates."/>
+		<param name="classHeight" size="10" type="text" value="15" label="Covariate Display Height" help="Set the display height for column covariates and width for row covariates.">
+		    <sanitizer>
+	        	<valid initial="string.digits">
+	            	<remove value="&quot;"/>
+	            	<remove value="&apos;"/>
+	              </valid>
+		    </sanitizer>
+        </param>
         <conditional name="cattype">
 			<param name="cat" type="select" label="Covariate Type" help="Identify the covariate as belonging to rows or columns and containing categorical or continuous values.">
 			  <option value="row_discrete" >Row Categorical</option>
@@ -466,24 +466,20 @@
      </repeat>       
      <repeat name="hm_attribute" title="Heat Map Attributes">
         <param name="attrbute_key" size="50" type="text" value="" label="Heat Map Attribute Key" help="For map level attributes. Enter the key (no spaces).">
-           <sanitizer invalid_char="_">
-              <valid initial="">
-                <add preset="string.letters"/>
-                <add preset="string.digits"/>
+	    <sanitizer>
+        	<valid initial="string.ascii_letters,string.digits">
+            	<remove value="&quot;"/>
+            	<remove value="&apos;"/>
               </valid>
-              <mapping initial="">
-              </mapping>
-           </sanitizer>
+	    </sanitizer>
         </param>
         <param name="attrbute_value" size="50" type="text" label="Heat Map Attributes Value" help="For map level attributes. Enter the value (no spaces).">
-           <sanitizer invalid_char="_">
-              <valid initial="">
-                <add preset="string.letters"/>
-                <add preset="string.digits"/>
+	    <sanitizer>
+        	<valid initial="string.ascii_letters,string.digits">
+            	<remove value="&quot;"/>
+            	<remove value="&apos;"/>
               </valid>
-              <mapping initial="">
-              </mapping>
-           </sanitizer>
+	    </sanitizer>
         </param>
     </repeat>       
   </inputs>

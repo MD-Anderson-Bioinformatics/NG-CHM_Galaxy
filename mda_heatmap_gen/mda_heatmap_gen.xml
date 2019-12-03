@@ -19,28 +19,20 @@
 	</stdio>
   <inputs>
     <param name="inputmatrix" type="data" format="Tabular" label="Input Data Matrix" help="Tab delimited text file with row labels, column labels, and data."  />
-    <param name="hmname" size="40" type="text" value="Heat_Map_name"  label="Heat Map Name" help="Short Name for heat map (no spaces)."/>
-           <sanitizer>
-              <valid>
-                <add preset="string.printable"/>
+    <param name="hmname" size="40" type="text" value="Heat_Map_name"  label="Heat Map Name" help="Short Name for heat map (no spaces)." optional="false"/>
+	    <sanitizer>
+        	<valid initial="string.ascii_letters,string.digits">
             	<remove value="&quot;"/>
             	<remove value="&apos;"/>
-                <remove value=" "/> 
               </valid>
-           </sanitizer>
-    <param name="hmdesc" size="100" optional="true" type="text" value="Heat_Map_description" label="Heat Map Description" help="Longer description of the heat map contents."/>
-           <sanitizer>
-              <valid>
-                <add preset="string.printable"/>
-                <add value="string.letters"/>
-                <add value="string.digits"/>
-                <add value="-"/>
-                <add value="_"/>
+	    </sanitizer>
+   <param name="hmdesc" size="100" optional="true" type="text" value="Heat_Map_description" label="Heat Map Description" help="Longer description of the heat map contents."/>
+	    <sanitizer>
+        	<valid initial="string.ascii_letters,string.digits">
             	<remove value="&quot;"/>
             	<remove value="&apos;"/>
-                <remove value=" "/> 
               </valid>
-           </sanitizer>
+	    </sanitizer>
     <param name="summarymethod" 	type="select"  label="Data Summarization Method" help="For large matrices, the selected method is used to aggregate data values in the summary view.">
 		<option value="average">Average</option>
 		<option value="sample">Sample</option>
@@ -117,14 +109,13 @@
         </when>
     </conditional>
     <repeat name="operations" title="Covariate Bars">
-        <param name="class_name" size="25" type="text" value="" label="Covariate Name" help="Covariate heat map display label.">
-           <sanitizer>
-              <valid>
-                <add preset="string.printable"/>
+        <param name="class_name" size="25" type="text" value="" label="Covariate Name" optional="false" help="Covariate heat map display label.">
+	    <sanitizer>
+        	<valid initial="string.ascii_letters,string.digits">
             	<remove value="&quot;"/>
             	<remove value="&apos;"/>
               </valid>
-           </sanitizer>
+	    </sanitizer>
         </param>
         <param name="repeatinput" type="data" format="Tabular" label="Covariate File" help="Tab delimited text file with row or column label and covariate value on each line."/>
 	<param name="cat" type="select" label="Axis Covariate Type" help="Identify the covariate as belonging to rows or columns and containing categorical or continuous values.">

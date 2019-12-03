@@ -42,10 +42,16 @@ for i in "$@"; do
 	if [ $ctr -gt 1 ]
 	then
 		currParm=$(cut -d'|' -f1 <<< $i)
-		if [ $currParm != "matrix_files" ] && [ $currParm != "row_configuration" ] && [ $currParm != "col_configuration" ] && [ $currParm != "classification" ]
+		if [ $currParm != "matrix_files" ] && [ $currParm != "row_configuration" ] && [ $currParm != "col_configuration" ] && [ $currParm != "classification" ] && [ $currParm != "chm_name" ]
 		then
 			#Parse pipe-delimited parameter parameter
 			parmJson=$parmJson' "'$(cut -d'|' -f1 <<< $i)'":"'$(cut -d'|' -f2 <<< $i)'",'
+	  	fi
+		if [ $currParm = "chm_name" ]
+		then
+			currVal=$(cut -d'|' -f2 <<< $i)
+			currEdit=$(echo "$currVal"  | sed 's/\//_/g')		
+			parmJson=$parmJson' "'$(cut -d'|' -f1 <<< $i)'":"'$currEdit'",'
 	  	fi
 		if [ $currParm = "row_configuration" ]
 		then
@@ -108,7 +114,11 @@ for i in "$@"; do
 	then
 		classIter=$((classIter+1))
 		#Parse pipe-delimited 3-part classification bar parameter
-		classJson=$classJson' {"'$(cut -d'|' -f2 <<< $i)'":"'$(cut -d'|' -f3 <<< $i)'","'$(cut -d'|' -f4 <<< $i)'":"'$(cut -d'|' -f5 <<< $i)'"'
+		className=$(cut -d'|' -f3 <<< $i)
+		if [[ -z "$className" ]]; then
+		   className="covar"$classIter
+		fi
+		classJson=$classJson' {"'$(cut -d'|' -f2 <<< $i)'":"'$className'","'$(cut -d'|' -f4 <<< $i)'":"'$(cut -d'|' -f5 <<< $i)'"'
 		classCat=$(cut -d'|' -f7 <<< $i)
 		classColorType=$(cut -d'_' -f2 <<< $classCat)
 		classJson=$classJson','
