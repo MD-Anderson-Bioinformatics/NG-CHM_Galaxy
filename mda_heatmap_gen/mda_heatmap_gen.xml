@@ -21,14 +21,14 @@
     <param name="inputmatrix" type="data" format="Tabular" label="Input Data Matrix" help="Tab delimited text file with row labels, column labels, and data."  />
     <param name="hmname" size="40" type="text" value="Heat_Map_name"  label="Heat Map Name" help="Short Name for heat map (no spaces)." optional="false"/>
 	    <sanitizer>
-        	<valid initial="string.ascii_letters,string.digits">
+        	<valid initial="string.printable">
             	<remove value="&quot;"/>
             	<remove value="&apos;"/>
               </valid>
 	    </sanitizer>
    <param name="hmdesc" size="100" optional="true" type="text" value="Heat_Map_description" label="Heat Map Description" help="Longer description of the heat map contents."/>
 	    <sanitizer>
-        	<valid initial="string.ascii_letters,string.digits">
+        	<valid initial="string.printable">
             	<remove value="&quot;"/>
             	<remove value="&apos;"/>
               </valid>
@@ -111,7 +111,7 @@
     <repeat name="operations" title="Covariate Bars">
         <param name="class_name" size="25" type="text" value="" label="Covariate Name" optional="false" help="Covariate heat map display label.">
 	    <sanitizer>
-        	<valid initial="string.ascii_letters,string.digits">
+        	<valid initial="string.printable">
             	<remove value="&quot;"/>
             	<remove value="&apos;"/>
               </valid>
