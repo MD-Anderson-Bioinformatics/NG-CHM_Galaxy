@@ -351,8 +351,11 @@ classJson=$classJson']'
 #END: Construct JSON for classification files
 #echo "CLASSIFICATION JSON: "$classJson
 
+#Add build platform JSON for distinction between GenePattern and Galaxy Builders
+platformJson='"build_platform": "Galaxy",'
+
 #Complete construction of Parameter JSON file by adding all JSON sections created above
-parmJson=$parmJson$rowConfigJson$colConfigJson$attribJson$matrixJson$classJson
+parmJson=$parmJson$rowConfigJson$colConfigJson$attribJson$matrixJson$platformJson$classJson
 parmJson=$parmJson'}'
 #echo "COMPLETED PARAMETER JSON: "$parmJson
 
