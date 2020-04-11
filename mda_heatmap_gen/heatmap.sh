@@ -132,7 +132,10 @@ done
 classJson=$classJson']'
 #END: Construct JSON for classification files
 
-parmJson=$parmJson$matrixJson$rowConfigJson$colConfigJson$classJson
+#Add build platform JSON for distinction between GenePattern and Galaxy Builders
+platformJson='"build_platform": "Galaxy",'
+
+parmJson=$parmJson$matrixJson$rowConfigJson$colConfigJson$platformJson$classJson
 parmJson=$parmJson'}'
 #echo "HEATMAP PARAMETERS JSON: "$parmJson	
 
