@@ -3,7 +3,9 @@
 FROM bgruening/galaxy-stable
 
 ##### APT-GET #####
-RUN apt-get update
+RUN apt-key adv --refresh-keys --keyserver keyserver.ubuntu.com
+RUN echo "" > /etc/apt/sources.list.d/htcondor.list
+RUN apt-get update --fix-missing
 
 #Need to install R now for some reason
 RUN apt-get install -y r-base

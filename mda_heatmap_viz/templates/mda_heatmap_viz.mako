@@ -37,11 +37,9 @@
                if (name.indexOf('[') > -1) {
                  name = name.substring(name.indexOf('[')+1, name.indexOf(']'));
                }               
-               NgChm.heatMap = matrixMgr.getHeatMap(name,  NgChm.SUM.processSummaryMapUpdate, blob);
-               NgChm.heatMap.addEventListener(NgChm.DET.processDetailMapUpdate);
+               NgChm.heatMap = matrixMgr.getHeatMap(name, [NgChm.SUM.processSummaryMapUpdate, NgChm.DET.processDetailMapUpdate], blob);
                NgChm.SUM.initSummaryDisplay();
-               NgChm.DET.initDetailDisplay();
-               document.getElementById("container").addEventListener('wheel', NgChm.SEL.handleScroll, false);
+               document.body.addEventListener('wheel',NgChm.DEV.handleScroll, false);
                document.getElementById("detail_canvas").focus();
            }
        };
