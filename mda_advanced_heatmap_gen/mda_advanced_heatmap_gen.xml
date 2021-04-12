@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<tool id="mda_advanced_heatmap_gen" name="Advanced NG-CHM Generator" version="2.13.1">
+<tool id="mda_advanced_heatmap_gen" name="Advanced NG-CHM Generator" version="2.13.2">
   <requirements>
        <requirement type="package" version="3.4.1">r-base</requirement> 
 		<requirement type="package" version="8.0.144">openjdk</requirement>

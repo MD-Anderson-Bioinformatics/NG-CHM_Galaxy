@@ -39,7 +39,7 @@
                }               
                NgChm.heatMap = matrixMgr.getHeatMap(name, [NgChm.SUM.processSummaryMapUpdate, NgChm.DET.processDetailMapUpdate], blob);
                NgChm.SUM.initSummaryDisplay();
-               document.body.addEventListener('wheel',NgChm.DEV.handleScroll, false);
+               document.getElementById('ngChmContainer').addEventListener('wheel',NgChm.DEV.handleScroll, false);
                document.getElementById("detail_canvas").focus();
            }
        };
